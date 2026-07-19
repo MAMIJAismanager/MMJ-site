@@ -70,7 +70,7 @@ async function walk(dir) {
 }
 
 for (const entry of await readdir(root)) {
-  if (['.git', 'node_modules', '.nuxt', '.output', 'dist'].includes(entry)) continue
+  if (['.git', '.wrangler', 'node_modules', '.nuxt', '.output', 'dist'].includes(entry)) continue
   if (!allowedRootEntries.has(entry)) fail(`unexpected root entry: ${entry}`)
 }
 
