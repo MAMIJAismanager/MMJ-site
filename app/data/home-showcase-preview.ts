@@ -17,10 +17,20 @@ function createGatewayCover(
   suffix: string,
 ): ResolvedImageAssetReference {
   const id = `ast_gateway${suffix}`
-  const renditions = base.renditions.map(rendition => Object.freeze({
-    ...rendition,
-    objectKey: `gateway/${suffix}/${rendition.id}.webp`,
-  }))
+  const renditions = base.renditions.map(rendition => {
+    const filename = rendition.objectKey.split('/').at(-1)
+
+    if (!filename) {
+      throw new Error(
+        `Home category gateway rendition requires a canonical filename: ${rendition.id}.`,
+      )
+    }
+
+    return Object.freeze({
+      ...rendition,
+      objectKey: `assets/image/${id}/${filename}`,
+    })
+  })
   const defaultRendition = renditions.find(
     rendition => rendition.id === base.defaultRenditionId,
   ) ?? renditions[0]
