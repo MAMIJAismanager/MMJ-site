@@ -4,13 +4,23 @@ definePageMeta({
   viewportComposition: 'works',
 })
 
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+} from 'vue'
+
 import ProjectGrid from '~/components/project/ProjectGrid.vue'
 import WorksFilterBar from '~/components/works/WorksFilterBar.vue'
 import WorksResultSummary from '~/components/works/WorksResultSummary.vue'
 
+import type {
+  WorksQueryPlacement,
+} from '~/components/works/WorksFilterBar.vue'
+
 import {
   worksCategoryOptions,
-  worksRoleOptions,
   worksTagOptions,
   worksYearOptions,
 } from '~/data/works-query'
@@ -23,10 +33,6 @@ import {
   useWorksNavigationMemory,
 } from '~/composables/useWorksNavigationMemory'
 
-import type {
-  ProjectRole,
-} from '~~/shared/constants/taxonomy'
-
 import {
   findPortfolioGatewayCategory,
 } from '~~/shared/constants/portfolio-gateway-categories'
@@ -38,6 +44,8 @@ import type {
 import type {
   WorksSort,
 } from '~~/shared/query/works-query-state'
+
+const MOBILE_VIEWPORT_QUERY = '(max-width: 47.999rem)'
 
 const {
   queryReady,
@@ -63,6 +71,34 @@ const {
   replaceQuery,
 })
 
+const worksQueryPlacement = ref<WorksQueryPlacement>('pending')
+let mobileViewportQuery: MediaQueryList | null = null
+
+function syncWorksQueryPlacement(
+  media: MediaQueryList | MediaQueryListEvent,
+): void {
+  worksQueryPlacement.value = media.matches
+    ? 'mobile-menu'
+    : 'inline'
+}
+
+onMounted(() => {
+  mobileViewportQuery = window.matchMedia(MOBILE_VIEWPORT_QUERY)
+  syncWorksQueryPlacement(mobileViewportQuery)
+  mobileViewportQuery.addEventListener(
+    'change',
+    syncWorksQueryPlacement,
+  )
+})
+
+onBeforeUnmount(() => {
+  mobileViewportQuery?.removeEventListener(
+    'change',
+    syncWorksQueryPlacement,
+  )
+  mobileViewportQuery = null
+})
+
 function submitSearch(
   value: string | null,
 ): void {
@@ -73,12 +109,6 @@ function changeCategory(
   value: PortfolioGatewayCategoryId | null,
 ): void {
   void patchQuery({ category: value })
-}
-
-function changeRole(
-  value: ProjectRole | null,
-): void {
-  void patchQuery({ role: value })
 }
 
 function changeTag(
@@ -121,6 +151,7 @@ function resetWorksQuery(): void {
     :data-mm-navigation-restoration="restorationResult?.status ?? 'pending'"
     :data-mm-hidden-category-active="hiddenCategoryActive ? 'true' : 'false'"
     :data-mm-hidden-access-denied="hiddenAccessDenied ? 'true' : 'false'"
+    :data-mm-works-query-placement="worksQueryPlacement"
   >
     <header class="mm-page__header">
       <p class="mm-label">
@@ -140,22 +171,31 @@ function resetWorksQuery(): void {
       </p>
     </header>
 
-    <WorksFilterBar
-      :state="state"
-      :category-options="worksCategoryOptions"
-      :role-options="worksRoleOptions"
-      :tag-options="worksTagOptions"
-      :year-options="worksYearOptions"
-      :has-active-filters="hasActiveFilters"
-      :query-ready="queryReady"
-      @submit-search="submitSearch"
-      @change-category="changeCategory"
-      @change-role="changeRole"
-      @change-tag="changeTag"
-      @change-year="changeYear"
-      @change-sort="changeSort"
-      @reset="resetWorksQuery"
-    />
+    <Teleport
+      to="#mm-mobile-menu-context-slot"
+      :disabled="worksQueryPlacement !== 'mobile-menu'"
+    >
+      <div
+        class="mm-works-query-host"
+        :data-mm-works-query-placement="worksQueryPlacement"
+      >
+        <WorksFilterBar
+          :state="state"
+          :category-options="worksCategoryOptions"
+          :tag-options="worksTagOptions"
+          :year-options="worksYearOptions"
+          :has-active-filters="hasActiveFilters"
+          :query-ready="queryReady"
+          :placement="worksQueryPlacement"
+          @submit-search="submitSearch"
+          @change-category="changeCategory"
+          @change-tag="changeTag"
+          @change-year="changeYear"
+          @change-sort="changeSort"
+          @reset="resetWorksQuery"
+        />
+      </div>
+    </Teleport>
 
     <WorksResultSummary
       :total-count="evaluation.totalCount"

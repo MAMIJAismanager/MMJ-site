@@ -44,9 +44,6 @@ export const allWorksProjectQueryAuthority =
 export const worksCategoryOptions =
   worksProjectQueryAuthority.categoryOptions
 
-export const worksRoleOptions =
-  worksProjectQueryAuthority.roleOptions
-
 export const worksTagOptions =
   worksProjectQueryAuthority.tagOptions
 

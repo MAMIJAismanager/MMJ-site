@@ -6,16 +6,11 @@ import {
 } from 'vue'
 
 import type {
-  ProjectRole,
-} from '~~/shared/constants/taxonomy'
-
-import type {
   PortfolioGatewayCategoryId,
 } from '~~/shared/types/portfolio-gateway-category'
 
 import type {
   WorksCategoryOption,
-  WorksRoleOption,
   WorksTagOption,
   WorksYearOption,
 } from '~~/shared/query/works-project-query'
@@ -33,18 +28,22 @@ import type {
   WorksSort,
 } from '~~/shared/query/works-query-state'
 
+export type WorksQueryPlacement =
+  | 'pending'
+  | 'inline'
+  | 'mobile-menu'
+
 interface WorksFilterBarProps {
   readonly state: WorksQueryState
   readonly categoryOptions:
     readonly WorksCategoryOption[]
-  readonly roleOptions:
-    readonly WorksRoleOption[]
   readonly tagOptions:
     readonly WorksTagOption[]
   readonly yearOptions:
     readonly WorksYearOption[]
   readonly hasActiveFilters: boolean
   readonly queryReady: boolean
+  readonly placement: WorksQueryPlacement
 }
 
 const props = defineProps<WorksFilterBarProps>()
@@ -52,7 +51,6 @@ const props = defineProps<WorksFilterBarProps>()
 const emit = defineEmits<{
   'submit-search': [value: string | null]
   'change-category': [value: PortfolioGatewayCategoryId | null]
-  'change-role': [value: ProjectRole | null]
   'change-tag': [value: string | null]
   'change-year': [value: number | null]
   'change-sort': [value: WorksSort]
@@ -65,6 +63,10 @@ const categorySelectValue = computed(() => (
   isPublicPortfolioGatewayCategoryId(props.state.category)
     ? props.state.category
     : ''
+))
+
+const categoryDebugValue = computed(() => (
+  props.state.category ?? 'all'
 ))
 
 watch(
@@ -99,16 +101,6 @@ function changeCategory(event: Event): void {
   )
 }
 
-function changeRole(event: Event): void {
-  const value = selectValue(event)
-  emit(
-    'change-role',
-    value.length > 0
-      ? value as ProjectRole
-      : null,
-  )
-}
-
 function changeTag(event: Event): void {
   const value = selectValue(event)
   emit('change-tag', value.length > 0 ? value : null)
@@ -134,6 +126,10 @@ function changeSort(event: Event): void {
   <div
     class="mm-works-query"
     data-mm-works-query-controls
+    :data-placement="placement"
+    :data-mm-works-query-placement="placement"
+    :data-mm-works-query-category="categoryDebugValue"
+    data-mm-works-role-filter="retired"
   >
     <form
       class="mm-works-query__search"
@@ -155,13 +151,13 @@ function changeSort(event: Event): void {
           name="q"
           type="search"
           autocomplete="off"
-          :disabled="!queryReady"
+          :disabled="!queryReady || placement === 'pending'"
         >
 
         <button
           class="mm-works-query__button"
           type="submit"
-          :disabled="!queryReady"
+          :disabled="!queryReady || placement === 'pending'"
         >
           찾기
         </button>
@@ -182,7 +178,7 @@ function changeSort(event: Event): void {
           class="mm-works-query__control"
           name="category"
           :value="categorySelectValue"
-          :disabled="!queryReady"
+          :disabled="!queryReady || placement === 'pending'"
           @change="changeCategory"
         >
           <option value="">
@@ -190,36 +186,6 @@ function changeSort(event: Event): void {
           </option>
           <option
             v-for="option in categoryOptions"
-            :key="option.token"
-            :value="option.token"
-            :disabled="option.count === 0"
-          >
-            {{ option.label }} ({{ option.count }})
-          </option>
-        </select>
-      </div>
-
-      <div class="mm-works-query__field">
-        <label
-          class="mm-works-query__label"
-          for="mm-works-role"
-        >
-          역할
-        </label>
-
-        <select
-          id="mm-works-role"
-          class="mm-works-query__control"
-          name="role"
-          :value="state.role ?? ''"
-          :disabled="!queryReady"
-          @change="changeRole"
-        >
-          <option value="">
-            전체 역할
-          </option>
-          <option
-            v-for="option in roleOptions"
             :key="option.token"
             :value="option.token"
             :disabled="option.count === 0"
@@ -242,7 +208,7 @@ function changeSort(event: Event): void {
           class="mm-works-query__control"
           name="tag"
           :value="state.tag ?? ''"
-          :disabled="!queryReady"
+          :disabled="!queryReady || placement === 'pending'"
           @change="changeTag"
         >
           <option value="">
@@ -271,7 +237,7 @@ function changeSort(event: Event): void {
           class="mm-works-query__control"
           name="year"
           :value="state.year ?? ''"
-          :disabled="!queryReady"
+          :disabled="!queryReady || placement === 'pending'"
           @change="changeYear"
         >
           <option value="">
@@ -300,7 +266,7 @@ function changeSort(event: Event): void {
           class="mm-works-query__control"
           name="sort"
           :value="state.sort"
-          :disabled="!queryReady"
+          :disabled="!queryReady || placement === 'pending'"
           @change="changeSort"
         >
           <option value="order">
@@ -322,7 +288,7 @@ function changeSort(event: Event): void {
     <button
       class="mm-works-query__reset"
       type="button"
-      :disabled="!queryReady || !hasActiveFilters"
+      :disabled="!queryReady || !hasActiveFilters || placement === 'pending'"
       @click="emit('reset')"
     >
       조건 초기화

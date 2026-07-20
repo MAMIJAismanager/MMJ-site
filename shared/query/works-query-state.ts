@@ -1,8 +1,4 @@
 import type {
-  ProjectRole,
-} from '../constants/taxonomy'
-
-import type {
   PortfolioGatewayCategoryId,
 } from '../types/portfolio-gateway-category'
 
@@ -13,15 +9,21 @@ import type {
 export const WORKS_QUERY_KEYS = [
   'q',
   'category',
-  'role',
   'tag',
   'year',
   'sort',
   'project',
 ] as const
 
+export const DEPRECATED_WORKS_QUERY_KEYS = [
+  'role',
+] as const
+
 export type WorksQueryKey =
   typeof WORKS_QUERY_KEYS[number]
+
+export type DeprecatedWorksQueryKey =
+  typeof DEPRECATED_WORKS_QUERY_KEYS[number]
 
 export const WORKS_SORT_VALUES = [
   'order',
@@ -36,7 +38,6 @@ export type WorksSort =
 export interface WorksQueryState {
   readonly q: string | null
   readonly category: PortfolioGatewayCategoryId | null
-  readonly role: ProjectRole | null
   readonly tag: string | null
   readonly year: number | null
   readonly sort: WorksSort
@@ -47,7 +48,6 @@ export const DEFAULT_WORKS_QUERY_STATE:
 Readonly<WorksQueryState> = Object.freeze({
   q: null,
   category: null,
-  role: null,
   tag: null,
   year: null,
   sort: 'order',
@@ -68,7 +68,6 @@ export type WorksQueryIssueCode =
   | 'multiple-values'
   | 'empty-value'
   | 'unknown-category'
-  | 'unknown-role'
   | 'unknown-tag'
   | 'invalid-year'
   | 'unknown-sort'

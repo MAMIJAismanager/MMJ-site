@@ -1,16 +1,9 @@
 import {
-  PROJECT_ROLE_REGISTRY,
-  isProjectRole,
-} from '../constants/taxonomy'
-import {
   PUBLIC_PORTFOLIO_GATEWAY_CATEGORIES,
   isPortfolioGatewayCategoryId,
   findPortfolioGatewayCategory,
 } from '../constants/portfolio-gateway-categories'
 
-import type {
-  ProjectRole,
-} from '../constants/taxonomy'
 import type {
   PortfolioGatewayCategoryId,
 } from '../types/portfolio-gateway-category'
@@ -50,12 +43,6 @@ export interface WorksCategoryOption {
   readonly count: number
 }
 
-export interface WorksRoleOption {
-  readonly token: ProjectRole
-  readonly label: string
-  readonly order: number
-  readonly count: number
-}
 
 export interface WorksTagOption {
   readonly token: string
@@ -82,7 +69,6 @@ export interface WorksQueryEvaluation {
 export interface WorksProjectQueryAuthority {
   readonly allProjects: readonly ProjectCardView[]
   readonly categoryOptions: readonly WorksCategoryOption[]
-  readonly roleOptions: readonly WorksRoleOption[]
   readonly tagOptions: readonly WorksTagOption[]
   readonly yearOptions: readonly WorksYearOption[]
 
@@ -305,7 +291,6 @@ function hasAnyActiveQuery(
   return (
     state.q !== null
     || state.category !== null
-    || state.role !== null
     || state.tag !== null
     || state.year !== null
     || state.sort !== 'order'
@@ -322,7 +307,6 @@ function serializeWorksQueryState(
   if (state.category !== null) {
     output.category = state.category
   }
-  if (state.role !== null) output.role = state.role
   if (state.tag !== null) output.tag = state.tag
   if (state.year !== null) {
     output.year = String(state.year)
@@ -376,14 +360,6 @@ export function createWorksProjectQueryAuthority(
     ),
   )
 
-  const roleCounts = new Map<
-    ProjectRole,
-    number
-  >(
-    PROJECT_ROLE_REGISTRY.map(
-      entry => [entry.token, 0] as const,
-    ),
-  )
 
   const tagCounts = new Map<string, number>()
   const yearCounts = new Map<number, number>()
@@ -429,17 +405,6 @@ export function createWorksProjectQueryAuthority(
       }
     }
 
-    for (const role of project.roles) {
-      const roleCount = roleCounts.get(role.token)
-
-      if (roleCount === undefined) {
-        throw new Error(
-          `Unknown project role: ${role.token}`,
-        )
-      }
-
-      roleCounts.set(role.token, roleCount + 1)
-    }
 
     for (const tag of project.tags) {
       const existingTag = tagOwner.get(tag.token)
@@ -501,16 +466,6 @@ export function createWorksProjectQueryAuthority(
     )),
   )
 
-  const roleOptions = Object.freeze(
-    PROJECT_ROLE_REGISTRY.map(entry => (
-      freezeRecord({
-        token: entry.token,
-        label: entry.label,
-        order: entry.order,
-        count: roleCounts.get(entry.token) ?? 0,
-      })
-    )),
-  )
 
   const tagOptions = Object.freeze(
     [...tagOwner.entries()]
@@ -557,7 +512,6 @@ export function createWorksProjectQueryAuthority(
 
     const qScalar = scalars.get('q')
     const categoryScalar = scalars.get('category')
-    const roleScalar = scalars.get('role')
     const tagScalar = scalars.get('tag')
     const yearScalar = scalars.get('year')
     const sortScalar = scalars.get('sort')
@@ -566,7 +520,6 @@ export function createWorksProjectQueryAuthority(
     if (
       qScalar === undefined
       || categoryScalar === undefined
-      || roleScalar === undefined
       || tagScalar === undefined
       || yearScalar === undefined
       || sortScalar === undefined
@@ -619,30 +572,6 @@ export function createWorksProjectQueryAuthority(
       }
     }
 
-    let role: ProjectRole | null = null
-    if (
-      roleScalar.issue === null
-      && roleScalar.present
-      && roleScalar.value !== null
-    ) {
-      if (isProjectRole(roleScalar.value)) {
-        role = roleScalar.value
-      } else if (roleScalar.value.length === 0) {
-        issuesByKey.set(
-          'role',
-          issue('role', 'empty-value', roleScalar.value),
-        )
-      } else {
-        issuesByKey.set(
-          'role',
-          issue(
-            'role',
-            'unknown-role',
-            roleScalar.value,
-          ),
-        )
-      }
-    }
 
     let tag: string | null = null
     if (
@@ -788,14 +717,6 @@ export function createWorksProjectQueryAuthority(
         return false
       }
 
-      if (
-        role !== null
-        && !project.roles.some(entry => (
-          entry.token === role
-        ))
-      ) {
-        return false
-      }
 
       if (
         tag !== null
@@ -888,7 +809,6 @@ export function createWorksProjectQueryAuthority(
     const state = freezeRecord<WorksQueryState>({
       q,
       category,
-      role,
       tag,
       year,
       sort,
@@ -923,7 +843,6 @@ export function createWorksProjectQueryAuthority(
   const authority = freezeRecord<WorksProjectQueryAuthority>({
     allProjects,
     categoryOptions,
-    roleOptions,
     tagOptions,
     yearOptions,
     evaluate,
