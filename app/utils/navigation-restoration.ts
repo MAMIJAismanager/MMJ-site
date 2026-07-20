@@ -30,6 +30,16 @@ import type { ProjectId } from '~~/shared/types/domain-identifiers'
 
 const WORK_DETAIL_PREFIX = '/works/'
 
+export type NavigationOriginPath = '/' | '/works'
+
+export function resolveNavigationOriginPath(
+  path: string,
+): NavigationOriginPath | null {
+  if (path === '/') return '/'
+  if (path === '/works' || path === '/works/') return '/works'
+  return null
+}
+
 export function createNavigationCaptureEntry(
   input: NavigationMemoryEntry,
 ): NavigationMemoryEntry {

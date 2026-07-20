@@ -21,6 +21,7 @@ import {
   createCurrentNavigationRouteKey,
   createNavigationRestorationPlan,
   entryMatches,
+  resolveNavigationOriginPath,
   runWorksNavigationRestoration,
 } from '~/utils/navigation-restoration'
 
@@ -30,6 +31,7 @@ import {
 } from '~/utils/works-activation-transaction'
 
 import type {
+  NavigationRestorationPlan,
   NavigationRestorationResult,
   ProjectDetailActivationPayload,
 } from '~/types/navigation-restoration'
@@ -44,6 +46,7 @@ import type {
 } from '~~/shared/query/works-query-state'
 
 import type {
+  NavigationMemoryEntry,
   NavigationRouteKey,
 } from '~~/shared/types/navigation-memory'
 
@@ -83,21 +86,33 @@ export function useWorksNavigationMemory(
       : scrollingElement.scrollTop
   }
 
-  function readRouterRouteKey(): NavigationRouteKey | null {
-    const current = router.currentRoute.value
-    if (current.path !== '/' && current.path !== '/works') return null
+  function createRouteKeyIfSupported(
+    path: string,
+    query: Readonly<Record<string, unknown>>,
+  ): NavigationRouteKey | null {
+    const canonicalPath = resolveNavigationOriginPath(path)
+    if (canonicalPath === null) return null
+
     try {
       return createCurrentNavigationRouteKey(
-        current.path,
-        current.query,
+        canonicalPath,
+        query,
       )
     } catch {
       return null
     }
   }
 
-  function currentRouteKey(): NavigationRouteKey {
-    return createCurrentNavigationRouteKey(
+  function readRouterRouteKey(): NavigationRouteKey | null {
+    const current = router.currentRoute.value
+    return createRouteKeyIfSupported(
+      current.path,
+      current.query,
+    )
+  }
+
+  function currentRouteKey(): NavigationRouteKey | null {
+    return createRouteKeyIfSupported(
       route.path,
       route.query,
     )
@@ -192,7 +207,26 @@ export function useWorksNavigationMemory(
     const store = toRaw(navigationMemoryStore).value
     if (store === null) return
     const hadEntry = store.entry !== null
-    const entry = store.consumeForRoute(currentRouteKey())
+    const routeKey = currentRouteKey()
+
+    if (routeKey === null) {
+      if (hadEntry) store.clear()
+      restorationResult.value = Object.freeze({
+        status: 'route-mismatch',
+      })
+      return
+    }
+
+    let entry: NavigationMemoryEntry | null
+    try {
+      entry = store.consumeForRoute(routeKey)
+    } catch {
+      store.clear()
+      restorationResult.value = Object.freeze({
+        status: 'route-mismatch',
+      })
+      return
+    }
 
     if (entry === null) {
       restorationResult.value = Object.freeze({
@@ -201,7 +235,15 @@ export function useWorksNavigationMemory(
       return
     }
 
-    const plan = createNavigationRestorationPlan(entry)
+    let plan: NavigationRestorationPlan
+    try {
+      plan = createNavigationRestorationPlan(entry)
+    } catch {
+      restorationResult.value = Object.freeze({
+        status: 'route-mismatch',
+      })
+      return
+    }
     if (plan.origin !== 'works') {
       restorationResult.value = Object.freeze({
         status: 'route-mismatch',

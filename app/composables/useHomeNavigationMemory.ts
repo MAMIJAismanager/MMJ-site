@@ -21,10 +21,12 @@ import {
   createNavigationRestorationPlan,
   entryMatches,
   executeHomeDetailActivation,
+  resolveNavigationOriginPath,
   runHomeNavigationRestoration,
 } from '~/utils/navigation-restoration'
 
 import type {
+  NavigationRestorationPlan,
   NavigationRestorationResult,
   ProjectDetailActivationPayload,
 } from '~/types/navigation-restoration'
@@ -38,6 +40,10 @@ import type {
 } from '~~/shared/view/portfolio-project-view'
 
 import type { ProjectId } from '~~/shared/types/domain-identifiers'
+import type {
+  NavigationMemoryEntry,
+  NavigationRouteKey,
+} from '~~/shared/types/navigation-memory'
 
 interface UseHomeNavigationMemoryOptions {
   readonly projects: () => readonly ShowcaseProjectView[]
@@ -59,11 +65,18 @@ export function useHomeNavigationMemory(
   let restoreAttempted = false
   let restoreGeneration = 0
 
-  function currentRouteKey() {
-    return createCurrentNavigationRouteKey(
-      route.path,
-      route.query,
-    )
+  function currentRouteKey(): NavigationRouteKey | null {
+    const canonicalPath = resolveNavigationOriginPath(route.path)
+    if (canonicalPath === null) return null
+
+    try {
+      return createCurrentNavigationRouteKey(
+        canonicalPath,
+        route.query,
+      )
+    } catch {
+      return null
+    }
   }
 
   function readMutableNavigationMemoryStore() {
@@ -83,6 +96,12 @@ export function useHomeNavigationMemory(
     const store = readMutableNavigationMemoryStore()
     if (store === null) return
 
+    const routeKey = currentRouteKey()
+    if (routeKey === null) {
+      store.clear()
+      return
+    }
+
     executeHomeDetailActivation(
       payload,
       options.activeProjectId.value,
@@ -91,7 +110,7 @@ export function useHomeNavigationMemory(
         readRailScrollLeft: () => (
           options.trackViewport.value?.scrollLeft ?? null
         ),
-        currentRouteKey,
+        currentRouteKey: () => routeKey,
         capture: entry => {
           store.capture(entry)
           if (!entryMatches(store.entry, entry)) {
@@ -124,7 +143,26 @@ export function useHomeNavigationMemory(
     const store = readMutableNavigationMemoryStore()
     if (store === null) return
     const hadEntry = store.entry !== null
-    const entry = store.consumeForRoute(currentRouteKey())
+    const routeKey = currentRouteKey()
+
+    if (routeKey === null) {
+      if (hadEntry) store.clear()
+      restorationResult.value = Object.freeze({
+        status: 'route-mismatch',
+      })
+      return
+    }
+
+    let entry: NavigationMemoryEntry | null
+    try {
+      entry = store.consumeForRoute(routeKey)
+    } catch {
+      store.clear()
+      restorationResult.value = Object.freeze({
+        status: 'route-mismatch',
+      })
+      return
+    }
 
     if (entry === null) {
       restorationResult.value = Object.freeze({
@@ -141,7 +179,16 @@ export function useHomeNavigationMemory(
       return
     }
 
-    const plan = createNavigationRestorationPlan(entry)
+    let plan: NavigationRestorationPlan
+    try {
+      plan = createNavigationRestorationPlan(entry)
+    } catch {
+      restorationResult.value = Object.freeze({
+        status: 'route-mismatch',
+      })
+      return
+    }
+
     if (plan.origin !== 'home') {
       restorationResult.value = Object.freeze({
         status: 'route-mismatch',

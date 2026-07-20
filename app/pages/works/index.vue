@@ -6,6 +6,7 @@ definePageMeta({
 
 import {
   computed,
+  nextTick,
   onBeforeUnmount,
   onMounted,
   ref,
@@ -73,17 +74,53 @@ const {
 
 const worksQueryPlacement = ref<WorksQueryPlacement>('pending')
 let mobileViewportQuery: MediaQueryList | null = null
+let placementFrame: number | null = null
+let placementDisposed = false
 
-function syncWorksQueryPlacement(
+function mobileMenuContextTargetExists(): boolean {
+  return document.getElementById(
+    'mm-mobile-menu-context-slot',
+  ) !== null
+}
+
+function resolveWorksQueryPlacement(
   media: MediaQueryList | MediaQueryListEvent,
 ): void {
-  worksQueryPlacement.value = media.matches
+  if (!media.matches) {
+    worksQueryPlacement.value = 'inline'
+    return
+  }
+
+  worksQueryPlacement.value = mobileMenuContextTargetExists()
     ? 'mobile-menu'
     : 'inline'
 }
 
-onMounted(() => {
+function syncWorksQueryPlacement(
+  media: MediaQueryList | MediaQueryListEvent,
+): void {
+  if (placementFrame !== null) {
+    cancelAnimationFrame(placementFrame)
+    placementFrame = null
+  }
+
+  if (!media.matches) {
+    worksQueryPlacement.value = 'inline'
+    return
+  }
+
+  worksQueryPlacement.value = 'pending'
+  placementFrame = requestAnimationFrame(() => {
+    placementFrame = null
+    if (placementDisposed) return
+    resolveWorksQueryPlacement(media)
+  })
+}
+
+onMounted(async () => {
+  placementDisposed = false
   mobileViewportQuery = window.matchMedia(MOBILE_VIEWPORT_QUERY)
+  await nextTick()
   syncWorksQueryPlacement(mobileViewportQuery)
   mobileViewportQuery.addEventListener(
     'change',
@@ -92,6 +129,11 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  placementDisposed = true
+  if (placementFrame !== null) {
+    cancelAnimationFrame(placementFrame)
+    placementFrame = null
+  }
   mobileViewportQuery?.removeEventListener(
     'change',
     syncWorksQueryPlacement,
@@ -174,6 +216,7 @@ function resetWorksQuery(): void {
     <Teleport
       to="#mm-mobile-menu-context-slot"
       :disabled="worksQueryPlacement !== 'mobile-menu'"
+      defer
     >
       <div
         class="mm-works-query-host"

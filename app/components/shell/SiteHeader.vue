@@ -18,6 +18,9 @@ import {
 import {
   useMobileMenuController,
 } from '~/composables/useMobileMenuController'
+import {
+  resolveNavigationOriginPath,
+} from '~/utils/navigation-restoration'
 
 const route = useRoute()
 
@@ -53,7 +56,9 @@ const menuCloseButtonRef = ref<HTMLButtonElement | null>(null)
 const shouldRestoreTriggerFocus = ref(false)
 const inertSnapshots = new Map<HTMLElement, boolean>()
 
-const hasWorksContext = computed(() => route.path === '/works')
+const hasWorksContext = computed(() => (
+  resolveNavigationOriginPath(route.path) === '/works'
+))
 const menuContext = computed(() => (
   hasWorksContext.value ? 'works' : 'none'
 ))
@@ -303,11 +308,16 @@ onBeforeUnmount(() => {
         />
 
         <section
-          v-if="hasWorksContext"
           class="mm-mobile-menu-surface__context"
-          aria-labelledby="mm-mobile-menu-context-title"
+          :hidden="!hasWorksContext"
+          :aria-labelledby="
+            hasWorksContext
+              ? 'mm-mobile-menu-context-title'
+              : undefined
+          "
         >
           <h3
+            v-if="hasWorksContext"
             id="mm-mobile-menu-context-title"
             class="mm-section-title mm-mobile-menu-surface__context-title"
           >
@@ -319,11 +329,6 @@ onBeforeUnmount(() => {
             data-mm-mobile-menu-context-slot
           />
         </section>
-        <div
-          v-else
-          id="mm-mobile-menu-context-slot"
-          data-mm-mobile-menu-context-slot
-        />
       </div>
     </div>
   </header>
