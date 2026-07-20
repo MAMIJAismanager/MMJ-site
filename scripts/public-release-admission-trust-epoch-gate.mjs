@@ -1,1 +1,0 @@
-import {verifyTrustEpoch} from './public-05n-m-common.mjs';const x=await verifyTrustEpoch({allowFixture:process.argv.includes('--allow-fixture')});console.log(JSON.stringify({event:'PASS_MMJ_05N_M_PUBLIC_TRUST_EPOCH',epochId:x.epoch.epochId,fixtureOnly:x.epoch.fixtureOnly},null,2));
