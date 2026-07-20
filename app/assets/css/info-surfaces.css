@@ -187,13 +187,34 @@
   }
 
   .mm-info-page[data-mm-page='commission'] {
-    grid-template-rows: auto auto;
-    height: auto;
-    min-height: calc(100dvh - 4.5rem);
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+    gap: clamp(0.8rem, 1.5vh, 1.15rem);
+    padding-block: clamp(1rem, 2vh, 1.5rem);
+    overflow: hidden;
+  }
+
+  .mm-info-page[data-mm-page='commission'] .mm-info-page__header {
+    gap: clamp(0.3rem, 0.7vh, 0.6rem);
+    max-width: 54rem;
+  }
+
+  .mm-info-page[data-mm-page='commission'] .mm-page-title {
+    font-size: clamp(2.8rem, 3.3vw, 4rem);
+  }
+
+  .mm-info-page[data-mm-page='commission'] .mm-page__lead {
+    font-size: clamp(1rem, 1vw, 1.15rem);
+    line-height: 1.45;
   }
 
   .mm-info-page[data-mm-page='commission'] .mm-info-page__body {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto;
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-items: stretch;
+    min-height: 0;
+    gap: clamp(0.7rem, 1.3vh, 1rem);
+    overflow: hidden;
   }
 }

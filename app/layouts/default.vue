@@ -13,6 +13,7 @@ const viewportComposition = computed(() => {
     value === 'home'
     || value === 'works'
     || value === 'info'
+    || value === 'commission'
   ) {
     return value
   }

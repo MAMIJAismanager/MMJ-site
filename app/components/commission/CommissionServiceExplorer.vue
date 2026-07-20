@@ -1,12 +1,20 @@
 <script setup lang="ts">
 import {
+  computed,
+  nextTick,
   ref,
 } from 'vue'
+
+import {
+  useCommissionFocusAnchor,
+} from '~/composables/useCommissionFocusAnchor'
+import {
+  useCommissionWorkspaceLayout,
+} from '~/composables/useCommissionWorkspaceLayout'
 
 import type {
   ComponentPublicInstance,
 } from 'vue'
-
 import type {
   CommissionService,
   CommissionServiceId,
@@ -17,46 +25,136 @@ interface Props {
   readonly services: readonly CommissionService[]
 }
 
-defineProps<Props>()
+type CommissionExplorerPhase =
+  | 'overview'
+  | 'opening'
+  | 'detail'
+  | 'switching'
+  | 'closing'
 
+const props = defineProps<Props>()
+const services = computed(() => props.services)
 const activeServiceId = ref<CommissionServiceId | null>(null)
-const triggerElements = new Map<CommissionServiceId, HTMLButtonElement>()
+const phase = ref<CommissionExplorerPhase>('overview')
+const detailContentVisible = ref(false)
+const transitionBusy = ref(false)
+let pendingServiceId: CommissionServiceId | null = null
 
-function toggleService(
-  serviceId: CommissionServiceId,
-): void {
-  activeServiceId.value = activeServiceId.value === serviceId
-    ? null
-    : serviceId
+const {
+  viewportMode,
+  layoutPlan,
+  orderedServices,
+  setServiceElement,
+  readSlotRole,
+  readSlotStyle,
+  captureLayoutRects,
+  animateFrom,
+} = useCommissionWorkspaceLayout({
+  services,
+  activeServiceId,
+})
+
+const {
+  setTriggerElement,
+  focusTrigger,
+  alignServiceTrigger,
+} = useCommissionFocusAnchor()
+
+function nextAnimationFrame(): Promise<void> {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => resolve())
+  })
 }
 
-function isActive(
-  serviceId: CommissionServiceId,
-): boolean {
+function wait(milliseconds: number): Promise<void> {
+  return new Promise(resolve => {
+    window.setTimeout(resolve, milliseconds)
+  })
+}
+
+function isActive(serviceId: CommissionServiceId): boolean {
   return activeServiceId.value === serviceId
 }
 
-function setTriggerElement(
+function isDetailVisible(serviceId: CommissionServiceId): boolean {
+  return isActive(serviceId) && detailContentVisible.value
+}
+
+function setServiceCardElement(
   serviceId: CommissionServiceId,
   element: Element | ComponentPublicInstance | null,
 ): void {
-  if (
-    typeof HTMLButtonElement !== 'undefined'
-    && element instanceof HTMLButtonElement
-  ) {
-    triggerElements.set(serviceId, element)
+  setServiceElement(
+    serviceId,
+    element instanceof HTMLElement ? element : null,
+  )
+}
+
+async function runServiceTransition(
+  requestedServiceId: CommissionServiceId,
+): Promise<void> {
+  if (transitionBusy.value) {
+    pendingServiceId = requestedServiceId
     return
   }
 
-  triggerElements.delete(serviceId)
+  transitionBusy.value = true
+
+  const previousServiceId = activeServiceId.value
+  const nextServiceId = previousServiceId === requestedServiceId
+    ? null
+    : requestedServiceId
+  const isOpening = previousServiceId === null && nextServiceId !== null
+  const isClosing = previousServiceId !== null && nextServiceId === null
+
+  phase.value = isOpening
+    ? 'opening'
+    : isClosing
+      ? 'closing'
+      : 'switching'
+
+  if (previousServiceId !== null) {
+    detailContentVisible.value = false
+    await nextTick()
+    if (viewportMode.value === 'desktop') await wait(110)
+  }
+
+  const before = captureLayoutRects()
+  activeServiceId.value = nextServiceId
+
+  await nextTick()
+  await nextAnimationFrame()
+  await animateFrom(before)
+
+  if (nextServiceId === null) {
+    phase.value = 'overview'
+    if (previousServiceId !== null) focusTrigger(previousServiceId)
+  } else {
+    detailContentVisible.value = true
+    phase.value = 'detail'
+
+    if (viewportMode.value === 'flow') {
+      await alignServiceTrigger(nextServiceId)
+    }
+  }
+
+  transitionBusy.value = false
+
+  const queuedServiceId = pendingServiceId
+  pendingServiceId = null
+  if (queuedServiceId !== null) {
+    await runServiceTransition(queuedServiceId)
+  }
+}
+
+function toggleService(serviceId: CommissionServiceId): void {
+  void runServiceTransition(serviceId)
 }
 
 function closeActiveService(): void {
   const active = activeServiceId.value
   if (active === null) return
-
-  activeServiceId.value = null
-  triggerElements.get(active)?.focus({ preventScroll: true })
+  void runServiceTransition(active)
 }
 </script>
 
@@ -66,6 +164,10 @@ function closeActiveService(): void {
     aria-labelledby="mm-commission-services-heading"
     data-mm-commission-explorer
     :data-mm-commission-active-service="activeServiceId ?? 'none'"
+    :data-mm-commission-phase="phase"
+    :data-mm-commission-layout="layoutPlan.mode"
+    :data-mm-commission-viewport="viewportMode"
+    :aria-busy="transitionBusy ? 'true' : undefined"
     @keydown.esc.prevent="closeActiveService"
   >
     <h2
@@ -75,18 +177,20 @@ function closeActiveService(): void {
       {{ heading }}
     </h2>
 
-    <TransitionGroup
-      tag="ul"
-      name="mm-commission-shift"
+    <ul
       class="mm-commission-service-list"
       data-mm-commission-service-list
     >
       <li
-        v-for="service in services"
+        v-for="service in orderedServices"
         :key="service.id"
+        :ref="element => setServiceCardElement(service.id, element)"
         class="mm-commission-service"
         :data-active="isActive(service.id) ? 'true' : 'false'"
+        :data-detail-visible="isDetailVisible(service.id) ? 'true' : 'false'"
+        :data-layout-role="readSlotRole(service.id)"
         :data-mm-commission-service-id="service.id"
+        :style="readSlotStyle(service.id)"
       >
         <button
           :id="`mm-commission-trigger-${service.id}`"
@@ -118,8 +222,8 @@ function closeActiveService(): void {
           class="mm-commission-service__panel"
           role="region"
           :aria-labelledby="`mm-commission-trigger-${service.id}`"
-          :aria-hidden="isActive(service.id) ? undefined : 'true'"
-          :inert="!isActive(service.id)"
+          :aria-hidden="isDetailVisible(service.id) ? undefined : 'true'"
+          :inert="!isDetailVisible(service.id)"
         >
           <div class="mm-commission-service__panel-inner">
             <div class="mm-commission-service__detail-grid">
@@ -185,7 +289,7 @@ function closeActiveService(): void {
           </div>
         </section>
       </li>
-    </TransitionGroup>
+    </ul>
   </section>
 </template>
 
