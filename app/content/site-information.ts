@@ -1,25 +1,3 @@
-import {
-  PROJECT_CATEGORY_REGISTRY,
-  type ProjectCategory,
-} from '~~/shared/constants/taxonomy'
-
-export interface AboutScopeItem {
-  readonly token: ProjectCategory
-  readonly label: string
-}
-
-export interface AboutSurfaceContent {
-  readonly eyebrow: string
-  readonly title: string
-  readonly lead: string
-  readonly scopeHeading: string
-  readonly scopeItems: readonly AboutScopeItem[]
-  readonly methodHeading: string
-  readonly methodBody: string
-  readonly worksLinkLabel: string
-  readonly contactLinkLabel: string
-}
-
 export interface ContactSurfaceContent {
   readonly eyebrow: string
   readonly title: string
@@ -33,7 +11,6 @@ export interface ContactSurfaceContent {
 }
 
 export interface SiteInformation {
-  readonly about: AboutSurfaceContent
   readonly contact: ContactSurfaceContent
 }
 
@@ -56,22 +33,6 @@ function deepFreeze<T>(value: T): T {
 }
 
 export const SITE_INFORMATION: SiteInformation = deepFreeze({
-  about: {
-    eyebrow: 'About',
-    title: '매미: 著',
-    lead:
-      '안무, 작곡, 영상, 디렉팅, 프로듀싱 작업을 한곳에서 살펴볼 수 있는 포트폴리오입니다.',
-    scopeHeading: '작업 영역',
-    scopeItems: PROJECT_CATEGORY_REGISTRY.map(entry => ({
-      token: entry.token,
-      label: entry.label,
-    })),
-    methodHeading: '포트폴리오 구성',
-    methodBody:
-      '각 프로젝트에서 맡은 역할과 크레딧, 작업물을 중심으로 기록합니다.',
-    worksLinkLabel: '전체 작업 보기',
-    contactLinkLabel: '프로젝트 문의',
-  },
   contact: {
     eyebrow: 'Contact',
     title: '프로젝트 문의',

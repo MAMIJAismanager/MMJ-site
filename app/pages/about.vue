@@ -1,69 +1,66 @@
 <script setup lang="ts">
 definePageMeta({
   hideSiteFooter: true,
-  viewportComposition: 'info',
 })
 
+import CommissionServiceExplorer from '~/components/commission/CommissionServiceExplorer.vue'
 import InfoPageSurface from '~/components/info/InfoPageSurface.vue'
-import { SITE_INFORMATION } from '~/content/site-information'
+import {
+  commissionGuide,
+  enabledCommissionServices,
+} from '~/data/commission-guide'
 
-const about = SITE_INFORMATION.about
+useSeoMeta({
+  title: commissionGuide.seoTitle,
+  description: commissionGuide.seoDescription,
+})
 </script>
 
 <template>
   <InfoPageSurface
-    page="about"
-    :eyebrow="about.eyebrow"
-    :title="about.title"
-    :lead="about.lead"
+    page="commission"
+    :eyebrow="commissionGuide.eyebrow"
+    :title="commissionGuide.title"
+    :lead="commissionGuide.lead"
   >
+    <CommissionServiceExplorer
+      :heading="commissionGuide.sectionHeading"
+      :services="enabledCommissionServices"
+    />
+
     <section
-      class="mm-info-section"
-      data-mm-about-scope
+      class="mm-commission-common-notices"
+      data-mm-commission-common-notices
     >
       <h2 class="mm-info-section__title">
-        {{ about.scopeHeading }}
+        {{ commissionGuide.commonNoticeHeading }}
       </h2>
-      <ul class="mm-info-scope-list">
+      <ul class="mm-commission-common-notices__list">
         <li
-          v-for="item in about.scopeItems"
-          :key="item.token"
-          class="mm-info-scope-list__item"
-          :data-mm-about-scope-token="item.token"
+          v-for="notice in commissionGuide.commonNotices"
+          :key="notice"
         >
-          {{ item.label }}
+          {{ notice }}
         </li>
       </ul>
     </section>
 
-    <section
-      class="mm-info-section"
-      data-mm-about-method
-    >
-      <h2 class="mm-info-section__title">
-        {{ about.methodHeading }}
-      </h2>
-      <p class="mm-info-section__body">
-        {{ about.methodBody }}
-      </p>
-    </section>
-
     <nav
       class="mm-info-actions"
-      aria-label="소개 페이지 이동"
+      aria-label="의뢰 안내 페이지 이동"
       data-mm-info-actions
     >
       <NuxtLink
-        class="mm-info-action mm-info-action--primary"
+        class="mm-info-action mm-info-action--secondary"
         to="/works"
       >
-        {{ about.worksLinkLabel }}
+        {{ commissionGuide.worksLinkLabel }}
       </NuxtLink>
       <NuxtLink
-        class="mm-info-action mm-info-action--secondary"
+        class="mm-info-action mm-info-action--primary"
         to="/contact"
       >
-        {{ about.contactLinkLabel }}
+        {{ commissionGuide.contactLinkLabel }}
       </NuxtLink>
     </nav>
   </InfoPageSurface>

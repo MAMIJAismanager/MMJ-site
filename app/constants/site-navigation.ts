@@ -12,7 +12,7 @@ export const SITE_NAVIGATION_ITEMS = [
   },
   {
     id: 'about',
-    label: '소개',
+    label: '의뢰안내',
     to: '/about',
   },
   {

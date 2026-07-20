@@ -1,6 +1,6 @@
 <script setup lang="ts">
 interface Props {
-  readonly page: 'about' | 'contact'
+  readonly page: 'commission' | 'contact'
   readonly eyebrow: string
   readonly title: string
   readonly lead: string
