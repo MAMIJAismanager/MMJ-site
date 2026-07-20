@@ -24,25 +24,16 @@ const showcasePreviewProjects = createHomeShowcasePreview(
     data-mm-page="home"
   >
     <header class="mm-page__header">
-      <p class="mm-label">
-        Portfolio
-      </p>
-
       <h1
         class="mm-display-title"
         data-mm-title-probe
       >
         매미: 著
       </h1>
-
-      <p class="mm-page__lead">
-        Choreography · Composition · Video Direction · Producing
-      </p>
     </header>
 
     <ProjectShowcaseRail
       :projects="showcasePreviewProjects"
-      preview-label="CATEGORY GATE · 6 ITEMS"
     />
   </section>
 </template>

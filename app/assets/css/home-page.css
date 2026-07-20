@@ -1,6 +1,16 @@
 .mm-home-page {
   display: grid;
-  gap: clamp(var(--mm-space-7), 6vw, var(--mm-space-9));
+  gap: clamp(var(--mm-space-5), 3vw, var(--mm-space-7));
+}
+
+.mm-home-page .mm-showcase {
+  margin-block-start: 0;
+}
+
+@media (max-width: 38rem) {
+  .mm-home-page {
+    gap: var(--mm-space-5);
+  }
 }
 
 @media (min-width: 80rem) and (min-height: 45rem) {
@@ -21,7 +31,7 @@
     grid-template-rows: auto minmax(0, 1fr);
     height: 100%;
     min-height: 0;
-    gap: clamp(var(--mm-space-6), 3.5vh, var(--mm-space-8));
+    gap: clamp(var(--mm-space-5), 3vw, var(--mm-space-7));
     padding-block: clamp(
       var(--mm-space-5),
       3.2vh,
@@ -38,16 +48,11 @@
     font-size: clamp(4rem, 4.75vw, 5.75rem);
   }
 
-  .mm-home-page .mm-page__lead {
-    max-width: none;
-    line-height: 1.35;
-  }
-
   .mm-home-page .mm-showcase {
     position: relative;
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     min-height: 0;
-    gap: clamp(var(--mm-space-2), 1.25vh, var(--mm-space-4));
+    gap: 0;
     margin-block-start: 0;
   }
 

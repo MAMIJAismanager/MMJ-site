@@ -91,7 +91,6 @@ type PointerAxis =
 interface Props {
   readonly projects: readonly ShowcaseProjectView[]
   readonly previewOnly?: boolean
-  readonly previewLabel?: string | null
 }
 
 interface CopyEntryTarget {
@@ -123,7 +122,6 @@ const router = useRouter()
 
 const props = withDefaults(defineProps<Props>(), {
   previewOnly: false,
-  previewLabel: null,
 })
 
 const activeProjectId = ref<string | null>(
@@ -1302,7 +1300,7 @@ onBeforeUnmount(() => {
 <template>
   <section
     class="mm-showcase"
-    aria-labelledby="mm-home-showcase-heading"
+    aria-label="홈 카테고리 작업 탐색"
     data-mm-showcase
     :data-mm-showcase-count="projects.length"
     :data-mm-showcase-active-id="activeProjectId ?? ''"
@@ -1319,22 +1317,6 @@ onBeforeUnmount(() => {
     :style="showcaseStyle"
     :data-mm-navigation-restoration="restorationResult?.status ?? 'pending'"
   >
-    <div class="mm-showcase__heading-row">
-      <p
-        id="mm-home-showcase-heading"
-        class="mm-label mm-showcase__heading"
-      >
-        Featured Works
-      </p>
-
-      <span
-        v-if="previewLabel"
-        class="mm-showcase__preview-label"
-      >
-        {{ previewLabel }}
-      </span>
-    </div>
-
     <section
       v-if="activeProject === null"
       class="mm-showcase__empty"

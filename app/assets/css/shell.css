@@ -131,6 +131,28 @@
   font-weight: var(--mm-font-weight-semibold);
 }
 
+@media (max-width: 47.999rem) {
+  .mm-site-header .mm-site-navigation__list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--mm-space-2);
+    width: 100%;
+  }
+
+  .mm-site-header .mm-site-navigation__item {
+    min-width: 0;
+  }
+
+  .mm-site-header .mm-site-navigation__link {
+    width: 100%;
+    min-width: 0;
+    min-height: 2.75rem;
+    justify-content: center;
+    white-space: nowrap;
+    text-align: center;
+  }
+}
+
 @media (min-width: 48rem) {
   .mm-site-header__inner {
     grid-template-columns: auto minmax(0, 1fr);
