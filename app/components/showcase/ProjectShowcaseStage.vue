@@ -30,23 +30,15 @@ interface Props {
   readonly total: number
   readonly previewOnly?: boolean
   readonly interactive?: boolean
-  readonly showNavigation?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   previewOnly: false,
   interactive: true,
-  showNavigation: false,
 })
 
 const emit = defineEmits<{
   detailActivate: [payload: ProjectDetailActivationPayload]
-  'arrow-pointerdown': [
-    direction: 'previous' | 'next',
-    event: PointerEvent,
-  ]
-  previous: [event: MouseEvent]
-  next: [event: MouseEvent]
 }>()
 
 function onDetailActivate(event: MouseEvent): void {
@@ -125,6 +117,7 @@ const imagePlan = computed(() => (
     :data-mm-gateway-stage="isGatewayProject ? 'true' : 'false'"
   >
     <MediaFrame
+      v-if="!isGatewayProject"
       class="mm-showcase-stage__media"
       :image-plan="imagePlan"
       :frame-ratio="{ width: 4, height: 5 }"
@@ -284,41 +277,6 @@ const imagePlan = computed(() => (
       </NuxtLink>
 
     </div>
-
-    <Transition name="mm-showcase-controls">
-      <nav
-        v-if="showNavigation && interactive"
-        class="mm-showcase-stage__controls"
-        aria-label="대표 작업 이동"
-        data-mm-showcase-arrow-controls
-      >
-        <button
-          class="mm-showcase-stage__arrow mm-showcase-stage__arrow--previous"
-          type="button"
-          aria-label="이전 대표 작업"
-          data-mm-showcase-arrow="previous"
-          :draggable="false"
-          @pointerdown.stop="emit('arrow-pointerdown', 'previous', $event)"
-          @dragstart.stop.prevent
-          @click.stop="emit('previous', $event)"
-        >
-          <span aria-hidden="true">‹</span>
-        </button>
-
-        <button
-          class="mm-showcase-stage__arrow mm-showcase-stage__arrow--next"
-          type="button"
-          aria-label="다음 대표 작업"
-          data-mm-showcase-arrow="next"
-          :draggable="false"
-          @pointerdown.stop="emit('arrow-pointerdown', 'next', $event)"
-          @dragstart.stop.prevent
-          @click.stop="emit('next', $event)"
-        >
-          <span aria-hidden="true">›</span>
-        </button>
-      </nav>
-    </Transition>
 
     <div
       class="mm-showcase-stage__profile"

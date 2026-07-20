@@ -159,6 +159,35 @@
   pointer-events: auto;
 }
 
+/*
+ * Rail-owned navigation layer.
+ * It lives outside every card stacking context, so inactive full-card
+ * selectors and the copy-entry layer cannot intercept arrow input.
+ */
+.mm-showcase__navigation-frame {
+  position: absolute;
+  left: var(--mm-card-x-desktop, 0%);
+  top: var(--mm-card-y-desktop, 0%);
+  z-index: 120;
+  width: var(--mm-card-width-desktop, 0%);
+  height: var(--mm-card-height-desktop, 0%);
+  pointer-events: none;
+  transform: translateZ(0) scale(var(--mm-card-scale-desktop, 1));
+  transform-origin: 50% 50%;
+  transition:
+    left var(--mm-showcase-motion-duration, 1400ms) var(--mm-showcase-motion-ease, cubic-bezier(0.55, 0, 0.45, 1)),
+    top var(--mm-showcase-motion-duration, 1400ms) var(--mm-showcase-motion-ease, cubic-bezier(0.55, 0, 0.45, 1)),
+    width var(--mm-showcase-motion-duration, 1400ms) var(--mm-showcase-motion-ease, cubic-bezier(0.55, 0, 0.45, 1)),
+    height var(--mm-showcase-motion-duration, 1400ms) var(--mm-showcase-motion-ease, cubic-bezier(0.55, 0, 0.45, 1)),
+    transform var(--mm-showcase-motion-duration, 1400ms) var(--mm-showcase-motion-ease, cubic-bezier(0.55, 0, 0.45, 1));
+}
+
+.mm-showcase[data-mm-showcase-transition='disabled']
+.mm-showcase__navigation-frame {
+  transition: none;
+}
+
+
 .mm-showcase__magazine-selector {
   position: absolute;
   inset: 0;
@@ -555,6 +584,14 @@
     filter:
       saturate(var(--mm-card-saturation-mobile, 0.42))
       brightness(var(--mm-card-brightness, 0.72));
+  }
+
+  .mm-showcase__navigation-frame {
+    left: var(--mm-card-x-mobile, 0%);
+    top: var(--mm-card-y-mobile, 0%);
+    width: var(--mm-card-width-mobile, 0%);
+    height: var(--mm-card-height-mobile, 0%);
+    transform: translateZ(0) scale(var(--mm-card-scale-mobile, 1));
   }
 
   .mm-showcase-stage__shade {
@@ -1047,21 +1084,4 @@
 @keyframes mm-showcase-copy-focus-reveal-reduced {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-
-/*
- * MMJ-UI24 mobile input arbitration.
- * While an arrow-owned navigation chain is active, inactive cards leave the
- * pointer hit-test tree so their full-card selectors cannot cover the active
- * card's edge controls. Keyboard tab semantics remain intact because this
- * state is acquired only by coarse-pointer arrow input.
- */
-.mm-showcase[data-mm-showcase-category-input='blocked']
-.mm-showcase__magazine-card:not(.mm-showcase__magazine-card--active) {
-  pointer-events: none;
-}
-
-.mm-showcase[data-mm-showcase-category-input='blocked']
-.mm-showcase__magazine-card--active {
-  pointer-events: auto;
 }

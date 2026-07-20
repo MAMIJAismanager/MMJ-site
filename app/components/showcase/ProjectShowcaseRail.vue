@@ -1397,11 +1397,7 @@ onBeforeUnmount(() => {
           :total="projects.length"
           :preview-only="previewOnly"
           :interactive="project.id === activeProjectId"
-          :show-navigation="projects.length > 1"
           @detail-activate="handleDetailActivation"
-          @arrow-pointerdown="onArrowPointerDown"
-          @previous="onArrowNavigation('previous', $event)"
-          @next="onArrowNavigation('next', $event)"
         />
 
         <button
@@ -1421,6 +1417,40 @@ onBeforeUnmount(() => {
           @keydown="onSelectorKeydown"
         />
       </div>
+
+      <nav
+        v-if="projects.length > 1 && activeIndex >= 0"
+        class="mm-showcase__navigation-frame"
+        :style="cardStyle(activeIndex)"
+        aria-label="대표 작업 이동"
+        data-mm-showcase-arrow-controls
+      >
+        <button
+          class="mm-showcase-stage__arrow mm-showcase-stage__arrow--previous"
+          type="button"
+          aria-label="이전 대표 작업"
+          data-mm-showcase-arrow="previous"
+          :draggable="false"
+          @pointerdown.stop="onArrowPointerDown('previous', $event)"
+          @dragstart.stop.prevent
+          @click.stop="onArrowNavigation('previous', $event)"
+        >
+          <span aria-hidden="true">‹</span>
+        </button>
+
+        <button
+          class="mm-showcase-stage__arrow mm-showcase-stage__arrow--next"
+          type="button"
+          aria-label="다음 대표 작업"
+          data-mm-showcase-arrow="next"
+          :draggable="false"
+          @pointerdown.stop="onArrowPointerDown('next', $event)"
+          @dragstart.stop.prevent
+          @click.stop="onArrowNavigation('next', $event)"
+        >
+          <span aria-hidden="true">›</span>
+        </button>
+      </nav>
 
       <GatewayShowcaseCopyStage
         v-if="copyCurrentProject"
