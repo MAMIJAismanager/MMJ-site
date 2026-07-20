@@ -1048,3 +1048,20 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/*
+ * MMJ-UI24 mobile input arbitration.
+ * While an arrow-owned navigation chain is active, inactive cards leave the
+ * pointer hit-test tree so their full-card selectors cannot cover the active
+ * card's edge controls. Keyboard tab semantics remain intact because this
+ * state is acquired only by coarse-pointer arrow input.
+ */
+.mm-showcase[data-mm-showcase-category-input='blocked']
+.mm-showcase__magazine-card:not(.mm-showcase__magazine-card--active) {
+  pointer-events: none;
+}
+
+.mm-showcase[data-mm-showcase-category-input='blocked']
+.mm-showcase__magazine-card--active {
+  pointer-events: auto;
+}

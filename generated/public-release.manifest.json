@@ -1,12 +1,11 @@
 {
-  "schemaVersion": 2,
-  "contract": "MMJ-05N-B",
-  "releaseId": "rel_cc7d0df51d6bfe571aa0578843",
-  "snapshotDigest": "cc7d0df51d6bfe571aa05788439fe71d545f2d7f5c6bc2d50b215b5a7f81c34e",
-  "routesDigest": "05a77616c2e75f764db011ec6dd7bbf9fc4658c2efcf4596c68f6b4de7c316e3",
-  "bundleDigest": "803be59291ea5ab71433eba14e38344159a5587ab0ccfde908875b2a7f59cba9",
+  "schemaVersion": 1,
+  "releaseId": "rel_d8be30579afa9bc0309476fc9b",
+  "snapshotDigest": "d8be30579afa9bc0309476fc9bca50dbd83f67419106fe8224fdaac1940d5a65",
+  "routesDigest": "552185358fe24218167003fbf0e5e85739bcef43c11e334e163d9b2ee3e10080",
   "projectCount": 3,
   "assetCount": 5,
   "publicationCutoff": "2026-07-12T00:00:00Z",
+  "producerRevision": "26a8012a138695a1e1f98ab2e2c2e1632d7e3192e40a7efd3eb6f7d0998b8865",
   "generatedAt": "2026-07-18T09:45:47.563Z"
 }

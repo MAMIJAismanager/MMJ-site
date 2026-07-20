@@ -41,6 +41,10 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   detailActivate: [payload: ProjectDetailActivationPayload]
+  'arrow-pointerdown': [
+    direction: 'previous' | 'next',
+    event: PointerEvent,
+  ]
   previous: [event: MouseEvent]
   next: [event: MouseEvent]
 }>()
@@ -92,10 +96,8 @@ function twoDigits(value: number): string {
 }
 
 const stageAsset = computed(() => props.project.backdrop ?? props.project.cover)
-const imagePlan = computed(() => {
-  if (isGatewayProject.value) return null
-
-  return resolvePortfolioImagePresentation(
+const imagePlan = computed(() => (
+  resolvePortfolioImagePresentation(
     stageAsset.value,
     'primary',
     {
@@ -106,7 +108,7 @@ const imagePlan = computed(() => {
       fit: 'cover',
     },
   )
-})
+))
 </script>
 
 <template>
@@ -296,7 +298,7 @@ const imagePlan = computed(() => {
           aria-label="이전 대표 작업"
           data-mm-showcase-arrow="previous"
           :draggable="false"
-          @pointerdown.stop
+          @pointerdown.stop="emit('arrow-pointerdown', 'previous', $event)"
           @dragstart.stop.prevent
           @click.stop="emit('previous', $event)"
         >
@@ -309,7 +311,7 @@ const imagePlan = computed(() => {
           aria-label="다음 대표 작업"
           data-mm-showcase-arrow="next"
           :draggable="false"
-          @pointerdown.stop
+          @pointerdown.stop="emit('arrow-pointerdown', 'next', $event)"
           @dragstart.stop.prevent
           @click.stop="emit('next', $event)"
         >

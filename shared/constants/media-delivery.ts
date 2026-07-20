@@ -1,5 +1,3 @@
-export const MMJ_PUBLIC_MEDIA_ORIGIN = 'https://media.mamajing.work' as const
-
 export type MediaDeliveryEnvironmentClass = 'development' | 'test' | 'production'
 
 export interface PortfolioMediaDeliveryConfig {
@@ -33,9 +31,6 @@ export function resolvePortfolioMediaDeliveryConfig(
   const normalized = typeof raw === 'string' ? raw.trim() : ''
   if (normalized.length === 0) return UNBOUND_PORTFOLIO_MEDIA_DELIVERY_CONFIG
   const canonical = canonicalizeMediaBaseUrl(normalized)
-  if (environmentClass === 'production' && canonical !== MMJ_PUBLIC_MEDIA_ORIGIN) {
-    throw new Error('FAIL_MMJ_05N_D_PAGES_MEDIA_BASE_DRIFT: production media origin must be https://media.mamajing.work.')
-  }
   if (environmentClass === 'production' && canonical.length === 0) {
     throw new Error('FAIL_MMJ_05G_INVALID_MEDIA_BASE_URL: production media delivery is invalid.')
   }

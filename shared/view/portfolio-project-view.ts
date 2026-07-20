@@ -1,7 +1,7 @@
 import type {
   AssetMediaTypeFor,
   AssetRenditionPurposeFor,
-} from '../constants/public-asset-domain'
+} from '../constants/asset-domain'
 
 import type {
   ProjectCategory,
@@ -10,7 +10,7 @@ import type {
 
 import type {
   ProjectLinkKind,
-} from '../constants/public-project-link-domain'
+} from '../constants/project-domain'
 
 import type {
   AssetId,

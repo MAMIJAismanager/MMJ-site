@@ -1,6 +1,6 @@
 import type {
   AssetMediaTypeFor,
-} from '../constants/public-asset-domain'
+} from '../constants/asset-domain'
 import type {
   AssetId,
   ProjectId,

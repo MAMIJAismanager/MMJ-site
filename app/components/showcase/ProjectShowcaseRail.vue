@@ -7,6 +7,7 @@ import {
   computed,
   nextTick,
   onBeforeUnmount,
+  reactive,
   ref,
   watch,
 } from 'vue'
@@ -33,10 +34,28 @@ import {
 
 import {
   SHOWCASE_FULL_STEP_DURATION_MS,
+  SHOWCASE_MOBILE_ARROW_PRIORITY_TAIL_MS,
+  SHOWCASE_MOBILE_CATEGORY_REARM_DELAY_MS,
   SHOWCASE_WEIGHTED_MOTION_EASING,
   resolveShowcaseArrowBurst,
   resolveShowcaseTransitionDurationMs,
 } from '~/utils/showcase-transition-timing'
+
+
+import {
+  dequeueShowcaseNavigation,
+  enqueueShowcaseNavigation,
+  hasQueuedShowcaseSource,
+  purgeQueuedCategoryNavigations,
+  resolveShowcaseNavigationPriority,
+  resolveShowcaseQueueTailTargetId,
+} from '~/utils/showcase-input-arbitration'
+
+import type {
+  ShowcaseInputArbitrationState,
+  ShowcaseInputSource,
+  ShowcaseQueuedNavigation,
+} from '~/utils/showcase-input-arbitration'
 
 import type {
   ShowcaseNavigationDirection,
@@ -95,13 +114,6 @@ interface PointerSession {
   velocityX: number
 }
 
-interface QueuedNavigation {
-  readonly targetId: string
-  readonly direction: ShowcaseNavigationDirection
-  readonly focusSelector: boolean
-  readonly durationMs: number | null
-}
-
 const DRAG_AXIS_LOCK_PX = 8
 const DRAG_COMMIT_RATIO = 0.14
 const DRAG_VELOCITY_COMMIT = 0.42
@@ -129,13 +141,24 @@ const transitionDurationMs = ref(SHOWCASE_FULL_STEP_DURATION_MS)
 let pointerSession: PointerSession | null = null
 let recycleFrameOne: number | null = null
 let recycleFrameTwo: number | null = null
-let queuedNavigations: QueuedNavigation[] = []
+let queuedNavigations: ShowcaseQueuedNavigation[] = []
+let navigationSequence = 0
+let categoryRearmTimer: ReturnType<typeof setTimeout> | null = null
+let lastMobileArrowPointerDownAt = Number.NEGATIVE_INFINITY
 let lastArrowTapTimestamp = Number.NEGATIVE_INFINITY
 let lastArrowTapDirection: ShowcaseNavigationDirection | null = null
 let arrowTapStreak = 0
 let suppressNextCopyEntryActivation = false
 const copyNavigationPending = ref(false)
 const copyReturnProjectId = ref<string | null>(null)
+const currentNavigationSource = ref<ShowcaseInputSource | null>(null)
+const inputArbitration = reactive<ShowcaseInputArbitrationState>({
+  owner: 'none',
+  generation: 0,
+  categoryBlockedUntil: Number.NEGATIVE_INFINITY,
+  lastArrowInputAt: Number.NEGATIVE_INFINITY,
+})
+const categoryGateEpoch = ref(0)
 
 const selectorElements = new Map<string, HTMLButtonElement>()
 const stageViewport = ref<HTMLElement | null>(null)
@@ -145,6 +168,15 @@ const showcaseStyle = computed<Record<string, string>>(() => ({
   '--mm-showcase-motion-duration': `${transitionDurationMs.value}ms`,
   '--mm-showcase-motion-ease': SHOWCASE_WEIGHTED_MOTION_EASING,
 }))
+
+const categoryPointerInputBlocked = computed(() => {
+  categoryGateEpoch.value
+
+  return (
+    inputArbitration.owner === 'arrow'
+    || nowMs() < inputArbitration.categoryBlockedUntil
+  )
+})
 
 const activeIndex = computed(() => (
   activeProjectId.value === null
@@ -222,8 +254,6 @@ watch(
       activeProjectId.value,
     )
 
-    if (nextActiveId === activeProjectId.value) return
-
     cancelRecycleFrames()
     pointerSession = null
     queuedNavigations = []
@@ -237,6 +267,7 @@ watch(
     copyReturnProjectId.value = null
     resetArrowTapBurst()
     phase.value = 'idle'
+    resetInputArbitration()
   },
 )
 
@@ -433,6 +464,7 @@ function restoreActiveProject(projectId: string): boolean {
   copyReturnProjectId.value = null
   resetArrowTapBurst()
   phase.value = 'idle'
+  resetInputArbitration()
   return true
 }
 
@@ -447,10 +479,130 @@ const {
   restoreActiveProject,
 })
 
+function nowMs(): number {
+  return typeof performance === 'undefined'
+    ? Date.now()
+    : performance.now()
+}
+
+function isCoarsePointerEnvironment(): boolean {
+  return typeof window !== 'undefined'
+    && window.matchMedia('(pointer: coarse)').matches
+}
+
+function isMobilePointerEvent(event: PointerEvent): boolean {
+  return (
+    event.pointerType === 'touch'
+    || event.pointerType === 'pen'
+    || isCoarsePointerEnvironment()
+  )
+}
+
+function isMobilePointerClick(event: MouseEvent): boolean {
+  return event.detail > 0 && isCoarsePointerEnvironment()
+}
+
+function touchCategoryGate(): void {
+  categoryGateEpoch.value += 1
+}
+
+function cancelCategoryRearm(): void {
+  if (categoryRearmTimer === null) return
+  clearTimeout(categoryRearmTimer)
+  categoryRearmTimer = null
+}
+
+function resetInputArbitration(): void {
+  cancelCategoryRearm()
+  inputArbitration.owner = 'none'
+  inputArbitration.generation += 1
+  inputArbitration.categoryBlockedUntil = Number.NEGATIVE_INFINITY
+  inputArbitration.lastArrowInputAt = Number.NEGATIVE_INFINITY
+  currentNavigationSource.value = null
+  lastMobileArrowPointerDownAt = Number.NEGATIVE_INFINITY
+  touchCategoryGate()
+}
+
 function resetArrowTapBurst(): void {
   lastArrowTapTimestamp = Number.NEGATIVE_INFINITY
   lastArrowTapDirection = null
   arrowTapStreak = 0
+}
+
+function refreshArrowPriorityTail(timestamp = nowMs()): void {
+  cancelCategoryRearm()
+  inputArbitration.owner = 'arrow'
+  inputArbitration.lastArrowInputAt = timestamp
+  inputArbitration.categoryBlockedUntil = Math.max(
+    inputArbitration.categoryBlockedUntil,
+    timestamp + SHOWCASE_MOBILE_ARROW_PRIORITY_TAIL_MS,
+  )
+  queuedNavigations = purgeQueuedCategoryNavigations(queuedNavigations)
+  touchCategoryGate()
+}
+
+function claimArrowPriority(timestamp = nowMs()): void {
+  if (inputArbitration.owner === 'drag') return
+
+  inputArbitration.generation += 1
+  refreshArrowPriorityTail(timestamp)
+}
+
+function canReleaseArrowPriority(): boolean {
+  return (
+    inputArbitration.owner === 'arrow'
+    && phase.value === 'idle'
+    && pendingProjectId.value === null
+    && pointerSession === null
+    && currentNavigationSource.value !== 'arrow'
+    && !hasQueuedShowcaseSource(queuedNavigations, 'arrow')
+  )
+}
+
+function scheduleCategoryRearm(): void {
+  if (!canReleaseArrowPriority()) return
+
+  cancelCategoryRearm()
+  const generation = inputArbitration.generation
+  const stableStartAt = Math.max(
+    nowMs(),
+    inputArbitration.lastArrowInputAt
+      + SHOWCASE_MOBILE_ARROW_PRIORITY_TAIL_MS,
+  )
+  const releaseAt = stableStartAt
+    + SHOWCASE_MOBILE_CATEGORY_REARM_DELAY_MS
+
+  inputArbitration.categoryBlockedUntil = releaseAt
+  touchCategoryGate()
+
+  categoryRearmTimer = setTimeout(() => {
+    categoryRearmTimer = null
+
+    if (
+      generation !== inputArbitration.generation
+      || !canReleaseArrowPriority()
+    ) {
+      scheduleCategoryRearm()
+      return
+    }
+
+    inputArbitration.owner = 'none'
+    inputArbitration.categoryBlockedUntil = Number.NEGATIVE_INFINITY
+    touchCategoryGate()
+  }, Math.max(0, releaseAt - nowMs()))
+}
+
+function acquireDragOwnership(): void {
+  cancelCategoryRearm()
+  inputArbitration.owner = 'drag'
+  inputArbitration.generation += 1
+  touchCategoryGate()
+}
+
+function releaseDragOwnership(): void {
+  if (inputArbitration.owner !== 'drag') return
+  inputArbitration.owner = 'none'
+  touchCategoryGate()
 }
 
 function queueNavigation(
@@ -458,17 +610,24 @@ function queueNavigation(
   direction: ShowcaseNavigationDirection,
   focusTarget: boolean,
   durationMs: number | null,
+  source: ShowcaseInputSource,
 ): void {
-  if (queuedNavigations.length >= 8) {
-    queuedNavigations.shift()
-  }
-
-  queuedNavigations.push({
-    targetId,
-    direction,
-    focusSelector: focusTarget,
-    durationMs,
-  })
+  navigationSequence += 1
+  queuedNavigations = enqueueShowcaseNavigation(
+    queuedNavigations,
+    {
+      targetId,
+      direction,
+      focusSelector: focusTarget,
+      durationMs,
+      source,
+      priority: resolveShowcaseNavigationPriority(source),
+      issuedAt: nowMs(),
+      generation: inputArbitration.generation,
+      sequence: navigationSequence,
+    },
+  )
+  touchCategoryGate()
 }
 
 function beginNavigation(
@@ -476,6 +635,7 @@ function beginNavigation(
   direction: ShowcaseNavigationDirection,
   focusTarget = false,
   durationMs: number | null = null,
+  source: ShowcaseInputSource,
 ): boolean {
   const projectExists = props.projects.some(
     project => project.id === targetId,
@@ -483,7 +643,13 @@ function beginNavigation(
   if (!projectExists) return false
 
   if (phase.value === 'settling' || phase.value === 'recycling') {
-    queueNavigation(targetId, direction, focusTarget, durationMs)
+    queueNavigation(
+      targetId,
+      direction,
+      focusTarget,
+      durationMs,
+      source,
+    )
     return true
   }
 
@@ -498,9 +664,11 @@ function beginNavigation(
   pendingProjectId.value = targetId
   copyReturnProjectId.value = null
   pendingFocusSelector.value = focusTarget
+  currentNavigationSource.value = source
   transitionDirection.value = direction
   transitionEnabled.value = true
   phase.value = 'settling'
+  touchCategoryGate()
 
   void nextTick(() => {
     requestAnimationFrame(() => {
@@ -516,6 +684,7 @@ function selectProject(
   options: Readonly<{
     focusSelector?: boolean
     direction?: ShowcaseNavigationDirection | null
+    source?: ShowcaseInputSource
   }> = {},
 ): boolean {
   const direction = options.direction
@@ -523,12 +692,15 @@ function selectProject(
 
   if (direction === null) return false
 
-  resetArrowTapBurst()
+  const source = options.source ?? 'category-selector'
+  if (source !== 'arrow') resetArrowTapBurst()
 
   return beginNavigation(
     targetId,
     direction,
     options.focusSelector ?? false,
+    null,
+    source,
   )
 }
 
@@ -536,8 +708,12 @@ function selectAdjacent(
   direction: ShowcaseNavigationDirection,
   focusTarget = false,
   durationMs: number | null = null,
+  source: ShowcaseInputSource,
 ): boolean {
-  const queuedBaseId = queuedNavigations.at(-1)?.targetId ?? null
+  const queuedBaseId = resolveShowcaseQueueTailTargetId(
+    queuedNavigations,
+    resolveShowcaseNavigationPriority(source),
+  )
   const baseProjectId = (
     phase.value === 'settling'
     || phase.value === 'recycling'
@@ -552,6 +728,7 @@ function selectAdjacent(
     direction,
     focusTarget,
     durationMs,
+    source,
   )
 }
 
@@ -593,10 +770,45 @@ function onCopyEntryActivate(
   activateCopyEntry(payload)
 }
 
+function onArrowPointerDown(
+  _direction: ShowcaseNavigationDirection,
+  event: PointerEvent,
+): void {
+  if (
+    pointerSession !== null
+    || inputArbitration.owner === 'drag'
+    || !isMobilePointerEvent(event)
+  ) {
+    return
+  }
+
+  const timestamp = nowMs()
+  lastMobileArrowPointerDownAt = timestamp
+  claimArrowPriority(timestamp)
+}
+
 function onArrowNavigation(
   direction: ShowcaseNavigationDirection,
   event: MouseEvent,
 ): void {
+  const keyboardActivation = event.detail === 0
+  const source: ShowcaseInputSource = keyboardActivation
+    ? 'keyboard'
+    : 'arrow'
+
+  if (!keyboardActivation && isMobilePointerClick(event)) {
+    const timestamp = nowMs()
+    if (
+      inputArbitration.owner !== 'arrow'
+      || timestamp - lastMobileArrowPointerDownAt > 1000
+    ) {
+      claimArrowPriority(timestamp)
+    }
+    else {
+      refreshArrowPriorityTail(timestamp)
+    }
+  }
+
   const burst = resolveShowcaseArrowBurst({
     timestamp: event.timeStamp,
     previousTimestamp: lastArrowTapTimestamp,
@@ -609,10 +821,18 @@ function onArrowNavigation(
   lastArrowTapDirection = direction
   arrowTapStreak = burst.streak
 
-  selectAdjacent(direction, false, burst.durationMs)
+  selectAdjacent(
+    direction,
+    false,
+    burst.durationMs,
+    source,
+  )
 }
 
-function selectBoundary(boundary: 'first' | 'last'): void {
+function selectBoundary(
+  boundary: 'first' | 'last',
+  source: ShowcaseInputSource,
+): void {
   const target = boundary === 'first'
     ? props.projects[0]
     : props.projects[props.projects.length - 1]
@@ -624,7 +844,38 @@ function selectBoundary(boundary: 'first' | 'last'): void {
     return
   }
 
-  selectProject(target.id, { focusSelector: true })
+  selectProject(
+    target.id,
+    {
+      focusSelector: true,
+      source,
+    },
+  )
+}
+
+function onCategorySelectorActivate(
+  projectId: string,
+  event: MouseEvent,
+): void {
+  const mobilePointerActivation = isMobilePointerClick(event)
+
+  if (
+    mobilePointerActivation
+    && categoryPointerInputBlocked.value
+  ) {
+    event.preventDefault()
+    event.stopPropagation()
+    return
+  }
+
+  selectProject(
+    projectId,
+    {
+      source: event.detail === 0
+        ? 'keyboard'
+        : 'category-selector',
+    },
+  )
 }
 
 function onSelectorKeydown(event: KeyboardEvent): void {
@@ -632,25 +883,25 @@ function onSelectorKeydown(event: KeyboardEvent): void {
 
   if (event.key === 'ArrowLeft') {
     event.preventDefault()
-    selectAdjacent('previous', true)
+    selectAdjacent('previous', true, null, 'keyboard')
     return
   }
 
   if (event.key === 'ArrowRight') {
     event.preventDefault()
-    selectAdjacent('next', true)
+    selectAdjacent('next', true, null, 'keyboard')
     return
   }
 
   if (event.key === 'Home') {
     event.preventDefault()
-    selectBoundary('first')
+    selectBoundary('first', 'keyboard')
     return
   }
 
   if (event.key === 'End') {
     event.preventDefault()
-    selectBoundary('last')
+    selectBoundary('last', 'keyboard')
   }
 }
 
@@ -689,18 +940,20 @@ function isInteractiveTarget(target: EventTarget | null): boolean {
 }
 
 function onPointerDown(event: PointerEvent): void {
-  resetArrowTapBurst()
-
   if (
     props.projects.length <= 1
     || !event.isPrimary
     || event.button !== 0
     || phase.value !== 'idle'
+    || inputArbitration.owner === 'arrow'
     || isInteractiveTarget(event.target)
     || !(event.currentTarget instanceof HTMLElement)
   ) {
     return
   }
+
+  resetArrowTapBurst()
+  acquireDragOwnership()
 
   const surface = event.currentTarget
   const copyEntryTarget = resolveCopyEntryTarget(event.target)
@@ -734,6 +987,7 @@ function abandonVerticalPointer(): void {
   transitionEnabled.value = true
   trackProgress.value = 0
   phase.value = 'idle'
+  releaseDragOwnership()
 
   if (session.surface.hasPointerCapture(session.pointerId)) {
     session.surface.releasePointerCapture(session.pointerId)
@@ -804,7 +1058,10 @@ function settleBackToFocus(): void {
     transitionDurationMs.value = SHOWCASE_FULL_STEP_DURATION_MS
     transitionEnabled.value = true
     copyReturnProjectId.value = null
+    currentNavigationSource.value = null
     phase.value = 'idle'
+    releaseDragOwnership()
+    scheduleCategoryRearm()
     return
   }
 
@@ -816,6 +1073,7 @@ function settleBackToFocus(): void {
   )
   pendingProjectId.value = null
   pendingFocusSelector.value = false
+  currentNavigationSource.value = 'drag'
   transitionDirection.value = null
   transitionEnabled.value = true
   phase.value = 'settling'
@@ -844,6 +1102,7 @@ function commitPointerNavigation(
   pendingProjectId.value = targetId
   copyReturnProjectId.value = null
   pendingFocusSelector.value = false
+  currentNavigationSource.value = 'drag'
   transitionDirection.value = direction
   transitionEnabled.value = true
   phase.value = 'settling'
@@ -957,7 +1216,10 @@ function recycleTrack(): void {
     trackProgress.value = 0
     transitionDurationMs.value = SHOWCASE_FULL_STEP_DURATION_MS
     copyReturnProjectId.value = null
+    currentNavigationSource.value = null
     phase.value = 'idle'
+    releaseDragOwnership()
+    scheduleCategoryRearm()
     return
   }
 
@@ -984,16 +1246,25 @@ function recycleTrack(): void {
       recycleFrameTwo = null
       transitionEnabled.value = true
       phase.value = 'idle'
+      currentNavigationSource.value = null
 
-      const queued = queuedNavigations.shift() ?? null
-      if (queued !== null) {
+      const dequeued = dequeueShowcaseNavigation(queuedNavigations)
+      queuedNavigations = dequeued.queue
+      touchCategoryGate()
+
+      if (dequeued.navigation !== null) {
         beginNavigation(
-          queued.targetId,
-          queued.direction,
-          queued.focusSelector,
-          queued.durationMs,
+          dequeued.navigation.targetId,
+          dequeued.navigation.direction,
+          dequeued.navigation.focusSelector,
+          dequeued.navigation.durationMs,
+          dequeued.navigation.source,
         )
+        return
       }
+
+      releaseDragOwnership()
+      scheduleCategoryRearm()
     })
   })
 }
@@ -1016,12 +1287,15 @@ function onCardTransitionEnd(
 
 onBeforeUnmount(() => {
   cancelRecycleFrames()
+  cancelCategoryRearm()
 
-  if (pointerSession === null) return
+  if (pointerSession !== null) {
+    const session = pointerSession
+    pointerSession = null
+    releasePointerCapture(session)
+  }
 
-  const session = pointerSession
-  pointerSession = null
-  releasePointerCapture(session)
+  resetInputArbitration()
 })
 </script>
 
@@ -1037,6 +1311,11 @@ onBeforeUnmount(() => {
     :data-mm-showcase-transition="transitionEnabled ? 'enabled' : 'disabled'"
     :data-mm-showcase-duration-ms="transitionDurationMs"
     :data-mm-showcase-arrow-streak="arrowTapStreak"
+    :data-mm-showcase-input-owner="inputArbitration.owner"
+    :data-mm-showcase-input-generation="inputArbitration.generation"
+    :data-mm-showcase-navigation-source="currentNavigationSource ?? 'none'"
+    :data-mm-showcase-category-input="categoryPointerInputBlocked ? 'blocked' : 'enabled'"
+    :data-mm-showcase-arrow-queue-depth="queuedNavigations.filter(navigation => navigation.source === 'arrow').length"
     :style="showcaseStyle"
     :data-mm-navigation-restoration="restorationResult?.status ?? 'pending'"
   >
@@ -1120,6 +1399,7 @@ onBeforeUnmount(() => {
           :interactive="project.id === activeProjectId"
           :show-navigation="projects.length > 1"
           @detail-activate="handleDetailActivation"
+          @arrow-pointerdown="onArrowPointerDown"
           @previous="onArrowNavigation('previous', $event)"
           @next="onArrowNavigation('next', $event)"
         />
@@ -1137,7 +1417,7 @@ onBeforeUnmount(() => {
           :data-mm-project-id="project.id"
           :data-mm-active="project.id === activeProjectId ? 'true' : 'false'"
           data-mm-showcase-tab
-          @click="selectProject(project.id)"
+          @click="onCategorySelectorActivate(project.id, $event)"
           @keydown="onSelectorKeydown"
         />
       </div>

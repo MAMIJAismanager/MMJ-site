@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { resolvePortfolioMediaDeliveryConfig } from './shared/constants/media-delivery'
 
 interface PortfolioRouteManifest {
-  readonly schemaVersion: 2
+  readonly schemaVersion: 1
   readonly snapshotDigest: string
   readonly routes: readonly string[]
 }
@@ -43,7 +43,7 @@ function isPortfolioRouteManifest(
 
   return (
     keys.join(',') === 'routes,schemaVersion,snapshotDigest'
-    && record.schemaVersion === 2
+    && record.schemaVersion === 1
     && typeof record.snapshotDigest === 'string'
     && /^[a-f0-9]{64}$/.test(record.snapshotDigest)
     && Array.isArray(record.routes)
@@ -103,7 +103,6 @@ for (const route of prerenderRoutes) {
 
 export default defineNuxtConfig({
   ssr: true,
-  buildId: runtimeEnv.MMJ_BUILD_ID ?? 'mmj-05n-k-source',
 
   runtimeConfig: {
     public: {
@@ -160,7 +159,6 @@ export default defineNuxtConfig({
 
   nitro: {
     prerender: {
-      concurrency: 1,
       crawlLinks: false,
       routes: prerenderRoutes,
     },

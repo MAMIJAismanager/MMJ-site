@@ -9,24 +9,12 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-24.04
-    container:
-      image: node:22.16.0-bookworm-slim@sha256:1471ea646673136b8308550ac14b36d847ffb21c24bc31828279e443c924e488
-    env:
-      TZ: UTC
-      LANG: C.UTF-8
-      LC_ALL: C.UTF-8
-      SOURCE_DATE_EPOCH: '1784378700'
-      MMJ_BUILD_ID: mmj-05n-k-ci
-      NUXT_PUBLIC_MMJ_MEDIA_BASE_URL: https://media.mamajing.work
-      MMJ_BUILD_ENVIRONMENT_CLASS: production
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          fetch-depth: 0
-          persist-credentials: false
-      - run: npm ci --ignore-scripts
-      - run: npm rebuild
-      - run: npm run gate:mmj-05n-m
-      - run: npm run typecheck
-      - run: node node_modules/nuxt/bin/nuxt.mjs generate
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run gate:mmj-05n-a

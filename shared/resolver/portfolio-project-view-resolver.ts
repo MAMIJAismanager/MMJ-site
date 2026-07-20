@@ -5,7 +5,7 @@ import {
 
 import {
   PROJECT_LINK_KIND_REGISTRY,
-} from '../constants/public-project-link-domain'
+} from '../constants/project-domain'
 
 import type {
   ProjectCategory,
@@ -14,7 +14,7 @@ import type {
 
 import type {
   ProjectLinkKind,
-} from '../constants/public-project-link-domain'
+} from '../constants/project-domain'
 
 import type {
   AssetId,

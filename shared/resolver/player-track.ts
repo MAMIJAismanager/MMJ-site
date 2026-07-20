@@ -1,6 +1,6 @@
 import {
   isAssetMediaTypeFor,
-} from '../constants/public-asset-domain'
+} from '../constants/asset-domain'
 import {
   isAssetId,
   isProjectId,
