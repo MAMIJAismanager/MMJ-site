@@ -19,23 +19,14 @@ const showcasePreviewProjects = createHomeShowcasePreview(
 </script>
 
 <template>
-  <section
+  <div
     class="mm-page mm-home-page"
     data-mm-page="home"
   >
-    <header class="mm-page__header">
-      <h1
-        class="mm-display-title"
-        data-mm-title-probe
-      >
-        매미: 著
-      </h1>
-    </header>
-
     <ProjectShowcaseRail
       :projects="showcasePreviewProjects"
     />
-  </section>
+  </div>
 </template>
 
 <style src="~/assets/css/home-page.css"></style>

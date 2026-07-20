@@ -1,15 +1,60 @@
 .mm-home-page {
   display: grid;
-  gap: clamp(var(--mm-space-5), 3vw, var(--mm-space-7));
+  grid-template-rows: minmax(0, 1fr);
+  gap: 0;
 }
 
 .mm-home-page .mm-showcase {
   margin-block-start: 0;
 }
 
-@media (max-width: 38rem) {
-  .mm-home-page {
-    gap: var(--mm-space-5);
+/*
+ * MMJ-UI26 mobile home viewport ownership.
+ * The layout owns the dynamic viewport; the header and audio host consume
+ * their intrinsic rows, and main/showcase inherit the remaining height.
+ */
+@media (max-width: 47.999rem) {
+  .mm-layout--viewport-home {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    width: 100%;
+    height: 100svh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  .mm-layout--viewport-home .mm-main {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .mm-layout--viewport-home .mm-home-page {
+    grid-template-rows: minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+    gap: 0;
+    padding-block-start: var(--mm-space-3);
+    padding-block-end: max(
+      var(--mm-space-3),
+      env(safe-area-inset-bottom)
+    );
+  }
+
+  .mm-home-page .mm-showcase {
+    position: relative;
+    grid-template-rows: minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+    gap: 0;
+    margin-block-start: 0;
+  }
+
+  .mm-layout--viewport-home
+  .mm-home-page
+  .mm-showcase__magazine-viewport {
+    height: 100%;
+    min-height: 0;
   }
 }
 
@@ -27,25 +72,16 @@
     overflow: hidden;
   }
 
-  .mm-home-page {
-    grid-template-rows: auto minmax(0, 1fr);
+  .mm-layout--viewport-home .mm-home-page {
+    grid-template-rows: minmax(0, 1fr);
     height: 100%;
     min-height: 0;
-    gap: clamp(var(--mm-space-5), 3vw, var(--mm-space-7));
+    gap: 0;
     padding-block: clamp(
       var(--mm-space-5),
       3.2vh,
       var(--mm-space-7)
     );
-  }
-
-  .mm-home-page .mm-page__header {
-    gap: clamp(var(--mm-space-2), 1vh, var(--mm-space-4));
-    max-width: none;
-  }
-
-  .mm-home-page .mm-display-title {
-    font-size: clamp(4rem, 4.75vw, 5.75rem);
   }
 
   .mm-home-page .mm-showcase {
@@ -62,8 +98,9 @@
   }
 }
 
-@media (max-width: 79.999rem), (max-height: 44.999rem) {
-  .mm-home-page {
+@media (min-width: 48rem) and (max-width: 79.999rem),
+  (min-width: 48rem) and (max-height: 44.999rem) {
+  .mm-layout--viewport-home .mm-home-page {
     min-height: auto;
   }
 }
