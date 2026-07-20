@@ -172,6 +172,13 @@
       visibility 0s linear var(--mm-duration-fast);
   }
 
+  .mm-site-header[data-menu-open='true']
+  .mm-site-header__menu-button:not(.mm-site-header__menu-button--close) {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
   .mm-site-header .mm-site-navigation__list {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

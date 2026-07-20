@@ -83,6 +83,9 @@
   --mm-duration-normal: 200ms;
   --mm-duration-slow: 320ms;
   --mm-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  --mm-z-mobile-menu-trigger: 300;
+  --mm-z-mobile-menu: 500;
 }
 
 @media (prefers-reduced-motion: reduce) {
