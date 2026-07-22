@@ -156,7 +156,7 @@ export const COMMISSION_GUIDE_MOCK = {
             rows: [
               { id: 'instrument-up-to-3', order: 10, enabled: true, label: '악기 3개 이하', detailLabel: null },
               { id: 'instrument-up-to-10', order: 20, enabled: true, label: '악기 10개 이하', detailLabel: null },
-              { id: 'ppongppongre-omakase', order: 30, enabled: true, label: '뿅뿅레 오마카세', detailLabel: null },
+              { id: 'ppongppongre-omakase', order: 30, enabled: true, label: '빵빠레 오마카세', detailLabel: null },
             ],
             cells: [
               { rowId: 'instrument-up-to-3', columnId: 'shortform-up-to-1m', mode: 'fixed', amountKrw: 20_000, displayOverride: null, note: null },
@@ -190,7 +190,7 @@ export const COMMISSION_GUIDE_MOCK = {
             rows: [
               { id: 'instrument-up-to-5', order: 10, enabled: true, label: '악기 5개 이하', detailLabel: null },
               { id: 'instrument-up-to-15', order: 20, enabled: true, label: '악기 15개 이하', detailLabel: null },
-              { id: 'ppongppongre-omakase', order: 30, enabled: true, label: '뿅뿅레 오마카세', detailLabel: null },
+              { id: 'ppongppongre-omakase', order: 30, enabled: true, label: '빵빠레 오마카세', detailLabel: null },
             ],
             cells: [
               { rowId: 'instrument-up-to-5', columnId: 'shortform-up-to-1m', mode: 'fixed', amountKrw: 30_000, displayOverride: null, note: null },
@@ -224,7 +224,7 @@ export const COMMISSION_GUIDE_MOCK = {
             rows: [
               { id: 'instrument-up-to-5', order: 10, enabled: true, label: '악기 5개 이하', detailLabel: null },
               { id: 'instrument-up-to-15', order: 20, enabled: true, label: '악기 15개 이하', detailLabel: null },
-              { id: 'ppongppongre-omakase', order: 30, enabled: true, label: '뿅뿅레 오마카세', detailLabel: null },
+              { id: 'ppongppongre-omakase', order: 30, enabled: true, label: '빵빠레 오마카세', detailLabel: null },
             ],
             cells: [
               { rowId: 'instrument-up-to-5', columnId: 'shortform-up-to-1m', mode: 'fixed', amountKrw: 50_000, displayOverride: null, note: null },
