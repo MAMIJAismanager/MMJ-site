@@ -67,11 +67,46 @@ export function useCommissionDetailDensity(
     }
   }
 
-  function readRequiredHeight(root: HTMLElement): number {
+  function readPixelValue(value: string): number {
+    const parsed = Number.parseFloat(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+
+  function readVisibleChildHeight(element: HTMLElement): number {
+    const style = getComputedStyle(element)
+    if (style.display === 'none' || style.visibility === 'hidden') return 0
+
     return Math.max(
-      root.scrollHeight,
-      Math.ceil(root.getBoundingClientRect().height),
+      element.scrollHeight,
+      Math.ceil(element.getBoundingClientRect().height),
     )
+  }
+
+  function readMatrixStackHeight(root: HTMLElement): number {
+    const style = getComputedStyle(root)
+    const children = Array.from(root.children)
+      .filter((child): child is HTMLElement => child instanceof HTMLElement)
+      .map(readVisibleChildHeight)
+      .filter(height => height > 0)
+
+    const rowGap = readPixelValue(style.rowGap)
+    const padding = readPixelValue(style.paddingTop)
+      + readPixelValue(style.paddingBottom)
+    const gaps = Math.max(0, children.length - 1) * rowGap
+
+    return Math.ceil(
+      children.reduce((sum, height) => sum + height, 0)
+      + gaps
+      + padding,
+    )
+  }
+
+  function readRequiredHeight(root: HTMLElement): number {
+    if (root.dataset.mmCommissionPricingKind === 'matrix') {
+      return readMatrixStackHeight(root)
+    }
+
+    return Math.ceil(root.scrollHeight)
   }
 
   async function measureAndResolve(): Promise<void> {
@@ -138,7 +173,7 @@ export function useCommissionDetailDensity(
       && internalScrollFallback.value
     ) {
       console.warn(
-        'MMJ-UI28-R2-R3: compact commission detail still overflows',
+        'MMJ-UI28-R2-R3-R1: compact commission detail still overflows',
         {
           availableHeight: nextAvailableHeight,
           requiredHeight: nextRequiredHeight,

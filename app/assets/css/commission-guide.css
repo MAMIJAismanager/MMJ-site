@@ -393,6 +393,14 @@
   display: none;
 }
 
+.mm-commission-pricing-table-frame {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--mm-color-border-strong);
+  border-radius: var(--mm-radius-medium);
+  background: var(--mm-color-surface-subtle);
+}
+
 .mm-commission-pricing-matrix__mobile {
   display: grid;
   gap: var(--mm-space-4);
@@ -822,10 +830,11 @@
     display: block;
     min-height: 0;
     height: 100%;
-    overflow: hidden;
-    border: 1px solid var(--mm-color-border-strong);
-    border-radius: var(--mm-radius-medium);
-    background: var(--mm-color-surface-subtle);
+  }
+
+  .mm-commission-pricing-table-frame {
+    min-height: 0;
+    height: 100%;
   }
 
   .mm-commission-pricing-matrix__mobile {
@@ -949,48 +958,23 @@
 }
 
 
-.mm-commission-matrix-stage-header,
-.mm-commission-matrix-stage-header__copy,
-.mm-commission-matrix-stage-header__meta {
-  min-width: 0;
-}
-
 .mm-commission-matrix-stage-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
+  align-items: center;
   gap: var(--mm-space-4);
-}
-
-.mm-commission-matrix-stage-header__copy {
-  display: grid;
-  gap: var(--mm-space-1);
-}
-
-.mm-commission-matrix-stage-header__title,
-.mm-commission-matrix-stage-header__meta,
-.mm-commission-matrix-stage-header__meta p,
-.mm-commission-matrix-stage-header__unit {
-  margin: 0;
+  min-width: 0;
 }
 
 .mm-commission-matrix-stage-header__title {
+  min-width: 0;
+  margin: 0;
   font-size: var(--mm-font-size-subheading);
   line-height: var(--mm-line-height-heading);
 }
 
-.mm-commission-matrix-stage-header__meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.25rem 0.7rem;
-  color: var(--mm-color-text-muted);
-  font-size: var(--mm-font-size-small);
-  line-height: var(--mm-line-height-meta);
-}
-
-.mm-commission-matrix-stage-header__unit {
-  font-weight: var(--mm-font-weight-semibold);
+.mm-commission-matrix-stage-header__inquiry {
+  justify-self: end;
   white-space: nowrap;
 }
 
@@ -1030,7 +1014,12 @@
   .mm-commission-detail[data-mm-commission-pricing-kind='matrix']
   .mm-commission-pricing-matrix__desktop {
     height: auto;
-    overflow: visible;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix']
+  .mm-commission-pricing-table-frame {
+    height: auto;
+    overflow: hidden;
   }
 
   .mm-commission-detail[data-mm-commission-pricing-kind='matrix']
@@ -1050,27 +1039,14 @@
   }
 
   .mm-commission-detail[data-mm-commission-density='compact']
-  .mm-commission-matrix-stage-header__copy {
-    gap: 0.1rem;
-  }
-
-  .mm-commission-detail[data-mm-commission-density='compact']
   .mm-commission-matrix-stage-header__title {
     font-size: clamp(1rem, 0.98vw, 1.2rem);
   }
 
   .mm-commission-detail[data-mm-commission-density='compact']
-  .mm-commission-matrix-stage-header__meta {
-    gap: 0.1rem 0.55rem;
-    font-size: var(--mm-font-size-caption);
-    white-space: nowrap;
-  }
-
-  .mm-commission-detail[data-mm-commission-density='compact']
-  .mm-commission-detail__inquiry {
+  .mm-commission-matrix-stage-header__inquiry {
     min-height: 2.35rem;
     padding: 0.45rem 0.8rem;
-    white-space: nowrap;
   }
 
   .mm-commission-detail[data-mm-commission-density='compact']

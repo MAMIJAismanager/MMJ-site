@@ -52,18 +52,7 @@ const shouldLiftMatrixHeader = computed(() => (
   && props.service.pricing.kind === 'matrix'
 ))
 
-const matrixHeaderView = computed(() => {
-  const pricing = props.service.pricing
-  if (pricing.kind !== 'matrix') return null
-
-  return {
-    title: pricing.title,
-    description: density.value === 'compact'
-      ? pricing.compactDescription
-      : pricing.description,
-    unitLabel: pricing.unitLabel,
-  }
-})
+const MATRIX_STAGE_TITLE = '기본 가격표' as const
 
 function setDetailElement(
   element: Element | ComponentPublicInstance | null,
@@ -97,32 +86,19 @@ onMounted(async () => {
     :data-mm-overflow-amount="Math.round(overflowAmount)"
   >
     <header
-      v-if="shouldLiftMatrixHeader && matrixHeaderView"
+      v-if="shouldLiftMatrixHeader"
       class="mm-commission-matrix-stage-header"
       data-mm-commission-matrix-stage-header
     >
-      <div class="mm-commission-matrix-stage-header__copy">
-        <h3
-          :id="`${idPrefix}-pricing-title`"
-          class="mm-commission-matrix-stage-header__title"
-        >
-          {{ matrixHeaderView.title }}
-        </h3>
-        <div class="mm-commission-matrix-stage-header__meta">
-          <p
-            v-if="matrixHeaderView.description"
-            :id="`${idPrefix}-pricing-description`"
-          >
-            {{ matrixHeaderView.description }}
-          </p>
-          <p class="mm-commission-matrix-stage-header__unit">
-            단위: {{ matrixHeaderView.unitLabel }}
-          </p>
-        </div>
-      </div>
+      <h3
+        :id="`${idPrefix}-pricing-title`"
+        class="mm-commission-matrix-stage-header__title"
+      >
+        {{ MATRIX_STAGE_TITLE }}
+      </h3>
 
       <NuxtLink
-        class="mm-info-action mm-info-action--primary mm-commission-detail__inquiry"
+        class="mm-info-action mm-info-action--primary mm-commission-matrix-stage-header__inquiry"
         to="/contact"
       >
         {{ service.inquiryLabel }}
@@ -143,6 +119,7 @@ onMounted(async () => {
       :id-prefix="idPrefix"
       :density="density"
       :show-header="!shouldLiftMatrixHeader"
+      :accessible-title="`${service.label} 기본 가격표`"
     />
 
     <template v-else>

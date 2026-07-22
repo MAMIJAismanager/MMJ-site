@@ -24,6 +24,7 @@ interface Props {
   readonly idPrefix: string
   readonly density?: CommissionDetailDensity
   readonly showHeader?: boolean
+  readonly accessibleTitle?: string
 }
 
 interface CommissionPricingCellView {
@@ -58,6 +59,17 @@ const displayDescription = computed(() => (
   props.density === 'compact'
     ? props.pricing.compactDescription
     : props.pricing.description
+))
+
+const describedById = computed(() => (
+  props.showHeader && displayDescription.value
+    ? descriptionId.value
+    : undefined
+))
+
+const tableCaption = computed(() => (
+  props.accessibleTitle?.trim()
+    || props.pricing.title
 ))
 
 const rowViews = computed<readonly CommissionPricingRowView[]>(() => (
@@ -129,77 +141,79 @@ function getCell(
     </header>
 
     <div class="mm-commission-pricing-matrix__desktop">
-      <table
-        class="mm-commission-pricing-table"
-        :aria-describedby="displayDescription ? descriptionId : undefined"
-      >
-        <caption class="mm-visually-hidden">
-          {{ pricing.title }}
-        </caption>
-        <colgroup>
-          <col class="mm-commission-pricing-table__row-axis">
-          <col
-            v-for="column in matrix.columns"
-            :key="column.id"
-            class="mm-commission-pricing-table__price-column"
-          >
-        </colgroup>
-        <thead>
-          <tr>
-            <th scope="col">
-              {{ pricing.rowAxisLabel }}
-            </th>
-            <th
+      <div class="mm-commission-pricing-table-frame">
+        <table
+          class="mm-commission-pricing-table"
+          :aria-describedby="describedById"
+        >
+          <caption class="mm-visually-hidden">
+            {{ tableCaption }}
+          </caption>
+          <colgroup>
+            <col class="mm-commission-pricing-table__row-axis">
+            <col
               v-for="column in matrix.columns"
               :key="column.id"
-              scope="col"
+              class="mm-commission-pricing-table__price-column"
             >
-              <span class="mm-commission-pricing-table__column-label">
-                {{ column.label }}
-              </span>
-              <small
-                v-if="column.detailLabel"
-                class="mm-commission-pricing-table__column-detail"
+          </colgroup>
+          <thead>
+            <tr>
+              <th scope="col">
+                {{ pricing.rowAxisLabel }}
+              </th>
+              <th
+                v-for="column in matrix.columns"
+                :key="column.id"
+                scope="col"
               >
-                {{ column.detailLabel }}
-              </small>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="row in rowViews"
-            :key="row.id"
-          >
-            <th
-              scope="row"
-              class="mm-commission-pricing-table__row-header"
-            >
-              <span class="mm-commission-pricing-table__row-header-content">
-                <span class="mm-commission-pricing-table__row-label">
-                  {{ row.label }}
+                <span class="mm-commission-pricing-table__column-label">
+                  {{ column.label }}
                 </span>
                 <small
-                  v-if="row.detailLabel"
-                  class="mm-commission-pricing-table__row-detail"
+                  v-if="column.detailLabel"
+                  class="mm-commission-pricing-table__column-detail"
                 >
-                  {{ row.detailLabel }}
+                  {{ column.detailLabel }}
                 </small>
-              </span>
-            </th>
-            <td
-              v-for="cell in row.cells"
-              :key="`${row.id}:${cell.columnId}`"
-              class="mm-commission-pricing-table__price-cell"
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="row in rowViews"
+              :key="row.id"
             >
-              <strong>{{ cell.displayPrice }}</strong>
-              <small v-if="cell.note">
-                {{ cell.note }}
-              </small>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              <th
+                scope="row"
+                class="mm-commission-pricing-table__row-header"
+              >
+                <span class="mm-commission-pricing-table__row-header-content">
+                  <span class="mm-commission-pricing-table__row-label">
+                    {{ row.label }}
+                  </span>
+                  <small
+                    v-if="row.detailLabel"
+                    class="mm-commission-pricing-table__row-detail"
+                  >
+                    {{ row.detailLabel }}
+                  </small>
+                </span>
+              </th>
+              <td
+                v-for="cell in row.cells"
+                :key="`${row.id}:${cell.columnId}`"
+                class="mm-commission-pricing-table__price-cell"
+              >
+                <strong>{{ cell.displayPrice }}</strong>
+                <small v-if="cell.note">
+                  {{ cell.note }}
+                </small>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div
@@ -252,7 +266,7 @@ function getCell(
     </div>
 
     <p
-      v-if="density === 'comfortable' && pricing.footnote"
+      v-if="showHeader && density === 'comfortable' && pricing.footnote"
       class="mm-commission-pricing-matrix__footnote"
     >
       {{ pricing.footnote }}
