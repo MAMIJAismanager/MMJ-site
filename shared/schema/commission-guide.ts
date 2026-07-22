@@ -167,6 +167,10 @@ function validateMatrixPricing(
 ): void {
   assertNonEmptyText(pricing.title, `${path}.title`)
   assertNullableText(pricing.description, `${path}.description`)
+  assertNullableText(
+    pricing.compactDescription,
+    `${path}.compactDescription`,
+  )
   if (pricing.currency !== 'KRW') fail(`${path}.currency must be KRW`)
   if (pricing.displayUnit !== 'manwon' && pricing.displayUnit !== 'won') {
     fail(`${path}.displayUnit is unsupported`)
@@ -334,8 +338,8 @@ function deepFreeze<T>(value: T): T {
 export function createCommissionGuideSnapshot(
   input: CommissionGuideContent,
 ): CommissionGuideContent {
-  if (input.schemaVersion !== 2) {
-    fail('schemaVersion must equal 2')
+  if (input.schemaVersion !== 3) {
+    fail('schemaVersion must equal 3')
   }
 
   assertNonEmptyText(input.eyebrow, 'eyebrow')

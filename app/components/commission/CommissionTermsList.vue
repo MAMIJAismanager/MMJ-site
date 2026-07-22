@@ -2,19 +2,26 @@
 import type {
   CommissionTerm,
 } from '~~/shared/types/commission-guide'
+import type {
+  CommissionDetailDensity,
+} from '~/utils/commission-detail-density'
 
 interface Props {
   readonly heading: string
   readonly terms: readonly CommissionTerm[]
+  readonly density?: CommissionDetailDensity
 }
 
-defineProps<Props>()
+withDefaults(defineProps<Props>(), {
+  density: 'comfortable',
+})
 </script>
 
 <template>
   <section
     class="mm-commission-terms"
     data-mm-commission-terms
+    :data-mm-commission-density="density"
   >
     <h3 class="mm-commission-terms__heading">
       {{ heading }}
@@ -32,7 +39,9 @@ defineProps<Props>()
         >✓</span>
         <span class="mm-commission-term__copy">
           <strong>{{ term.label }}</strong>
-          <span v-if="term.description">
+          <span
+            v-if="density === 'comfortable' && term.description"
+          >
             {{ term.description }}
           </span>
         </span>

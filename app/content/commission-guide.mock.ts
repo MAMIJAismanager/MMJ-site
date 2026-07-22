@@ -3,7 +3,7 @@ import type {
 } from '~~/shared/types/commission-guide'
 
 export const COMMISSION_GUIDE_MOCK = {
-  schemaVersion: 2,
+  schemaVersion: 3,
 
   eyebrow: 'Commission Guide',
   title: '의뢰 안내',
@@ -28,6 +28,8 @@ export const COMMISSION_GUIDE_MOCK = {
         title: '안무 창작 기본 가격표',
         description:
           '곡 길이와 참여 인원을 기준으로 한 기본 비용이며, 최종 금액은 작업 조건을 확인한 뒤 확정합니다.',
+        compactDescription:
+          '곡 길이·참여 인원 기준 · 최종 금액은 상담 후 확정',
         currency: 'KRW',
         displayUnit: 'manwon',
         unitLabel: '만원 · 부가세 포함',

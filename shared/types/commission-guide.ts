@@ -56,6 +56,7 @@ export interface CommissionMatrixPricing {
   readonly kind: 'matrix'
   readonly title: string
   readonly description: string | null
+  readonly compactDescription: string | null
   readonly currency: 'KRW'
   readonly displayUnit: 'manwon' | 'won'
   readonly unitLabel: string
@@ -115,7 +116,7 @@ export interface CommissionTerm {
 }
 
 export interface CommissionGuideContent {
-  readonly schemaVersion: 2
+  readonly schemaVersion: 3
   readonly eyebrow: string
   readonly title: string
   readonly lead: string
@@ -146,6 +147,19 @@ export interface CommissionServiceSheetRow {
   readonly revision_label: string
   readonly additional_cost_note: string | null
   readonly inquiry_label: string
+}
+
+export interface CommissionMatrixPricingSheetRow {
+  readonly service_id: string
+  readonly pricing_title: string
+  readonly pricing_description: string | null
+  readonly pricing_compact_description: string | null
+  readonly currency: 'KRW'
+  readonly display_unit: 'manwon' | 'won'
+  readonly unit_label: string
+  readonly row_axis_label: string
+  readonly column_axis_label: string
+  readonly footnote: string | null
 }
 
 export interface CommissionPricingColumnSheetRow {
@@ -210,6 +224,7 @@ export interface CommissionPageCopySheetRow {
 
 export interface CommissionGuideSheetBundle {
   readonly services: readonly CommissionServiceSheetRow[]
+  readonly matrixPricing: readonly CommissionMatrixPricingSheetRow[]
   readonly pricingColumns: readonly CommissionPricingColumnSheetRow[]
   readonly pricingRows: readonly CommissionPricingRowSheetRow[]
   readonly pricingCells: readonly CommissionPricingCellSheetRow[]

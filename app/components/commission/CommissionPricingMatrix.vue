@@ -15,10 +15,15 @@ import type {
   CommissionMatrixPricing,
   CommissionPricingCell,
 } from '~~/shared/types/commission-guide'
+import type {
+  CommissionDetailDensity,
+} from '~/utils/commission-detail-density'
 
 interface Props {
   readonly pricing: CommissionMatrixPricing
   readonly idPrefix: string
+  readonly density?: CommissionDetailDensity
+  readonly showHeader?: boolean
 }
 
 interface CommissionPricingCellView {
@@ -36,7 +41,10 @@ interface CommissionPricingRowView {
   readonly cells: readonly CommissionPricingCellView[]
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  density: 'comfortable',
+  showHeader: true,
+})
 
 const matrix = computed(() => (
   createCommissionPricingMatrixView(props.pricing)
@@ -44,6 +52,12 @@ const matrix = computed(() => (
 
 const descriptionId = computed(() => (
   `${props.idPrefix}-pricing-description`
+))
+
+const displayDescription = computed(() => (
+  props.density === 'compact'
+    ? props.pricing.compactDescription
+    : props.pricing.description
 ))
 
 const rowViews = computed<readonly CommissionPricingRowView[]>(() => (
@@ -88,8 +102,12 @@ function getCell(
     :data-mm-commission-pricing-row-count="matrix.rows.length"
     :data-mm-commission-pricing-column-count="matrix.columns.length"
     :data-mm-commission-pricing-cell-count="matrix.expectedCellCount"
+    :data-mm-commission-density="density"
   >
-    <header class="mm-commission-pricing-matrix__header">
+    <header
+      v-if="showHeader"
+      class="mm-commission-pricing-matrix__header"
+    >
       <div>
         <h3
           :id="`${idPrefix}-pricing-title`"
@@ -98,11 +116,11 @@ function getCell(
           {{ pricing.title }}
         </h3>
         <p
-          v-if="pricing.description"
+          v-if="displayDescription"
           :id="descriptionId"
           class="mm-commission-pricing-matrix__description"
         >
-          {{ pricing.description }}
+          {{ displayDescription }}
         </p>
       </div>
       <p class="mm-commission-pricing-matrix__unit">
@@ -113,7 +131,7 @@ function getCell(
     <div class="mm-commission-pricing-matrix__desktop">
       <table
         class="mm-commission-pricing-table"
-        :aria-describedby="pricing.description ? descriptionId : undefined"
+        :aria-describedby="displayDescription ? descriptionId : undefined"
       >
         <caption class="mm-visually-hidden">
           {{ pricing.title }}
@@ -234,7 +252,7 @@ function getCell(
     </div>
 
     <p
-      v-if="pricing.footnote"
+      v-if="density === 'comfortable' && pricing.footnote"
       class="mm-commission-pricing-matrix__footnote"
     >
       {{ pricing.footnote }}

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import {
+  computed,
   nextTick,
   onMounted,
+  toRef,
 } from 'vue'
 
 import CommissionPricingMatrix from '~/components/commission/CommissionPricingMatrix.vue'
@@ -27,7 +29,7 @@ interface Props {
   readonly mode: 'desktop' | 'mobile'
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   layoutReady: []
@@ -35,8 +37,33 @@ const emit = defineEmits<{
 
 const {
   density,
+  availableHeight,
+  requiredHeight,
+  overflowAmount,
+  internalScrollFallback,
   setRootElement,
-} = useCommissionDetailDensity()
+  remeasure,
+} = useCommissionDetailDensity({
+  mode: toRef(props, 'mode'),
+})
+
+const shouldLiftMatrixHeader = computed(() => (
+  props.mode === 'desktop'
+  && props.service.pricing.kind === 'matrix'
+))
+
+const matrixHeaderView = computed(() => {
+  const pricing = props.service.pricing
+  if (pricing.kind !== 'matrix') return null
+
+  return {
+    title: pricing.title,
+    description: density.value === 'compact'
+      ? pricing.compactDescription
+      : pricing.description,
+    unitLabel: pricing.unitLabel,
+  }
+})
 
 function setDetailElement(
   element: Element | ComponentPublicInstance | null,
@@ -52,6 +79,7 @@ onMounted(async () => {
   await nextTick()
   await nextAnimationFrame()
   await nextAnimationFrame()
+  await remeasure()
   emit('layoutReady')
 })
 </script>
@@ -63,7 +91,44 @@ onMounted(async () => {
     :data-mm-commission-detail-mode="mode"
     :data-mm-commission-density="density"
     :data-mm-commission-pricing-kind="service.pricing.kind"
+    :data-mm-content-overflow="internalScrollFallback ? 'true' : 'false'"
+    :data-mm-available-height="Math.round(availableHeight)"
+    :data-mm-required-height="Math.round(requiredHeight)"
+    :data-mm-overflow-amount="Math.round(overflowAmount)"
   >
+    <header
+      v-if="shouldLiftMatrixHeader && matrixHeaderView"
+      class="mm-commission-matrix-stage-header"
+      data-mm-commission-matrix-stage-header
+    >
+      <div class="mm-commission-matrix-stage-header__copy">
+        <h3
+          :id="`${idPrefix}-pricing-title`"
+          class="mm-commission-matrix-stage-header__title"
+        >
+          {{ matrixHeaderView.title }}
+        </h3>
+        <div class="mm-commission-matrix-stage-header__meta">
+          <p
+            v-if="matrixHeaderView.description"
+            :id="`${idPrefix}-pricing-description`"
+          >
+            {{ matrixHeaderView.description }}
+          </p>
+          <p class="mm-commission-matrix-stage-header__unit">
+            단위: {{ matrixHeaderView.unitLabel }}
+          </p>
+        </div>
+      </div>
+
+      <NuxtLink
+        class="mm-info-action mm-info-action--primary mm-commission-detail__inquiry"
+        to="/contact"
+      >
+        {{ service.inquiryLabel }}
+      </NuxtLink>
+    </header>
+
     <p
       v-if="service.pricing.kind === 'quote'"
       class="mm-commission-service__description"
@@ -76,6 +141,8 @@ onMounted(async () => {
       v-if="service.pricing.kind === 'matrix'"
       :pricing="service.pricing"
       :id-prefix="idPrefix"
+      :density="density"
+      :show-header="!shouldLiftMatrixHeader"
     />
 
     <template v-else>
@@ -117,9 +184,11 @@ onMounted(async () => {
     <CommissionTermsList
       :heading="commonNoticeHeading"
       :terms="terms"
+      :density="density"
     />
 
     <NuxtLink
+      v-if="!shouldLiftMatrixHeader"
       class="mm-info-action mm-info-action--primary mm-commission-service__inquiry"
       to="/contact"
     >
