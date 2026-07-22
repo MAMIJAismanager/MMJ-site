@@ -390,76 +390,162 @@
   white-space: nowrap;
 }
 
-.mm-commission-pricing-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+.mm-commission-pricing-matrix__desktop {
+  display: none;
 }
 
-.mm-commission-pricing-table thead {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-}
-
-.mm-commission-pricing-table,
-.mm-commission-pricing-table tbody,
-.mm-commission-pricing-table tr,
-.mm-commission-pricing-table th,
-.mm-commission-pricing-table td {
-  display: block;
-  width: 100%;
-}
-
-.mm-commission-pricing-table tbody {
+.mm-commission-pricing-matrix__mobile {
   display: grid;
   gap: var(--mm-space-4);
 }
 
-.mm-commission-pricing-table tr {
+.mm-commission-pricing-card {
   overflow: hidden;
   border: 1px solid var(--mm-color-border);
   border-radius: var(--mm-radius-medium);
   background: color-mix(in srgb, var(--mm-color-page) 46%, transparent);
 }
 
-.mm-commission-pricing-table th[scope='row'] {
+.mm-commission-pricing-card__header {
   display: grid;
   gap: var(--mm-space-1);
   padding: var(--mm-space-4);
   background: var(--mm-color-surface);
   color: var(--mm-color-on-surface);
-  text-align: start;
 }
 
-.mm-commission-pricing-table th[scope='row'] small {
+.mm-commission-pricing-card__title,
+.mm-commission-pricing-card__detail,
+.mm-commission-pricing-card__list,
+.mm-commission-pricing-card__list dd {
+  margin: 0;
+}
+
+.mm-commission-pricing-card__title {
+  font-size: var(--mm-font-size-subheading);
+  line-height: var(--mm-line-height-heading);
+}
+
+.mm-commission-pricing-card__detail {
   color: var(--mm-color-on-surface-muted);
-  font-weight: var(--mm-font-weight-regular);
+  font-size: var(--mm-font-size-caption);
 }
 
-.mm-commission-pricing-table td {
+.mm-commission-pricing-card__list {
+  display: grid;
+}
+
+.mm-commission-pricing-card__item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline;
+  align-items: center;
   gap: var(--mm-space-4);
   padding: var(--mm-space-3) var(--mm-space-4);
   border-block-start: 1px solid var(--mm-color-border);
 }
 
-.mm-commission-pricing-table td::before {
-  content: attr(data-column-label);
-  color: var(--mm-color-text-muted);
+.mm-commission-pricing-card__item dt,
+.mm-commission-pricing-card__item dd {
+  display: grid;
+  gap: 0.15rem;
 }
 
-.mm-commission-pricing-table td strong {
+.mm-commission-pricing-card__item dt small,
+.mm-commission-pricing-card__item dd small {
+  color: var(--mm-color-text-muted);
+  font-size: var(--mm-font-size-caption);
+}
+
+.mm-commission-pricing-card__item dd {
+  justify-items: end;
+  text-align: end;
+}
+
+.mm-commission-pricing-card__item dd strong {
   font-size: var(--mm-font-size-subheading);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.mm-commission-pricing-table td small {
-  grid-column: 1 / -1;
+.mm-commission-pricing-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--mm-color-surface-subtle);
+}
+
+.mm-commission-pricing-table__row-axis {
+  width: clamp(7.5rem, 12%, 9rem);
+}
+
+.mm-commission-pricing-table__price-column {
+  width: auto;
+}
+
+.mm-commission-pricing-table th,
+.mm-commission-pricing-table td {
+  padding: var(--mm-space-3) var(--mm-space-4);
+  vertical-align: middle;
+  border-inline-end: 1px solid var(--mm-color-border);
+  border-block-end: 1px solid var(--mm-color-border);
+}
+
+.mm-commission-pricing-table tr > :last-child {
+  border-inline-end: 0;
+}
+
+.mm-commission-pricing-table tbody tr:last-child > * {
+  border-block-end: 0;
+}
+
+.mm-commission-pricing-table thead th {
+  background: var(--mm-color-surface);
+  color: var(--mm-color-on-surface);
+  text-align: center;
+}
+
+.mm-commission-pricing-table__column-label,
+.mm-commission-pricing-table__column-detail,
+.mm-commission-pricing-table__row-label,
+.mm-commission-pricing-table__row-detail {
+  display: block;
+}
+
+.mm-commission-pricing-table__column-detail,
+.mm-commission-pricing-table__row-detail {
+  margin-block-start: 0.15rem;
+  color: inherit;
+  font-size: var(--mm-font-size-caption);
+  font-weight: var(--mm-font-weight-regular);
+  opacity: 0.8;
+}
+
+.mm-commission-pricing-table__row-header {
+  background: color-mix(in srgb, var(--mm-color-surface-subtle) 82%, transparent);
+  color: var(--mm-color-text);
+  font-size: var(--mm-font-size-subheading);
+  font-weight: var(--mm-font-weight-bold);
+  line-height: var(--mm-line-height-heading);
+  text-align: start;
+  white-space: nowrap;
+}
+
+.mm-commission-pricing-table__price-cell {
+  color: var(--mm-color-text);
+  text-align: center;
+}
+
+.mm-commission-pricing-table__price-cell strong {
+  font-size: var(--mm-font-size-subheading);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.mm-commission-pricing-table__price-cell small {
+  display: block;
+  margin-block-start: 0.15rem;
   color: var(--mm-color-text-muted);
 }
 
@@ -552,7 +638,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .mm-commission-pricing-table tbody {
+  .mm-commission-pricing-matrix__mobile {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
@@ -743,6 +829,20 @@
     line-height: var(--mm-line-height-meta);
   }
 
+  .mm-commission-pricing-matrix__desktop {
+    display: block;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+    border: 1px solid var(--mm-color-border-strong);
+    border-radius: var(--mm-radius-medium);
+    background: var(--mm-color-surface-subtle);
+  }
+
+  .mm-commission-pricing-matrix__mobile {
+    display: none;
+  }
+
   .mm-commission-pricing-table {
     display: table;
     width: 100%;
@@ -750,17 +850,10 @@
     table-layout: fixed;
     border-collapse: separate;
     border-spacing: 0;
-    overflow: hidden;
-    border: 1px solid var(--mm-color-border-strong);
-    border-radius: var(--mm-radius-medium);
   }
 
   .mm-commission-pricing-table thead {
-    position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip: auto;
+    display: table-header-group;
   }
 
   .mm-commission-pricing-table tbody {
@@ -769,67 +862,27 @@
 
   .mm-commission-pricing-table tr {
     display: table-row;
-    width: auto;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
   }
 
   .mm-commission-pricing-table th,
-  .mm-commission-pricing-table td {
+  .mm-commission-pricing-table td,
+  .mm-commission-pricing-table th.mm-commission-pricing-table__row-header {
     display: table-cell;
     width: auto;
     padding: clamp(0.48rem, 0.78vh, 0.7rem) clamp(0.5rem, 0.65vw, 0.75rem);
-    border: 0;
-    border-inline-end: 1px solid var(--mm-color-border);
-    border-block-end: 1px solid var(--mm-color-border);
-    text-align: center;
     vertical-align: middle;
   }
 
-  .mm-commission-pricing-table tr > :last-child {
-    border-inline-end: 0;
-  }
-
-  .mm-commission-pricing-table tbody tr:last-child > * {
-    border-block-end: 0;
-  }
-
   .mm-commission-pricing-table thead th {
-    background: var(--mm-color-surface);
-    color: var(--mm-color-on-surface);
     font-size: clamp(0.76rem, 0.74vw, 0.9rem);
     line-height: 1.25;
   }
 
-  .mm-commission-pricing-table thead th:first-child {
-    width: clamp(6.5rem, 8vw, 8.5rem);
-  }
-
-  .mm-commission-pricing-table th span,
-  .mm-commission-pricing-table th small {
-    display: block;
-  }
-
-  .mm-commission-pricing-table th small {
-    margin-block-start: 0.15rem;
-    color: inherit;
-    font-size: var(--mm-font-size-caption);
-    font-weight: var(--mm-font-weight-regular);
-    opacity: 0.8;
-  }
-
-  .mm-commission-pricing-table th[scope='row'] {
-    background: color-mix(in srgb, var(--mm-color-surface-subtle) 82%, transparent);
-    color: var(--mm-color-text);
+  .mm-commission-pricing-table__row-header {
     text-align: start;
   }
 
-  .mm-commission-pricing-table td::before {
-    content: none;
-  }
-
-  .mm-commission-pricing-table td strong {
+  .mm-commission-pricing-table__price-cell strong {
     font-size: clamp(1rem, 0.95vw, 1.2rem);
   }
 
