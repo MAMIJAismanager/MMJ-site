@@ -3,6 +3,7 @@ import {
   computed,
   nextTick,
   ref,
+  toRef,
 } from 'vue'
 
 import CommissionServiceDetail from '~/components/commission/CommissionServiceDetail.vue'
@@ -21,11 +22,15 @@ import type {
   CommissionServiceId,
   CommissionTerm,
 } from '~~/shared/types/commission-guide'
+import type {
+  CommissionViewportMode,
+} from '~/utils/commission-layout-planner'
 
 interface Props {
   readonly services: readonly CommissionService[]
   readonly terms: readonly CommissionTerm[]
   readonly commonNoticeHeading: string
+  readonly viewportMode: CommissionViewportMode
 }
 
 type CommissionExplorerPhase =
@@ -55,6 +60,7 @@ const {
 } = useCommissionWorkspaceLayout({
   services,
   activeServiceId,
+  viewportMode: toRef(props, 'viewportMode'),
 })
 
 const {
@@ -76,6 +82,10 @@ function isActive(serviceId: CommissionServiceId): boolean {
 
 function isDetailVisible(serviceId: CommissionServiceId): boolean {
   return isActive(serviceId) && detailContentVisible.value
+}
+
+function isDetailStage(serviceId: CommissionServiceId): boolean {
+  return readSlotRole(serviceId) === 'detail-stage'
 }
 
 function resolveTerms(serviceId: CommissionServiceId) {
@@ -183,7 +193,51 @@ function closeActiveService(): void {
         :data-mm-commission-service-id="service.id"
         :style="readSlotStyle(service.id)"
       >
+        <header
+          v-if="isDetailStage(service.id) && isActive(service.id)"
+          class="mm-commission-service__active-header"
+          data-mm-commission-active-header
+        >
+          <button
+            :id="`mm-commission-desktop-trigger-${service.id}`"
+            :ref="element => setTriggerElement(service.id, element)"
+            class="mm-commission-service__active-copy"
+            type="button"
+            :aria-expanded="true"
+            :aria-controls="`mm-commission-desktop-panel-${service.id}`"
+            @click="toggleService(service.id)"
+          >
+            <span class="mm-commission-service__label">
+              {{ service.label }}
+            </span>
+            <span class="mm-commission-service__summary">
+              {{ service.summary }}
+            </span>
+          </button>
+
+          <div class="mm-commission-service__active-actions">
+            <NuxtLink
+              class="mm-info-action mm-info-action--primary mm-commission-service__header-inquiry"
+              to="/contact"
+            >
+              {{ service.inquiryLabel }}
+            </NuxtLink>
+
+            <button
+              class="mm-commission-service__toggle"
+              type="button"
+              :aria-label="`${service.label} 의뢰 상세 접기`"
+              :aria-controls="`mm-commission-desktop-panel-${service.id}`"
+              :aria-expanded="true"
+              @click="toggleService(service.id)"
+            >
+              <span aria-hidden="true">−</span>
+            </button>
+          </div>
+        </header>
+
         <button
+          v-else
           :id="`mm-commission-desktop-trigger-${service.id}`"
           :ref="element => setTriggerElement(service.id, element)"
           class="mm-commission-service__trigger"

@@ -6,12 +6,16 @@ import type {
   CommissionService,
   CommissionTerm,
 } from '~~/shared/types/commission-guide'
+import type {
+  CommissionViewportMode,
+} from '~/utils/commission-layout-planner'
 
 interface Props {
   readonly heading: string
   readonly services: readonly CommissionService[]
   readonly terms: readonly CommissionTerm[]
   readonly commonNoticeHeading: string
+  readonly viewportMode: CommissionViewportMode
 }
 
 defineProps<Props>()
@@ -34,6 +38,7 @@ defineProps<Props>()
       :services="services"
       :terms="terms"
       :common-notice-heading="commonNoticeHeading"
+      :viewport-mode="viewportMode"
     />
 
     <CommissionMobileServiceDeck

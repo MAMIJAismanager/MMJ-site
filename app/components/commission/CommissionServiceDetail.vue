@@ -20,6 +20,10 @@ import type {
   CommissionService,
   CommissionTerm,
 } from '~~/shared/types/commission-guide'
+import type {
+  CommissionMatrixHeaderProjection,
+  CommissionTermsProjection,
+} from '~/types/commission-presentation'
 
 interface Props {
   readonly service: CommissionService
@@ -47,9 +51,25 @@ const {
   mode: toRef(props, 'mode'),
 })
 
-const shouldLiftMatrixHeader = computed(() => (
+const shouldRenderDesktopMatrixTitle = computed(() => (
   props.mode === 'desktop'
   && props.service.pricing.kind === 'matrix'
+))
+
+const matrixHeaderProjection = computed<CommissionMatrixHeaderProjection>(() => (
+  props.mode === 'mobile'
+    ? 'unit-only'
+    : 'hidden'
+))
+
+const termsProjection = computed<CommissionTermsProjection>(() => (
+  props.mode === 'mobile'
+    ? 'title-only'
+    : 'full'
+))
+
+const shouldRenderDetailInquiry = computed(() => (
+  props.mode === 'mobile'
 ))
 
 const MATRIX_STAGE_TITLE = '기본 가격표' as const
@@ -86,7 +106,7 @@ onMounted(async () => {
     :data-mm-overflow-amount="Math.round(overflowAmount)"
   >
     <header
-      v-if="shouldLiftMatrixHeader"
+      v-if="shouldRenderDesktopMatrixTitle"
       class="mm-commission-matrix-stage-header"
       data-mm-commission-matrix-stage-header
     >
@@ -96,18 +116,6 @@ onMounted(async () => {
       >
         {{ MATRIX_STAGE_TITLE }}
       </h3>
-
-      <div
-        class="mm-commission-matrix-stage-header__end"
-        data-mm-commission-matrix-stage-header-end
-      >
-        <NuxtLink
-          class="mm-info-action mm-info-action--primary mm-commission-matrix-stage-header__inquiry"
-          to="/contact"
-        >
-          {{ service.inquiryLabel }}
-        </NuxtLink>
-      </div>
     </header>
 
     <p
@@ -123,7 +131,7 @@ onMounted(async () => {
       :pricing="service.pricing"
       :id-prefix="idPrefix"
       :density="density"
-      :show-header="!shouldLiftMatrixHeader"
+      :header-projection="matrixHeaderProjection"
       :accessible-title="`${service.label} 기본 가격표`"
     />
 
@@ -167,10 +175,11 @@ onMounted(async () => {
       :heading="commonNoticeHeading"
       :terms="terms"
       :density="density"
+      :projection="termsProjection"
     />
 
     <NuxtLink
-      v-if="!shouldLiftMatrixHeader"
+      v-if="shouldRenderDetailInquiry"
       class="mm-info-action mm-info-action--primary mm-commission-service__inquiry"
       to="/contact"
     >

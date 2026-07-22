@@ -7,10 +7,17 @@ definePageMeta({
 import CommissionServiceExplorer from '~/components/commission/CommissionServiceExplorer.vue'
 import InfoPageSurface from '~/components/info/InfoPageSurface.vue'
 import {
+  useCommissionViewportMode,
+} from '~/composables/useCommissionViewportMode'
+import {
   commissionGuide,
   enabledCommissionServices,
   enabledCommissionTerms,
 } from '~/data/commission-guide'
+
+const {
+  viewportMode,
+} = useCommissionViewportMode()
 
 useSeoMeta({
   title: commissionGuide.seoTitle,
@@ -30,9 +37,11 @@ useSeoMeta({
       :services="enabledCommissionServices"
       :terms="enabledCommissionTerms"
       :common-notice-heading="commissionGuide.commonNoticeHeading"
+      :viewport-mode="viewportMode"
     />
 
     <footer
+      v-if="viewportMode === 'desktop'"
       class="mm-commission-utility-dock"
       data-mm-commission-utility-dock
     >

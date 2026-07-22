@@ -959,10 +959,7 @@
 
 
 .mm-commission-matrix-stage-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--mm-space-4);
+  display: block;
   min-width: 0;
 }
 
@@ -971,11 +968,6 @@
   margin: 0;
   font-size: var(--mm-font-size-subheading);
   line-height: var(--mm-line-height-heading);
-}
-
-.mm-commission-matrix-stage-header__inquiry {
-  justify-self: end;
-  white-space: nowrap;
 }
 
 @media (min-width: 80rem) and (min-height: 54rem) {
@@ -1034,19 +1026,8 @@
   }
 
   .mm-commission-detail[data-mm-commission-density='compact']
-  .mm-commission-matrix-stage-header {
-    gap: clamp(0.65rem, 0.85vw, 1rem);
-  }
-
-  .mm-commission-detail[data-mm-commission-density='compact']
   .mm-commission-matrix-stage-header__title {
     font-size: clamp(1rem, 0.98vw, 1.2rem);
-  }
-
-  .mm-commission-detail[data-mm-commission-density='compact']
-  .mm-commission-matrix-stage-header__inquiry {
-    min-height: 2.35rem;
-    padding: 0.45rem 0.8rem;
   }
 
   .mm-commission-detail[data-mm-commission-density='compact']
@@ -1137,17 +1118,9 @@
   }
 }
 
-/* MMJ-UI28-R2-R3-R2: 1920 desktop terms rhythm and CTA endpoint ownership. */
-.mm-commission-matrix-stage-header__end {
-  display: flex;
-  min-width: 0;
-  justify-content: flex-end;
-}
-
+/* MMJ-UI28-R2-R3-R2: 1920 desktop terms breathing rhythm. */
 @media (min-width: 80rem) and (min-height: 54rem) {
   .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix'] {
-    --mm-commission-detail-cta-end-gutter: clamp(0.25rem, 0.35vw, 0.45rem);
-    --mm-commission-detail-content-end-inset: clamp(0.65rem, 0.8vw, 0.8rem);
     --mm-commission-terms-section-padding: 0.25rem;
     --mm-commission-terms-heading-gap: 0.625rem;
     --mm-commission-terms-column-gap: 0.75rem;
@@ -1156,28 +1129,6 @@
     --mm-commission-term-padding-inline: 0.75rem;
     --mm-commission-term-min-height: 2.375rem;
     row-gap: 0.75rem;
-    padding-inline-end: var(--mm-commission-detail-cta-end-gutter);
-  }
-
-  .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix']
-  > .mm-commission-matrix-stage-header {
-    grid-column: 1 / -1;
-    width: 100%;
-  }
-
-  .mm-commission-matrix-stage-header__end {
-    justify-self: end;
-  }
-
-  .mm-commission-matrix-stage-header__inquiry {
-    margin: 0;
-  }
-
-  .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix']
-  > .mm-commission-pricing-matrix,
-  .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix']
-  > .mm-commission-terms {
-    margin-inline-end: var(--mm-commission-detail-content-end-inset);
   }
 
   .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix']
@@ -1227,11 +1178,6 @@
   }
 
   .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix'][data-mm-commission-density='compact']
-  .mm-commission-terms__heading {
-    padding-block-start: 0;
-  }
-
-  .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix'][data-mm-commission-density='compact']
   .mm-commission-terms__list {
     column-gap: var(--mm-commission-terms-column-gap);
     row-gap: var(--mm-commission-terms-row-gap);
@@ -1243,5 +1189,122 @@
     gap: 0.5rem;
     padding: var(--mm-commission-term-padding-block)
       var(--mm-commission-term-padding-inline);
+  }
+}
+
+/* MMJ-UI28-R2-R3-R3: mode-owned projection and active-header CTA. */
+.mm-commission-service__active-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--mm-space-4);
+  min-width: 0;
+}
+
+.mm-commission-service__active-copy {
+  display: grid;
+  justify-items: start;
+  gap: var(--mm-space-1);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.mm-commission-service__active-copy:hover {
+  color: var(--mm-color-text);
+}
+
+.mm-commission-service__active-copy:focus-visible,
+.mm-commission-service__toggle:focus-visible,
+.mm-commission-service__header-inquiry:focus-visible {
+  outline: 0.1875rem solid var(--mm-color-focus);
+  outline-offset: 0.1875rem;
+}
+
+.mm-commission-service__active-actions {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mm-commission-service__header-inquiry {
+  white-space: nowrap;
+}
+
+.mm-commission-service__toggle {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--mm-color-border-strong);
+  border-radius: var(--mm-radius-round);
+  background: transparent;
+  color: var(--mm-color-text);
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mm-commission-pricing-matrix[data-mm-commission-header-projection='unit-only']
+.mm-commission-pricing-matrix__header {
+  display: block;
+}
+
+.mm-commission-pricing-matrix[data-mm-commission-header-projection='unit-only']
+.mm-commission-pricing-matrix__unit {
+  text-align: start;
+}
+
+.mm-commission-terms[data-mm-terms-projection='title-only']
+.mm-commission-term {
+  min-height: 3.25rem;
+  align-items: center;
+  padding: 0.75rem;
+}
+
+.mm-commission-terms[data-mm-terms-projection='title-only']
+.mm-commission-term__copy {
+  align-content: center;
+}
+
+@media (min-width: 80rem) and (min-height: 54rem) {
+  .mm-commission-service[data-layout-role='detail-stage']
+  .mm-commission-service__active-header {
+    min-height: 3.75rem;
+    padding: clamp(0.65rem, 1vh, 0.85rem)
+      clamp(1rem, 1.25vw, 1.25rem);
+    border-block-end: 1px solid var(--mm-color-border);
+  }
+
+  .mm-commission-service[data-layout-role='detail-stage']
+  .mm-commission-service__active-copy {
+    align-self: stretch;
+    align-content: center;
+  }
+
+  .mm-commission-service[data-layout-role='detail-stage']
+  .mm-commission-service__active-actions {
+    align-self: center;
+  }
+
+  .mm-commission-service[data-layout-role='detail-stage']
+  .mm-commission-service__header-inquiry {
+    min-height: 2.5rem;
+    padding: var(--mm-space-2) var(--mm-space-4);
+  }
+
+  .mm-commission-service[data-layout-role='detail-stage']
+  .mm-commission-service__toggle {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.25rem;
   }
 }

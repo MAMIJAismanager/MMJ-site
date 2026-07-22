@@ -16,6 +16,9 @@ import type {
   CommissionPricingCell,
 } from '~~/shared/types/commission-guide'
 import type {
+  CommissionMatrixHeaderProjection,
+} from '~/types/commission-presentation'
+import type {
   CommissionDetailDensity,
 } from '~/utils/commission-detail-density'
 
@@ -23,7 +26,7 @@ interface Props {
   readonly pricing: CommissionMatrixPricing
   readonly idPrefix: string
   readonly density?: CommissionDetailDensity
-  readonly showHeader?: boolean
+  readonly headerProjection?: CommissionMatrixHeaderProjection
   readonly accessibleTitle?: string
 }
 
@@ -44,7 +47,7 @@ interface CommissionPricingRowView {
 
 const props = withDefaults(defineProps<Props>(), {
   density: 'comfortable',
-  showHeader: true,
+  headerProjection: 'full',
 })
 
 const matrix = computed(() => (
@@ -62,7 +65,7 @@ const displayDescription = computed(() => (
 ))
 
 const describedById = computed(() => (
-  props.showHeader && displayDescription.value
+  props.headerProjection === 'full' && displayDescription.value
     ? descriptionId.value
     : undefined
 ))
@@ -70,6 +73,27 @@ const describedById = computed(() => (
 const tableCaption = computed(() => (
   props.accessibleTitle?.trim()
     || props.pricing.title
+))
+
+const sectionLabelledBy = computed(() => (
+  props.headerProjection === 'unit-only'
+    ? undefined
+    : `${props.idPrefix}-pricing-title`
+))
+
+const sectionAriaLabel = computed(() => (
+  props.headerProjection === 'unit-only'
+    ? tableCaption.value
+    : undefined
+))
+
+const shouldRenderFootnote = computed(() => (
+  Boolean(props.pricing.footnote)
+  && props.headerProjection !== 'hidden'
+  && (
+    props.headerProjection === 'unit-only'
+    || props.density === 'comfortable'
+  )
 ))
 
 const rowViews = computed<readonly CommissionPricingRowView[]>(() => (
@@ -109,18 +133,20 @@ function getCell(
 <template>
   <section
     class="mm-commission-pricing-matrix"
-    :aria-labelledby="`${idPrefix}-pricing-title`"
+    :aria-labelledby="sectionLabelledBy"
+    :aria-label="sectionAriaLabel"
     data-mm-commission-pricing-kind="matrix"
     :data-mm-commission-pricing-row-count="matrix.rows.length"
     :data-mm-commission-pricing-column-count="matrix.columns.length"
     :data-mm-commission-pricing-cell-count="matrix.expectedCellCount"
     :data-mm-commission-density="density"
+    :data-mm-commission-header-projection="headerProjection"
   >
     <header
-      v-if="showHeader"
+      v-if="headerProjection !== 'hidden'"
       class="mm-commission-pricing-matrix__header"
     >
-      <div>
+      <div v-if="headerProjection === 'full'">
         <h3
           :id="`${idPrefix}-pricing-title`"
           class="mm-commission-pricing-matrix__title"
@@ -219,7 +245,7 @@ function getCell(
     <div
       class="mm-commission-pricing-matrix__mobile"
       role="list"
-      :aria-label="pricing.title"
+      :aria-label="tableCaption"
     >
       <article
         v-for="row in rowViews"
@@ -266,7 +292,7 @@ function getCell(
     </div>
 
     <p
-      v-if="showHeader && density === 'comfortable' && pricing.footnote"
+      v-if="shouldRenderFootnote"
       class="mm-commission-pricing-matrix__footnote"
     >
       {{ pricing.footnote }}

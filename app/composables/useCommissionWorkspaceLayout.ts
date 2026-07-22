@@ -1,8 +1,6 @@
 import {
   computed,
   onBeforeUnmount,
-  onMounted,
-  ref,
 } from 'vue'
 
 import {
@@ -23,34 +21,29 @@ import type {
   CommissionServiceId,
 } from '~~/shared/types/commission-guide'
 import type {
-  CommissionLayoutPlan,
   CommissionViewportMode,
 } from '~/utils/commission-layout-planner'
-
-const DESKTOP_COMPOSITION_QUERY =
-  '(min-width: 80rem) and (min-height: 54rem)'
 
 interface UseCommissionWorkspaceLayoutOptions {
   readonly services: ComputedRef<readonly CommissionService[]>
   readonly activeServiceId: Readonly<Ref<CommissionServiceId | null>>
+  readonly viewportMode: Readonly<Ref<CommissionViewportMode>>
 }
 
 export function useCommissionWorkspaceLayout(
   options: UseCommissionWorkspaceLayoutOptions,
 ) {
-  const viewportMode = ref<CommissionViewportMode>('flow')
   const serviceElements = new Map<CommissionServiceId, HTMLElement>()
-  let desktopMedia: MediaQueryList | null = null
 
   const serviceIds = computed(() => (
     options.services.value.map(service => service.id)
   ))
 
-  const layoutPlan = computed<CommissionLayoutPlan>(() => (
+  const layoutPlan = computed(() => (
     createCommissionLayoutPlan(
       serviceIds.value,
       options.activeServiceId.value,
-      viewportMode.value,
+      options.viewportMode.value,
     )
   ))
 
@@ -66,12 +59,6 @@ export function useCommissionWorkspaceLayout(
       return service === undefined ? [] : [service]
     })
   ))
-
-  function syncViewportMode(
-    media: MediaQueryList | MediaQueryListEvent,
-  ): void {
-    viewportMode.value = media.matches ? 'desktop' : 'flow'
-  }
 
   function setServiceElement(
     serviceId: CommissionServiceId,
@@ -94,7 +81,7 @@ export function useCommissionWorkspaceLayout(
   ) {
     return createCommissionSlotStyle(
       layoutPlan.value.slots.get(serviceId),
-      viewportMode.value,
+      options.viewportMode.value,
     )
   }
 
@@ -102,27 +89,19 @@ export function useCommissionWorkspaceLayout(
     return captureCommissionRects(serviceElements)
   }
 
-  async function animateFrom(
-    before: ReturnType<typeof captureCommissionRects>,
-  ): Promise<void> {
-    if (viewportMode.value !== 'desktop') return
-    await animateCommissionFlip(before, serviceElements)
-  }
-
-  onMounted(() => {
-    desktopMedia = window.matchMedia(DESKTOP_COMPOSITION_QUERY)
-    syncViewportMode(desktopMedia)
-    desktopMedia.addEventListener('change', syncViewportMode)
-  })
-
   onBeforeUnmount(() => {
-    desktopMedia?.removeEventListener('change', syncViewportMode)
-    desktopMedia = null
     serviceElements.clear()
   })
 
+  async function animateFrom(
+    before: ReturnType<typeof captureCommissionRects>,
+  ): Promise<void> {
+    if (options.viewportMode.value !== 'desktop') return
+    await animateCommissionFlip(before, serviceElements)
+  }
+
   return {
-    viewportMode,
+    viewportMode: options.viewportMode,
     layoutPlan,
     orderedServices,
     setServiceElement,
