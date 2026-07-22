@@ -7,6 +7,7 @@ import {
 } from 'vue'
 
 import CommissionPricingMatrix from '~/components/commission/CommissionPricingMatrix.vue'
+import CommissionPricingMatrixSet from '~/components/commission/CommissionPricingMatrixSet.vue'
 import CommissionQuotePricing from '~/components/commission/CommissionQuotePricing.vue'
 import CommissionTermsList from '~/components/commission/CommissionTermsList.vue'
 import {
@@ -53,7 +54,10 @@ const {
 
 const shouldRenderDesktopMatrixTitle = computed(() => (
   props.mode === 'desktop'
-  && props.service.pricing.kind === 'matrix'
+  && (
+    props.service.pricing.kind === 'matrix'
+    || props.service.pricing.kind === 'matrix-set'
+  )
 ))
 
 const matrixHeaderProjection = computed<CommissionMatrixHeaderProjection>(() => (
@@ -133,6 +137,16 @@ onMounted(async () => {
       :density="density"
       :header-projection="matrixHeaderProjection"
       :accessible-title="`${service.label} 기본 가격표`"
+    />
+
+    <CommissionPricingMatrixSet
+      v-else-if="service.pricing.kind === 'matrix-set'"
+      :pricing="service.pricing"
+      :id-prefix="idPrefix"
+      :density="density"
+      :mode="mode"
+      :service-label="service.label"
+      @group-change="remeasure"
     />
 
     <template v-else>

@@ -5,6 +5,7 @@ import {
 
 import {
   formatCommissionPriceCell,
+  formatCommissionPriceCellAccessible,
 } from '~/utils/commission-price-formatter'
 import {
   createCommissionPricingCoordinate,
@@ -35,6 +36,7 @@ interface CommissionPricingCellView {
   readonly columnLabel: string
   readonly columnDetailLabel: string | null
   readonly displayPrice: string
+  readonly accessiblePrice: string
   readonly note: string | null
 }
 
@@ -76,15 +78,15 @@ const tableCaption = computed(() => (
 ))
 
 const sectionLabelledBy = computed(() => (
-  props.headerProjection === 'unit-only'
-    ? undefined
-    : `${props.idPrefix}-pricing-title`
+  props.headerProjection === 'full'
+    ? `${props.idPrefix}-pricing-title`
+    : undefined
 ))
 
 const sectionAriaLabel = computed(() => (
-  props.headerProjection === 'unit-only'
-    ? tableCaption.value
-    : undefined
+  props.headerProjection === 'full'
+    ? undefined
+    : tableCaption.value
 ))
 
 const shouldRenderFootnote = computed(() => (
@@ -108,6 +110,7 @@ const rowViews = computed<readonly CommissionPricingRowView[]>(() => (
         columnLabel: column.label,
         columnDetailLabel: column.detailLabel,
         displayPrice: formatCommissionPriceCell(cell, props.pricing),
+        accessiblePrice: formatCommissionPriceCellAccessible(cell, props.pricing),
         note: cell.note,
       }
     }),
@@ -231,7 +234,7 @@ function getCell(
                 :key="`${row.id}:${cell.columnId}`"
                 class="mm-commission-pricing-table__price-cell"
               >
-                <strong>{{ cell.displayPrice }}</strong>
+                <strong :aria-label="cell.accessiblePrice">{{ cell.displayPrice }}</strong>
                 <small v-if="cell.note">
                   {{ cell.note }}
                 </small>
@@ -281,7 +284,7 @@ function getCell(
               </small>
             </dt>
             <dd>
-              <strong>{{ cell.displayPrice }}</strong>
+              <strong :aria-label="cell.accessiblePrice">{{ cell.displayPrice }}</strong>
               <small v-if="cell.note">
                 {{ cell.note }}
               </small>

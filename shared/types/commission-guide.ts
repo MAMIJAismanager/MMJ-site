@@ -12,6 +12,7 @@ export type CommissionServiceId =
 
 export type CommissionPricingColumnId = string
 export type CommissionPricingRowId = string
+export type CommissionPricingGroupId = string
 export type CommissionTermId = string
 
 export type CommissionPriceCellMode =
@@ -69,9 +70,37 @@ export interface CommissionMatrixPricing {
   readonly mock: boolean
 }
 
+
+export interface CommissionMatrixPricingGroup {
+  readonly id: CommissionPricingGroupId
+  readonly order: number
+  readonly enabled: boolean
+  readonly label: string
+  readonly shortLabel: string
+  readonly rowAxisLabel: string
+  readonly columnAxisLabel: string
+  readonly columns: readonly CommissionPricingColumn[]
+  readonly rows: readonly CommissionPricingRow[]
+  readonly cells: readonly CommissionPricingCell[]
+}
+
+export interface CommissionMatrixSetPricing {
+  readonly kind: 'matrix-set'
+  readonly title: string
+  readonly description: string | null
+  readonly compactDescription: string | null
+  readonly currency: 'KRW'
+  readonly displayUnit: 'manwon' | 'won'
+  readonly unitLabel: string
+  readonly groups: readonly CommissionMatrixPricingGroup[]
+  readonly footnote: string | null
+  readonly mock: boolean
+}
+
 export type CommissionPricing =
   | CommissionQuotePricing
   | CommissionMatrixPricing
+  | CommissionMatrixSetPricing
 
 export interface CommissionService {
   readonly id: CommissionServiceId
@@ -116,7 +145,7 @@ export interface CommissionTerm {
 }
 
 export interface CommissionGuideContent {
-  readonly schemaVersion: 3
+  readonly schemaVersion: 4
   readonly eyebrow: string
   readonly title: string
   readonly lead: string
@@ -142,7 +171,7 @@ export interface CommissionServiceSheetRow {
   readonly label: string
   readonly summary: string
   readonly description: string
-  readonly pricing_kind: 'quote' | 'matrix'
+  readonly pricing_kind: 'quote' | 'matrix' | 'matrix-set'
   readonly turnaround_label: string
   readonly revision_label: string
   readonly additional_cost_note: string | null
@@ -157,13 +186,25 @@ export interface CommissionMatrixPricingSheetRow {
   readonly currency: 'KRW'
   readonly display_unit: 'manwon' | 'won'
   readonly unit_label: string
+  readonly row_axis_label: string | null
+  readonly column_axis_label: string | null
+  readonly footnote: string | null
+}
+
+export interface CommissionPricingGroupSheetRow {
+  readonly service_id: string
+  readonly pricing_group_id: string
+  readonly order: number
+  readonly enabled: boolean
+  readonly label: string
+  readonly short_label: string
   readonly row_axis_label: string
   readonly column_axis_label: string
-  readonly footnote: string | null
 }
 
 export interface CommissionPricingColumnSheetRow {
   readonly service_id: string
+  readonly pricing_group_id: string
   readonly column_id: string
   readonly order: number
   readonly enabled: boolean
@@ -174,6 +215,7 @@ export interface CommissionPricingColumnSheetRow {
 
 export interface CommissionPricingRowSheetRow {
   readonly service_id: string
+  readonly pricing_group_id: string
   readonly row_id: string
   readonly order: number
   readonly enabled: boolean
@@ -183,6 +225,7 @@ export interface CommissionPricingRowSheetRow {
 
 export interface CommissionPricingCellSheetRow {
   readonly service_id: string
+  readonly pricing_group_id: string
   readonly row_id: string
   readonly column_id: string
   readonly price_mode: CommissionPriceCellMode
@@ -225,6 +268,7 @@ export interface CommissionPageCopySheetRow {
 export interface CommissionGuideSheetBundle {
   readonly services: readonly CommissionServiceSheetRow[]
   readonly matrixPricing: readonly CommissionMatrixPricingSheetRow[]
+  readonly pricingGroups: readonly CommissionPricingGroupSheetRow[]
   readonly pricingColumns: readonly CommissionPricingColumnSheetRow[]
   readonly pricingRows: readonly CommissionPricingRowSheetRow[]
   readonly pricingCells: readonly CommissionPricingCellSheetRow[]

@@ -102,7 +102,10 @@ export function useCommissionDetailDensity(
   }
 
   function readRequiredHeight(root: HTMLElement): number {
-    if (root.dataset.mmCommissionPricingKind === 'matrix') {
+    if (
+      root.dataset.mmCommissionPricingKind === 'matrix'
+      || root.dataset.mmCommissionPricingKind === 'matrix-set'
+    ) {
       return readMatrixStackHeight(root)
     }
 
@@ -173,7 +176,7 @@ export function useCommissionDetailDensity(
       && internalScrollFallback.value
     ) {
       console.warn(
-        'MMJ-UI28-R2-R3-R2: compact commission detail still overflows',
+        'MMJ-UI28-R2-R4: compact commission detail still overflows',
         {
           availableHeight: nextAvailableHeight,
           requiredHeight: nextRequiredHeight,

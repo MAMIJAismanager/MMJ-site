@@ -6,6 +6,8 @@ import {
 import type {
   CommissionGuideContent,
   CommissionMatrixPricing,
+  CommissionMatrixPricingGroup,
+  CommissionMatrixSetPricing,
   CommissionPricing,
   CommissionPricingCell,
   CommissionPricingColumn,
@@ -161,6 +163,79 @@ function validatePricingCell(
   }
 }
 
+function validateMatrixAxes(
+  columns: readonly CommissionPricingColumn[],
+  rows: readonly CommissionPricingRow[],
+  cells: readonly CommissionPricingCell[],
+  path: string,
+): void {
+  if (!Array.isArray(columns) || columns.length === 0) {
+    fail(`${path}.columns must contain at least one item`)
+  }
+  if (!Array.isArray(rows) || rows.length === 0) {
+    fail(`${path}.rows must contain at least one item`)
+  }
+  if (!Array.isArray(cells) || cells.length === 0) {
+    fail(`${path}.cells must contain at least one item`)
+  }
+
+  const columnIds = new Set<string>()
+  const columnOrders = new Set<number>()
+  columns.forEach((column, index) => {
+    validatePricingColumn(column, `${path}.columns[${index}]`)
+    if (columnIds.has(column.id)) {
+      fail(`${path} duplicate column id: ${column.id}`)
+    }
+    if (columnOrders.has(column.order)) {
+      fail(`${path} duplicate column order: ${column.order}`)
+    }
+    columnIds.add(column.id)
+    columnOrders.add(column.order)
+  })
+
+  const rowIds = new Set<string>()
+  const rowOrders = new Set<number>()
+  rows.forEach((row, index) => {
+    validatePricingRow(row, `${path}.rows[${index}]`)
+    if (rowIds.has(row.id)) fail(`${path} duplicate row id: ${row.id}`)
+    if (rowOrders.has(row.order)) {
+      fail(`${path} duplicate row order: ${row.order}`)
+    }
+    rowIds.add(row.id)
+    rowOrders.add(row.order)
+  })
+
+  const cellCoordinates = new Set<string>()
+  cells.forEach((cell, index) => {
+    validatePricingCell(cell, `${path}.cells[${index}]`)
+    if (!rowIds.has(cell.rowId)) {
+      fail(`${path} cell references unknown row: ${cell.rowId}`)
+    }
+    if (!columnIds.has(cell.columnId)) {
+      fail(`${path} cell references unknown column: ${cell.columnId}`)
+    }
+    const coordinate = `${cell.rowId}:${cell.columnId}`
+    if (cellCoordinates.has(coordinate)) {
+      fail(`${path} duplicate cell coordinate: ${coordinate}`)
+    }
+    cellCoordinates.add(coordinate)
+  })
+
+  const enabledRows = rows.filter(row => row.enabled)
+  const enabledColumns = columns.filter(column => column.enabled)
+  if (enabledRows.length === 0) fail(`${path} requires an enabled row`)
+  if (enabledColumns.length === 0) fail(`${path} requires an enabled column`)
+
+  for (const row of enabledRows) {
+    for (const column of enabledColumns) {
+      const coordinate = `${row.id}:${column.id}`
+      if (!cellCoordinates.has(coordinate)) {
+        fail(`${path} missing enabled cell: ${coordinate}`)
+      }
+    }
+  }
+}
+
 function validateMatrixPricing(
   pricing: CommissionMatrixPricing,
   path: string,
@@ -181,70 +256,64 @@ function validateMatrixPricing(
   assertNullableText(pricing.footnote, `${path}.footnote`)
   assertBoolean(pricing.mock, `${path}.mock`)
 
-  if (!Array.isArray(pricing.columns) || pricing.columns.length === 0) {
-    fail(`${path}.columns must contain at least one item`)
+  validateMatrixAxes(
+    pricing.columns,
+    pricing.rows,
+    pricing.cells,
+    path,
+  )
+}
+
+function validateMatrixPricingGroup(
+  group: CommissionMatrixPricingGroup,
+  path: string,
+): void {
+  assertNonEmptyText(group.id, `${path}.id`)
+  assertOrder(group.order, `${path}.order`)
+  assertBoolean(group.enabled, `${path}.enabled`)
+  assertNonEmptyText(group.label, `${path}.label`)
+  assertNonEmptyText(group.shortLabel, `${path}.shortLabel`)
+  assertNonEmptyText(group.rowAxisLabel, `${path}.rowAxisLabel`)
+  assertNonEmptyText(group.columnAxisLabel, `${path}.columnAxisLabel`)
+  validateMatrixAxes(group.columns, group.rows, group.cells, path)
+}
+
+function validateMatrixSetPricing(
+  pricing: CommissionMatrixSetPricing,
+  path: string,
+): void {
+  assertNonEmptyText(pricing.title, `${path}.title`)
+  assertNullableText(pricing.description, `${path}.description`)
+  assertNullableText(
+    pricing.compactDescription,
+    `${path}.compactDescription`,
+  )
+  if (pricing.currency !== 'KRW') fail(`${path}.currency must be KRW`)
+  if (pricing.displayUnit !== 'manwon' && pricing.displayUnit !== 'won') {
+    fail(`${path}.displayUnit is unsupported`)
   }
-  if (!Array.isArray(pricing.rows) || pricing.rows.length === 0) {
-    fail(`${path}.rows must contain at least one item`)
-  }
-  if (!Array.isArray(pricing.cells) || pricing.cells.length === 0) {
-    fail(`${path}.cells must contain at least one item`)
+  assertNonEmptyText(pricing.unitLabel, `${path}.unitLabel`)
+  assertNullableText(pricing.footnote, `${path}.footnote`)
+  assertBoolean(pricing.mock, `${path}.mock`)
+
+  if (!Array.isArray(pricing.groups) || pricing.groups.length === 0) {
+    fail(`${path}.groups must contain at least one item`)
   }
 
-  const columnIds = new Set<string>()
-  const columnOrders = new Set<number>()
-  pricing.columns.forEach((column, index) => {
-    validatePricingColumn(column, `${path}.columns[${index}]`)
-    if (columnIds.has(column.id)) {
-      fail(`${path} duplicate column id: ${column.id}`)
+  const groupIds = new Set<string>()
+  const groupOrders = new Set<number>()
+  pricing.groups.forEach((group, index) => {
+    validateMatrixPricingGroup(group, `${path}.groups[${index}]`)
+    if (groupIds.has(group.id)) fail(`${path} duplicate group id: ${group.id}`)
+    if (groupOrders.has(group.order)) {
+      fail(`${path} duplicate group order: ${group.order}`)
     }
-    if (columnOrders.has(column.order)) {
-      fail(`${path} duplicate column order: ${column.order}`)
-    }
-    columnIds.add(column.id)
-    columnOrders.add(column.order)
+    groupIds.add(group.id)
+    groupOrders.add(group.order)
   })
 
-  const rowIds = new Set<string>()
-  const rowOrders = new Set<number>()
-  pricing.rows.forEach((row, index) => {
-    validatePricingRow(row, `${path}.rows[${index}]`)
-    if (rowIds.has(row.id)) fail(`${path} duplicate row id: ${row.id}`)
-    if (rowOrders.has(row.order)) {
-      fail(`${path} duplicate row order: ${row.order}`)
-    }
-    rowIds.add(row.id)
-    rowOrders.add(row.order)
-  })
-
-  const cellCoordinates = new Set<string>()
-  pricing.cells.forEach((cell, index) => {
-    validatePricingCell(cell, `${path}.cells[${index}]`)
-    if (!rowIds.has(cell.rowId)) {
-      fail(`${path} cell references unknown row: ${cell.rowId}`)
-    }
-    if (!columnIds.has(cell.columnId)) {
-      fail(`${path} cell references unknown column: ${cell.columnId}`)
-    }
-    const coordinate = `${cell.rowId}:${cell.columnId}`
-    if (cellCoordinates.has(coordinate)) {
-      fail(`${path} duplicate cell coordinate: ${coordinate}`)
-    }
-    cellCoordinates.add(coordinate)
-  })
-
-  const enabledRows = pricing.rows.filter(row => row.enabled)
-  const enabledColumns = pricing.columns.filter(column => column.enabled)
-  if (enabledRows.length === 0) fail(`${path} requires an enabled row`)
-  if (enabledColumns.length === 0) fail(`${path} requires an enabled column`)
-
-  for (const row of enabledRows) {
-    for (const column of enabledColumns) {
-      const coordinate = `${row.id}:${column.id}`
-      if (!cellCoordinates.has(coordinate)) {
-        fail(`${path} missing enabled cell: ${coordinate}`)
-      }
-    }
+  if (!pricing.groups.some(group => group.enabled)) {
+    fail(`${path} requires an enabled pricing group`)
   }
 }
 
@@ -258,6 +327,10 @@ function validatePricing(
   }
   if (pricing.kind === 'matrix') {
     validateMatrixPricing(pricing, path)
+    return
+  }
+  if (pricing.kind === 'matrix-set') {
+    validateMatrixSetPricing(pricing, path)
     return
   }
   fail(`${path}.kind is unsupported`)
@@ -338,8 +411,8 @@ function deepFreeze<T>(value: T): T {
 export function createCommissionGuideSnapshot(
   input: CommissionGuideContent,
 ): CommissionGuideContent {
-  if (input.schemaVersion !== 3) {
-    fail('schemaVersion must equal 3')
+  if (input.schemaVersion !== 4) {
+    fail('schemaVersion must equal 4')
   }
 
   assertNonEmptyText(input.eyebrow, 'eyebrow')

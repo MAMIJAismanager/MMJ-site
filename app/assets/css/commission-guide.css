@@ -1308,3 +1308,173 @@
     font-size: 1.25rem;
   }
 }
+
+/* MMJ-UI28-R2-R4: lyrics/composition multi-matrix pricebook. */
+.mm-commission-matrix-set,
+.mm-commission-pricing-group-panel {
+  min-width: 0;
+}
+
+.mm-commission-matrix-set {
+  display: grid;
+  gap: var(--mm-space-4);
+}
+
+.mm-commission-pricing-groups {
+  display: flex;
+  gap: var(--mm-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+}
+
+.mm-commission-pricing-groups::-webkit-scrollbar {
+  display: none;
+}
+
+.mm-commission-pricing-group-tab {
+  flex: 0 0 auto;
+  min-height: 2.75rem;
+  padding: var(--mm-space-2) var(--mm-space-4);
+  border: 1px solid var(--mm-color-border-strong);
+  border-radius: var(--mm-radius-round);
+  background: transparent;
+  color: var(--mm-color-text-muted);
+  font: inherit;
+  font-weight: var(--mm-font-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  scroll-snap-align: center;
+  transition:
+    background-color var(--mm-duration-fast) var(--mm-ease-standard),
+    color var(--mm-duration-fast) var(--mm-ease-standard),
+    border-color var(--mm-duration-fast) var(--mm-ease-standard);
+}
+
+.mm-commission-pricing-group-tab[aria-selected='true'] {
+  border-color: var(--mm-color-surface);
+  background: var(--mm-color-surface);
+  color: var(--mm-color-on-surface);
+}
+
+.mm-commission-pricing-group-tab:focus-visible {
+  outline: 0.1875rem solid var(--mm-color-focus);
+  outline-offset: 0.1875rem;
+}
+
+.mm-commission-pricing-group-panel {
+  display: grid;
+}
+
+@media (min-width: 80rem) and (min-height: 54rem) {
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set'] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    align-content: start;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  > .mm-commission-matrix-stage-header {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  > .mm-commission-matrix-set {
+    grid-column: 1;
+    grid-row: 2;
+    min-height: 0;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  > .mm-commission-terms {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  .mm-commission-matrix-set {
+    grid-template-rows: auto auto;
+    gap: clamp(0.45rem, 0.75vh, 0.7rem);
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  .mm-commission-pricing-groups {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    overflow: visible;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  .mm-commission-pricing-group-tab {
+    width: 100%;
+    min-height: 2.4rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: var(--mm-radius-small);
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  .mm-commission-pricing-matrix {
+    grid-template-rows: auto auto;
+    height: auto;
+    min-height: 0;
+    gap: 0;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  .mm-commission-pricing-matrix__desktop,
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  .mm-commission-pricing-table-frame,
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  .mm-commission-pricing-table {
+    height: auto;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  .mm-commission-pricing-table-frame {
+    overflow: hidden;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  .mm-commission-terms__list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set'][data-mm-commission-density='compact'] {
+    gap: clamp(0.28rem, 0.55vh, 0.45rem);
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set'][data-mm-commission-density='compact']
+  .mm-commission-matrix-set {
+    gap: 0.35rem;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set'][data-mm-commission-density='compact']
+  .mm-commission-pricing-groups {
+    gap: 0.5rem;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set'][data-mm-commission-density='compact']
+  .mm-commission-pricing-group-tab {
+    min-height: 2rem;
+    padding: 0.3rem 0.55rem;
+    font-size: var(--mm-font-size-caption);
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set'][data-mm-commission-density='compact']
+  .mm-commission-terms__list {
+    column-gap: 0.5rem;
+    row-gap: 0.45rem;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set'][data-mm-commission-density='compact']
+  .mm-commission-term {
+    min-height: 2rem;
+    padding: 0.3rem 0.5rem;
+  }
+}
