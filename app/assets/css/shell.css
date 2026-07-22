@@ -345,3 +345,17 @@
     overflow: hidden;
   }
 }
+
+/* Commission falls back to document flow when the viewport is too short for the desktop stage. */
+@media (min-width: 80rem) and (min-height: 45rem) and (max-height: 53.999rem) {
+  .mm-layout--viewport-commission {
+    grid-template-rows: auto minmax(0, auto);
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .mm-layout--viewport-commission .mm-main {
+    overflow: visible;
+  }
+}

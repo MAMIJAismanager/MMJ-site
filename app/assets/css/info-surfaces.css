@@ -218,3 +218,19 @@
     overflow: hidden;
   }
 }
+
+/* Low-height wide screens use the swipe deck in normal document flow. */
+@media (min-width: 80rem) and (min-height: 45rem) and (max-height: 53.999rem) {
+  .mm-info-page[data-mm-page='commission'] {
+    grid-template-rows: auto auto;
+    height: auto;
+    min-height: calc(100dvh - 4.5rem);
+    overflow: visible;
+  }
+
+  .mm-info-page[data-mm-page='commission'] .mm-info-page__body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    overflow: visible;
+  }
+}

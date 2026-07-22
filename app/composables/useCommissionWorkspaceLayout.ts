@@ -28,7 +28,7 @@ import type {
 } from '~/utils/commission-layout-planner'
 
 const DESKTOP_COMPOSITION_QUERY =
-  '(min-width: 80rem) and (min-height: 45rem)'
+  '(min-width: 80rem) and (min-height: 54rem)'
 
 interface UseCommissionWorkspaceLayoutOptions {
   readonly services: ComputedRef<readonly CommissionService[]>

@@ -3,7 +3,7 @@ import type {
 } from '~~/shared/types/commission-guide'
 
 export const COMMISSION_GUIDE_MOCK = {
-  schemaVersion: 1,
+  schemaVersion: 2,
 
   eyebrow: 'Commission Guide',
   title: '의뢰 안내',
@@ -22,27 +22,102 @@ export const COMMISSION_GUIDE_MOCK = {
       label: '안무',
       summary: '곡과 무대의 흐름에 맞춘 안무 설계',
       description:
-        '곡의 분위기와 무대 구성에 맞춰 안무 흐름과 주요 동선을 설계합니다.',
-      price: {
-        mode: 'quote',
+        '곡의 길이와 참여 인원을 기준으로 한 안무 창작 기본 비용입니다.',
+      pricing: {
+        kind: 'matrix',
+        title: '안무 창작 기본 가격표',
+        description:
+          '곡 길이와 참여 인원을 기준으로 한 기본 비용이며, 최종 금액은 작업 조건을 확인한 뒤 확정합니다.',
         currency: 'KRW',
-        minimumKrw: null,
-        maximumKrw: null,
-        unitLabel: null,
-        displayLabel: '곡 길이와 참여 인원 확인 후 견적',
-        note: '현재 목업 문구이며 실제 견적은 상담 후 확정됩니다.',
+        displayUnit: 'manwon',
+        unitLabel: '만원 · 부가세 포함',
+        rowAxisLabel: '참여 인원',
+        columnAxisLabel: '곡 길이',
+        columns: [
+          {
+            id: 'short-form-30s',
+            order: 10,
+            enabled: true,
+            label: '숏폼 에디션',
+            detailLabel: '30초 이하',
+            shortLabel: '30초 이하',
+          },
+          {
+            id: 'edited-half-1-2m',
+            order: 20,
+            enabled: true,
+            label: '반절 정도로 편집된 곡',
+            detailLabel: '1~2분 내외',
+            shortLabel: '1~2분 내외',
+          },
+          {
+            id: 'full-3m',
+            order: 30,
+            enabled: true,
+            label: '풀곡',
+            detailLabel: '3분 내외',
+            shortLabel: '3분 내외',
+          },
+          {
+            id: 'full-3m30-plus',
+            order: 40,
+            enabled: true,
+            label: '풀곡',
+            detailLabel: '3분 30초 이상',
+            shortLabel: '3분 30초 이상',
+          },
+        ],
+        rows: [
+          {
+            id: 'solo',
+            order: 10,
+            enabled: true,
+            label: '1인',
+            detailLabel: null,
+          },
+          {
+            id: 'duo',
+            order: 20,
+            enabled: true,
+            label: '2인',
+            detailLabel: '동선 구성 포함',
+          },
+          {
+            id: 'group-3-plus',
+            order: 30,
+            enabled: true,
+            label: '3인 이상',
+            detailLabel: '동선 구성 포함',
+          },
+        ],
+        cells: [
+          { rowId: 'solo', columnId: 'short-form-30s', mode: 'from', amountKrw: 20_000, displayOverride: null, note: null },
+          { rowId: 'solo', columnId: 'edited-half-1-2m', mode: 'from', amountKrw: 50_000, displayOverride: null, note: null },
+          { rowId: 'solo', columnId: 'full-3m', mode: 'from', amountKrw: 70_000, displayOverride: null, note: null },
+          { rowId: 'solo', columnId: 'full-3m30-plus', mode: 'from', amountKrw: 90_000, displayOverride: null, note: null },
+          { rowId: 'duo', columnId: 'short-form-30s', mode: 'from', amountKrw: 40_000, displayOverride: null, note: null },
+          { rowId: 'duo', columnId: 'edited-half-1-2m', mode: 'from', amountKrw: 100_000, displayOverride: null, note: null },
+          { rowId: 'duo', columnId: 'full-3m', mode: 'from', amountKrw: 140_000, displayOverride: null, note: null },
+          { rowId: 'duo', columnId: 'full-3m30-plus', mode: 'from', amountKrw: 180_000, displayOverride: null, note: null },
+          { rowId: 'group-3-plus', columnId: 'short-form-30s', mode: 'from', amountKrw: 50_000, displayOverride: null, note: null },
+          { rowId: 'group-3-plus', columnId: 'edited-half-1-2m', mode: 'from', amountKrw: 120_000, displayOverride: null, note: null },
+          { rowId: 'group-3-plus', columnId: 'full-3m', mode: 'from', amountKrw: 170_000, displayOverride: null, note: null },
+          { rowId: 'group-3-plus', columnId: 'full-3m30-plus', mode: 'from', amountKrw: 220_000, displayOverride: null, note: null },
+        ],
+        footnote:
+          '표의 금액은 기본 기준이며 용도, 마감 일정과 수정 범위에 따라 조정될 수 있습니다.',
         mock: true,
       },
       includedItems: [
         '구성 방향 협의',
         '메인 동작 설계',
-        '무대 동선 제안',
+        '2인 이상 동선 구성',
         '기본 수정',
       ],
       turnaroundLabel: '일정과 곡 길이 확인 후 협의',
       revisionLabel: '기본 수정 범위는 착수 전 협의',
       additionalCostNote:
-        '인원 증가, 긴급 일정, 추가 촬영용 버전은 별도 비용이 발생할 수 있습니다.',
+        '용도, 긴급 일정과 협의 범위를 넘어서는 수정은 추가 비용이 발생할 수 있습니다.',
       inquiryLabel: '안무 의뢰 문의하기',
     },
     {
@@ -53,12 +128,8 @@ export const COMMISSION_GUIDE_MOCK = {
       summary: '콘셉트와 사용 목적에 맞춘 음원 제작',
       description:
         '곡의 콘셉트와 사용 목적에 맞춰 작사, 작곡 또는 두 작업을 함께 진행합니다.',
-      price: {
-        mode: 'quote',
-        currency: 'KRW',
-        minimumKrw: null,
-        maximumKrw: null,
-        unitLabel: null,
+      pricing: {
+        kind: 'quote',
         displayLabel: '작업 범위와 납품 형태 확인 후 견적',
         note: '현재 목업 문구이며 실제 견적은 상담 후 확정됩니다.',
         mock: true,
@@ -83,12 +154,8 @@ export const COMMISSION_GUIDE_MOCK = {
       summary: '무대와 촬영 콘셉트에 맞춘 의상 설계',
       description:
         '무대와 촬영 콘셉트에 맞춰 의상 방향을 정리하고 디자인 또는 제작 범위를 협의합니다.',
-      price: {
-        mode: 'quote',
-        currency: 'KRW',
-        minimumKrw: null,
-        maximumKrw: null,
-        unitLabel: null,
+      pricing: {
+        kind: 'quote',
         displayLabel: '소재, 수량, 제작 방식 확인 후 견적',
         note: '현재 목업 문구이며 실제 견적은 상담 후 확정됩니다.',
         mock: true,
@@ -113,12 +180,8 @@ export const COMMISSION_GUIDE_MOCK = {
       summary: '촬영 목적에 맞춘 장면 구성과 현장 진행',
       description:
         '촬영 목적과 결과물의 톤에 맞춰 장면 구성, 현장 진행과 디렉션 방향을 설계합니다.',
-      price: {
-        mode: 'quote',
-        currency: 'KRW',
-        minimumKrw: null,
-        maximumKrw: null,
-        unitLabel: null,
+      pricing: {
+        kind: 'quote',
         displayLabel: '촬영 시간, 장소와 장비 조건 확인 후 견적',
         note: '현재 목업 문구이며 실제 견적은 상담 후 확정됩니다.',
         mock: true,
@@ -143,12 +206,8 @@ export const COMMISSION_GUIDE_MOCK = {
       summary: '목표, 일정과 역할을 연결하는 제작 구조 설계',
       description:
         '프로젝트의 목표와 일정, 참여자의 역할을 정리하고 실제 제작이 굴러갈 수 있는 흐름을 설계합니다.',
-      price: {
-        mode: 'quote',
-        currency: 'KRW',
-        minimumKrw: null,
-        maximumKrw: null,
-        unitLabel: null,
+      pricing: {
+        kind: 'quote',
         displayLabel: '프로젝트 규모와 참여 범위 확인 후 견적',
         note: '현재 목업 문구이며 실제 견적은 상담 후 확정됩니다.',
         mock: true,
@@ -173,12 +232,8 @@ export const COMMISSION_GUIDE_MOCK = {
       summary: '음원 밸런스 정리와 최종 출력',
       description:
         '보컬과 반주의 밸런스를 정리하고 최종 사용 환경에 맞춰 음원을 출력합니다.',
-      price: {
-        mode: 'quote',
-        currency: 'KRW',
-        minimumKrw: null,
-        maximumKrw: null,
-        unitLabel: null,
+      pricing: {
+        kind: 'quote',
         displayLabel: '트랙 수, 러닝타임과 수정 범위 확인 후 견적',
         note: '현재 목업 문구이며 실제 견적은 상담 후 확정됩니다.',
         mock: true,
@@ -198,10 +253,73 @@ export const COMMISSION_GUIDE_MOCK = {
   ],
 
   commonNoticeHeading: '공통 안내',
-  commonNotices: [
-    '최종 견적은 작업 분량, 일정, 사용 범위와 수정 횟수에 따라 달라질 수 있습니다.',
-    '상업 이용, 긴급 일정, 원본 파일 제공과 추가 수정은 별도 비용이 발생할 수 있습니다.',
-    '상세 일정과 납품 형식은 문의 접수 후 협의합니다.',
+  terms: [
+    {
+      id: 'final-price-after-consultation',
+      order: 10,
+      enabled: true,
+      scope: 'global',
+      serviceId: null,
+      label: '모든 작업비용은 상의 후 최종 결정',
+      description:
+        '작업 범위와 일정, 사용 목적을 확인한 뒤 최종 견적을 안내합니다.',
+      iconKey: 'consultation',
+    },
+    {
+      id: 'formation-included-over-two',
+      order: 20,
+      enabled: true,
+      scope: 'service',
+      serviceId: 'choreography',
+      label: '2인 이상은 동선 구성 작업 포함',
+      description:
+        '2인 이상 안무에는 기본 동선 구성 작업이 포함됩니다.',
+      iconKey: 'people',
+    },
+    {
+      id: 'vat-included',
+      order: 30,
+      enabled: true,
+      scope: 'global',
+      serviceId: null,
+      label: '부가세 포함',
+      description:
+        '안내된 비용은 부가가치세를 포함한 금액입니다.',
+      iconKey: 'receipt',
+    },
+    {
+      id: 'usage-adjustment',
+      order: 40,
+      enabled: true,
+      scope: 'global',
+      serviceId: null,
+      label: '용도에 따라 기본가에서 조정 가능',
+      description:
+        '상업 사용, 광고, 행사 등 사용 범위에 따라 조정될 수 있습니다.',
+      iconKey: 'adjustment',
+    },
+    {
+      id: 'rush-fee',
+      order: 50,
+      enabled: true,
+      scope: 'global',
+      serviceId: null,
+      label: '빠른 마감 추가금 발생',
+      description:
+        '일반 작업 일정보다 빠른 납기를 요청할 경우 추가 비용이 발생합니다.',
+      iconKey: 'deadline',
+    },
+    {
+      id: 'excessive-revision-fee',
+      order: 60,
+      enabled: true,
+      scope: 'global',
+      serviceId: null,
+      label: '지나친 수정 요청 시 추가금 발생',
+      description:
+        '협의된 수정 범위를 넘어서는 반복 수정에는 추가 비용이 발생합니다.',
+      iconKey: 'revision',
+    },
   ],
 
   worksLinkLabel: '전체 작업 보기',

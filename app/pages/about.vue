@@ -9,6 +9,8 @@ import InfoPageSurface from '~/components/info/InfoPageSurface.vue'
 import {
   commissionGuide,
   enabledCommissionServices,
+  enabledCommissionTerms,
+  globalCommissionTerms,
 } from '~/data/commission-guide'
 
 useSeoMeta({
@@ -27,6 +29,8 @@ useSeoMeta({
     <CommissionServiceExplorer
       :heading="commissionGuide.sectionHeading"
       :services="enabledCommissionServices"
+      :terms="enabledCommissionTerms"
+      :common-notice-heading="commissionGuide.commonNoticeHeading"
     />
 
     <footer
@@ -42,10 +46,10 @@ useSeoMeta({
         </h2>
         <ul class="mm-commission-common-notices__list">
           <li
-            v-for="notice in commissionGuide.commonNotices"
-            :key="notice"
+            v-for="term in globalCommissionTerms"
+            :key="term.id"
           >
-            {{ notice }}
+            {{ term.label }}
           </li>
         </ul>
       </section>
