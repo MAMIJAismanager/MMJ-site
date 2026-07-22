@@ -11,7 +11,6 @@ export interface CommissionDetailDensityInput {
 
 export const COMMISSION_DETAIL_ENTER_COMPACT_OVERFLOW_PX = 4
 export const COMMISSION_DETAIL_LEAVE_COMPACT_HEADROOM_PX = 40
-export const COMMISSION_DETAIL_COMPACT_AVAILABLE_HEIGHT_PX = 640
 
 export function resolveCommissionDetailDensity(
   input: CommissionDetailDensityInput,
@@ -33,8 +32,7 @@ export function resolveCommissionDetailDensity(
   if (input.currentDensity === 'comfortable') {
     const measuredOverflow = requiredHeight - availableHeight
     if (
-      availableHeight < COMMISSION_DETAIL_COMPACT_AVAILABLE_HEIGHT_PX
-      || measuredOverflow > COMMISSION_DETAIL_ENTER_COMPACT_OVERFLOW_PX
+      measuredOverflow > COMMISSION_DETAIL_ENTER_COMPACT_OVERFLOW_PX
     ) {
       return 'compact'
     }
@@ -43,8 +41,7 @@ export function resolveCommissionDetailDensity(
 
   const comfortableHeadroom = availableHeight - comfortableRequiredHeight
   if (
-    availableHeight >= COMMISSION_DETAIL_COMPACT_AVAILABLE_HEIGHT_PX
-    && comfortableHeadroom
+    comfortableHeadroom
       >= COMMISSION_DETAIL_LEAVE_COMPACT_HEADROOM_PX
   ) {
     return 'comfortable'

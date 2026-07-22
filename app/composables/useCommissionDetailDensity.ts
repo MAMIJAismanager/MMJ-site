@@ -173,7 +173,7 @@ export function useCommissionDetailDensity(
       && internalScrollFallback.value
     ) {
       console.warn(
-        'MMJ-UI28-R2-R3-R1: compact commission detail still overflows',
+        'MMJ-UI28-R2-R3-R2: compact commission detail still overflows',
         {
           availableHeight: nextAvailableHeight,
           requiredHeight: nextRequiredHeight,

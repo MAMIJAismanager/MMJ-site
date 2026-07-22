@@ -97,12 +97,17 @@ onMounted(async () => {
         {{ MATRIX_STAGE_TITLE }}
       </h3>
 
-      <NuxtLink
-        class="mm-info-action mm-info-action--primary mm-commission-matrix-stage-header__inquiry"
-        to="/contact"
+      <div
+        class="mm-commission-matrix-stage-header__end"
+        data-mm-commission-matrix-stage-header-end
       >
-        {{ service.inquiryLabel }}
-      </NuxtLink>
+        <NuxtLink
+          class="mm-info-action mm-info-action--primary mm-commission-matrix-stage-header__inquiry"
+          to="/contact"
+        >
+          {{ service.inquiryLabel }}
+        </NuxtLink>
+      </div>
     </header>
 
     <p

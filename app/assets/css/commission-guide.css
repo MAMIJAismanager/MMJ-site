@@ -1136,3 +1136,112 @@
     transition-duration: 1ms;
   }
 }
+
+/* MMJ-UI28-R2-R3-R2: 1920 desktop terms rhythm and CTA endpoint ownership. */
+.mm-commission-matrix-stage-header__end {
+  display: flex;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+@media (min-width: 80rem) and (min-height: 54rem) {
+  .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix'] {
+    --mm-commission-detail-cta-end-gutter: clamp(0.25rem, 0.35vw, 0.45rem);
+    --mm-commission-detail-content-end-inset: clamp(0.65rem, 0.8vw, 0.8rem);
+    --mm-commission-terms-section-padding: 0.25rem;
+    --mm-commission-terms-heading-gap: 0.625rem;
+    --mm-commission-terms-column-gap: 0.75rem;
+    --mm-commission-terms-row-gap: 0.625rem;
+    --mm-commission-term-padding-block: 0.5rem;
+    --mm-commission-term-padding-inline: 0.75rem;
+    --mm-commission-term-min-height: 2.375rem;
+    row-gap: 0.75rem;
+    padding-inline-end: var(--mm-commission-detail-cta-end-gutter);
+  }
+
+  .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix']
+  > .mm-commission-matrix-stage-header {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .mm-commission-matrix-stage-header__end {
+    justify-self: end;
+  }
+
+  .mm-commission-matrix-stage-header__inquiry {
+    margin: 0;
+  }
+
+  .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix']
+  > .mm-commission-pricing-matrix,
+  .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix']
+  > .mm-commission-terms {
+    margin-inline-end: var(--mm-commission-detail-content-end-inset);
+  }
+
+  .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix']
+  > .mm-commission-terms {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: var(--mm-commission-terms-heading-gap);
+    padding-block-start: var(--mm-commission-terms-section-padding);
+  }
+
+  .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix']
+  .mm-commission-terms__heading {
+    padding-block-start: 0;
+  }
+
+  .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix']
+  .mm-commission-terms__list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: var(--mm-commission-terms-column-gap);
+    row-gap: var(--mm-commission-terms-row-gap);
+  }
+
+  .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix']
+  .mm-commission-term {
+    min-height: var(--mm-commission-term-min-height);
+    align-items: center;
+    gap: 0.625rem;
+    padding: var(--mm-commission-term-padding-block)
+      var(--mm-commission-term-padding-inline);
+  }
+
+  .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix'][data-mm-commission-density='compact'] {
+    --mm-commission-terms-heading-gap: 0.5rem;
+    --mm-commission-terms-column-gap: 0.625rem;
+    --mm-commission-terms-row-gap: 0.5rem;
+    --mm-commission-term-padding-block: 0.375rem;
+    --mm-commission-term-padding-inline: 0.625rem;
+    --mm-commission-term-min-height: 2.125rem;
+    row-gap: 0.5rem;
+  }
+
+  .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix'][data-mm-commission-density='compact']
+  .mm-commission-terms {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--mm-commission-terms-heading-gap);
+  }
+
+  .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix'][data-mm-commission-density='compact']
+  .mm-commission-terms__heading {
+    padding-block-start: 0;
+  }
+
+  .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix'][data-mm-commission-density='compact']
+  .mm-commission-terms__list {
+    column-gap: var(--mm-commission-terms-column-gap);
+    row-gap: var(--mm-commission-terms-row-gap);
+  }
+
+  .mm-commission-detail[data-mm-commission-detail-mode='desktop'][data-mm-commission-pricing-kind='matrix'][data-mm-commission-density='compact']
+  .mm-commission-term {
+    min-height: var(--mm-commission-term-min-height);
+    gap: 0.5rem;
+    padding: var(--mm-commission-term-padding-block)
+      var(--mm-commission-term-padding-inline);
+  }
+}
