@@ -507,9 +507,19 @@
 
 .mm-commission-pricing-table__column-label,
 .mm-commission-pricing-table__column-detail,
+.mm-commission-pricing-table__row-header-content,
 .mm-commission-pricing-table__row-label,
 .mm-commission-pricing-table__row-detail {
   display: block;
+}
+
+.mm-commission-pricing-table__row-header-content {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 0.15rem;
+  width: 100%;
+  text-align: center;
 }
 
 .mm-commission-pricing-table__column-detail,
@@ -527,7 +537,7 @@
   font-size: var(--mm-font-size-subheading);
   font-weight: var(--mm-font-weight-bold);
   line-height: var(--mm-line-height-heading);
-  text-align: start;
+  text-align: center;
   white-space: nowrap;
 }
 
@@ -879,7 +889,7 @@
   }
 
   .mm-commission-pricing-table__row-header {
-    text-align: start;
+    text-align: center;
   }
 
   .mm-commission-pricing-table__price-cell strong {

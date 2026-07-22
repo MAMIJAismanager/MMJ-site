@@ -157,15 +157,17 @@ function getCell(
               scope="row"
               class="mm-commission-pricing-table__row-header"
             >
-              <span class="mm-commission-pricing-table__row-label">
-                {{ row.label }}
+              <span class="mm-commission-pricing-table__row-header-content">
+                <span class="mm-commission-pricing-table__row-label">
+                  {{ row.label }}
+                </span>
+                <small
+                  v-if="row.detailLabel"
+                  class="mm-commission-pricing-table__row-detail"
+                >
+                  {{ row.detailLabel }}
+                </small>
               </span>
-              <small
-                v-if="row.detailLabel"
-                class="mm-commission-pricing-table__row-detail"
-              >
-                {{ row.detailLabel }}
-              </small>
             </th>
             <td
               v-for="cell in row.cells"
