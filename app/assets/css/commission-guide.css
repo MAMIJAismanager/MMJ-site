@@ -10,8 +10,7 @@
 .mm-commission-pricing-matrix,
 .mm-commission-pricing-table,
 .mm-commission-terms,
-.mm-commission-mobile-panel,
-.mm-commission-common-notices {
+.mm-commission-mobile-panel {
   min-width: 0;
 }
 
@@ -616,26 +615,6 @@
   border-block-start: 1px solid var(--mm-color-border-strong);
 }
 
-.mm-commission-common-notices {
-  display: grid;
-  gap: var(--mm-space-3);
-}
-
-.mm-commission-common-notices__heading {
-  margin: 0;
-  font-size: var(--mm-font-size-subheading);
-  line-height: var(--mm-line-height-heading);
-}
-
-.mm-commission-common-notices__list {
-  display: grid;
-  gap: var(--mm-space-2);
-  max-width: var(--mm-copy-max);
-  margin: 0;
-  padding-inline-start: 1.25rem;
-  color: var(--mm-color-text-muted);
-}
-
 @media (min-width: 48rem) and (max-width: 79.999rem),
   (min-width: 80rem) and (max-height: 53.999rem) {
   .mm-commission-mobile-panel__header {
@@ -948,37 +927,11 @@
   }
 
   .mm-commission-utility-dock {
-    grid-template-columns: minmax(0, 1fr) auto;
+    display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: clamp(1rem, 2vw, 2rem);
     padding-block-start: clamp(0.65rem, 1.2vh, 0.9rem);
-  }
-
-  .mm-commission-common-notices {
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: start;
-    gap: var(--mm-space-4);
-  }
-
-  .mm-commission-common-notices__heading {
-    padding-block-start: 0.08rem;
-    font-size: var(--mm-font-size-small);
-    white-space: nowrap;
-  }
-
-  .mm-commission-common-notices__list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.2rem var(--mm-space-5);
-    max-width: none;
-    padding: 0;
-    list-style-position: inside;
-    font-size: var(--mm-font-size-caption);
-    line-height: var(--mm-line-height-meta);
-  }
-
-  .mm-commission-common-notices__list li {
-    flex: 1 1 13rem;
   }
 
   .mm-commission-utility-dock .mm-info-actions {

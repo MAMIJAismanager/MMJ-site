@@ -64,7 +64,11 @@ onMounted(async () => {
     :data-mm-commission-density="density"
     :data-mm-commission-pricing-kind="service.pricing.kind"
   >
-    <p class="mm-commission-service__description">
+    <p
+      v-if="service.pricing.kind === 'quote'"
+      class="mm-commission-service__description"
+      data-mm-commission-service-description
+    >
       {{ service.description }}
     </p>
 

@@ -21,10 +21,6 @@ export const enabledCommissionTerms = Object.freeze(
   commissionGuide.terms.filter(term => term.enabled),
 )
 
-export const globalCommissionTerms = Object.freeze(
-  enabledCommissionTerms.filter(term => term.scope === 'global'),
-)
-
 export function resolveCommissionTerms(
   serviceId: CommissionServiceId,
 ) {

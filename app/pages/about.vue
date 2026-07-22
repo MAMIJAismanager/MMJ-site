@@ -10,7 +10,6 @@ import {
   commissionGuide,
   enabledCommissionServices,
   enabledCommissionTerms,
-  globalCommissionTerms,
 } from '~/data/commission-guide'
 
 useSeoMeta({
@@ -37,23 +36,6 @@ useSeoMeta({
       class="mm-commission-utility-dock"
       data-mm-commission-utility-dock
     >
-      <section
-        class="mm-commission-common-notices"
-        data-mm-commission-common-notices
-      >
-        <h2 class="mm-commission-common-notices__heading">
-          {{ commissionGuide.commonNoticeHeading }}
-        </h2>
-        <ul class="mm-commission-common-notices__list">
-          <li
-            v-for="term in globalCommissionTerms"
-            :key="term.id"
-          >
-            {{ term.label }}
-          </li>
-        </ul>
-      </section>
-
       <nav
         class="mm-info-actions"
         aria-label="의뢰 안내 페이지 이동"
