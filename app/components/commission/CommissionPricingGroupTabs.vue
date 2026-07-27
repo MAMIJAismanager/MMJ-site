@@ -13,6 +13,7 @@ interface Props {
   readonly activeGroupId: CommissionPricingGroupId
   readonly idPrefix: string
   readonly mode: 'desktop' | 'mobile'
+  readonly serviceLabel: string
 }
 
 const props = defineProps<Props>()
@@ -91,7 +92,7 @@ function handleKeydown(
   <div
     class="mm-commission-pricing-groups"
     role="tablist"
-    aria-label="작사/작곡 가격 구분"
+    :aria-label="`${serviceLabel} 가격 구분`"
     :data-mm-commission-pricing-group-mode="mode"
   >
     <button

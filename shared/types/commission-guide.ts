@@ -71,6 +71,14 @@ export interface CommissionMatrixPricing {
 }
 
 
+export interface CommissionPricingGuidanceItem {
+  readonly id: string
+  readonly order: number
+  readonly enabled: boolean
+  readonly label: string
+  readonly description: string
+}
+
 export interface CommissionMatrixPricingGroup {
   readonly id: CommissionPricingGroupId
   readonly order: number
@@ -82,6 +90,7 @@ export interface CommissionMatrixPricingGroup {
   readonly columns: readonly CommissionPricingColumn[]
   readonly rows: readonly CommissionPricingRow[]
   readonly cells: readonly CommissionPricingCell[]
+  readonly guidanceItems: readonly CommissionPricingGuidanceItem[]
 }
 
 export interface CommissionMatrixSetPricing {
@@ -145,7 +154,7 @@ export interface CommissionTerm {
 }
 
 export interface CommissionGuideContent {
-  readonly schemaVersion: 4
+  readonly schemaVersion: 5
   readonly eyebrow: string
   readonly title: string
   readonly lead: string
@@ -200,6 +209,16 @@ export interface CommissionPricingGroupSheetRow {
   readonly short_label: string
   readonly row_axis_label: string
   readonly column_axis_label: string
+}
+
+export interface CommissionPricingGroupGuidanceSheetRow {
+  readonly service_id: string
+  readonly pricing_group_id: string
+  readonly guidance_id: string
+  readonly order: number
+  readonly enabled: boolean
+  readonly label: string
+  readonly description: string
 }
 
 export interface CommissionPricingColumnSheetRow {
@@ -269,6 +288,7 @@ export interface CommissionGuideSheetBundle {
   readonly services: readonly CommissionServiceSheetRow[]
   readonly matrixPricing: readonly CommissionMatrixPricingSheetRow[]
   readonly pricingGroups: readonly CommissionPricingGroupSheetRow[]
+  readonly pricingGroupGuidance: readonly CommissionPricingGroupGuidanceSheetRow[]
   readonly pricingColumns: readonly CommissionPricingColumnSheetRow[]
   readonly pricingRows: readonly CommissionPricingRowSheetRow[]
   readonly pricingCells: readonly CommissionPricingCellSheetRow[]

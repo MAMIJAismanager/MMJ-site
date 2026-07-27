@@ -3,7 +3,7 @@ import type {
 } from '~~/shared/types/commission-guide'
 
 export const COMMISSION_GUIDE_MOCK = {
-  schemaVersion: 4,
+  schemaVersion: 5,
 
   eyebrow: 'Commission Guide',
   title: '의뢰 안내',
@@ -172,6 +172,7 @@ export const COMMISSION_GUIDE_MOCK = {
               { rowId: 'ppongppongre-omakase', columnId: 'general-theme-up-to-3m', mode: 'from', amountKrw: 240_000, displayOverride: null, note: null },
               { rowId: 'ppongppongre-omakase', columnId: 'long-theme-5m-plus', mode: 'from', amountKrw: 360_000, displayOverride: null, note: null },
             ],
+            guidanceItems: [],
           },
           {
             id: 'lyrics-included-composition',
@@ -206,6 +207,7 @@ export const COMMISSION_GUIDE_MOCK = {
               { rowId: 'ppongppongre-omakase', columnId: 'standard-long-up-to-3m', mode: 'from', amountKrw: 250_000, displayOverride: null, note: null },
               { rowId: 'ppongppongre-omakase', columnId: 'musical-edition-min-4m', mode: 'from', amountKrw: 380_000, displayOverride: null, note: null },
             ],
+            guidanceItems: [],
           },
           {
             id: 'lyrics-and-composition',
@@ -240,6 +242,7 @@ export const COMMISSION_GUIDE_MOCK = {
               { rowId: 'ppongppongre-omakase', columnId: 'standard-long-up-to-3m', mode: 'from', amountKrw: 400_000, displayOverride: null, note: null },
               { rowId: 'ppongppongre-omakase', columnId: 'musical-edition-min-4m', mode: 'from', amountKrw: 500_000, displayOverride: null, note: null },
             ],
+            guidanceItems: [],
           },
         ],
         footnote: null,
@@ -265,10 +268,118 @@ export const COMMISSION_GUIDE_MOCK = {
       description:
         '무대와 촬영 콘셉트에 맞춰 의상 방향을 정리하고 디자인 또는 제작 범위를 협의합니다.',
       pricing: {
-        kind: 'quote',
-        displayLabel: '소재, 수량, 제작 방식 확인 후 견적',
-        note: '현재 목업 문구이며 실제 견적은 상담 후 확정됩니다.',
-        mock: true,
+        kind: 'matrix-set',
+        title: '의상디자인 / 제작 기본 가격표',
+        description: null,
+        compactDescription: null,
+        currency: 'KRW',
+        displayUnit: 'manwon',
+        unitLabel: '만원 · 부가세 포함',
+        groups: [
+          {
+            id: 'costume-design',
+            order: 10,
+            enabled: true,
+            label: '의상 디자인',
+            shortLabel: '의상 디자인',
+            rowAxisLabel: '디자인 범위',
+            columnAxisLabel: '의상 스타일',
+            columns: [
+              { id: 'daily-wear', order: 10, enabled: true, label: '일상복 스타일', detailLabel: null, shortLabel: '일상복' },
+              { id: 'hongdae-punk', order: 20, enabled: true, label: '홍대펑크 스타일', detailLabel: null, shortLabel: '홍대펑크' },
+              { id: 'concept-stage-costume', order: 30, enabled: true, label: '컨셉/무대의상 스타일', detailLabel: null, shortLabel: '컨셉/무대의상' },
+            ],
+            rows: [
+              { id: 'simple-design', order: 10, enabled: true, label: '간단 디자인', detailLabel: null },
+              { id: 'formal-design', order: 20, enabled: true, label: '정식 디자인', detailLabel: null },
+            ],
+            cells: [
+              { rowId: 'simple-design', columnId: 'daily-wear', mode: 'from', amountKrw: 5_000, displayOverride: null, note: null },
+              { rowId: 'simple-design', columnId: 'hongdae-punk', mode: 'from', amountKrw: 10_000, displayOverride: null, note: null },
+              { rowId: 'simple-design', columnId: 'concept-stage-costume', mode: 'from', amountKrw: 20_000, displayOverride: null, note: null },
+              { rowId: 'formal-design', columnId: 'daily-wear', mode: 'from', amountKrw: 10_000, displayOverride: null, note: null },
+              { rowId: 'formal-design', columnId: 'hongdae-punk', mode: 'from', amountKrw: 20_000, displayOverride: null, note: null },
+              { rowId: 'formal-design', columnId: 'concept-stage-costume', mode: 'from', amountKrw: 40_000, displayOverride: null, note: null },
+            ],
+            guidanceItems: [
+              {
+                id: 'simple-design-format',
+                order: 10,
+                enabled: true,
+                label: '의상 간단 디자인',
+                description: '정면을 보고있는 MD사이즈 전신 마네킹에 디자인한 의상을 그려서 드리는 형식',
+              },
+              {
+                id: 'formal-design-format',
+                order: 20,
+                enabled: true,
+                label: '의상 정식 디자인',
+                description: '정면, 측면, 후면을 보고있는 MD사이즈 전신 마네킹에 디자인한 의상을 그려서 드리는 형식',
+              },
+              {
+                id: 'daily-wear-style',
+                order: 30,
+                enabled: true,
+                label: '일상복 스타일',
+                description: '단순하고 디테일이 적음',
+              },
+              {
+                id: 'hongdae-punk-style',
+                order: 40,
+                enabled: true,
+                label: '홍대펑크 스타일',
+                description: '화려한 일상복 스타일, 디테일이 많음',
+              },
+              {
+                id: 'concept-stage-costume-style',
+                order: 50,
+                enabled: true,
+                label: '컨셉/무대의상 스타일',
+                description: '매우 화려, 디테일 매우 많음',
+              },
+            ],
+          },
+          {
+            id: 'costume-production',
+            order: 20,
+            enabled: true,
+            label: '의상 제작',
+            shortLabel: '의상 제작',
+            rowAxisLabel: '제작 기준',
+            columnAxisLabel: '제작 종류',
+            columns: [
+              { id: 'accessory', order: 10, enabled: true, label: '악세사리류', detailLabel: null, shortLabel: '악세사리류' },
+              { id: 'costume-reform', order: 20, enabled: true, label: '의상리폼', detailLabel: null, shortLabel: '의상리폼' },
+              { id: 'custom-production', order: 30, enabled: true, label: '자체제작', detailLabel: null, shortLabel: '자체제작' },
+            ],
+            rows: [
+              { id: 'per-piece-production-fee', order: 10, enabled: true, label: '피스당 제작비', detailLabel: '재료비 제외' },
+            ],
+            cells: [
+              { rowId: 'per-piece-production-fee', columnId: 'accessory', mode: 'from', amountKrw: 5_000, displayOverride: null, note: null },
+              { rowId: 'per-piece-production-fee', columnId: 'costume-reform', mode: 'from', amountKrw: 10_000, displayOverride: null, note: null },
+              { rowId: 'per-piece-production-fee', columnId: 'custom-production', mode: 'from', amountKrw: 15_000, displayOverride: null, note: null },
+            ],
+            guidanceItems: [
+              {
+                id: 'production-material-cost-excluded',
+                order: 10,
+                enabled: true,
+                label: '재료비 제외',
+                description: '의상 제작의 경우 재료비를 제외한 순수 제작비만 표시',
+              },
+              {
+                id: 'production-price-per-piece',
+                order: 20,
+                enabled: true,
+                label: '제작비용은 피스당 계산',
+                description: '예: 상의 + 페이크 카라 + 목 리본 = 3피스',
+              },
+            ],
+          },
+        ],
+        footnote: null,
+        mock: false,
       },
       includedItems: [
         '디자인 방향 제안',
@@ -278,8 +389,7 @@ export const COMMISSION_GUIDE_MOCK = {
       ],
       turnaroundLabel: '수량과 소재 수급 일정 확인 후 협의',
       revisionLabel: '디자인 확정 전 수정 범위 협의',
-      additionalCostNote:
-        '특수 소재, 추가 피팅, 긴급 제작과 배송은 별도 비용이 발생할 수 있습니다.',
+      additionalCostNote: null,
       inquiryLabel: '의상 의뢰 문의하기',
     },
     {

@@ -10,6 +10,7 @@ import type {
   CommissionMatrixSetPricing,
   CommissionPricing,
   CommissionPricingCell,
+  CommissionPricingGuidanceItem,
   CommissionPricingColumn,
   CommissionPricingRow,
   CommissionQuotePricing,
@@ -264,6 +265,17 @@ function validateMatrixPricing(
   )
 }
 
+function validatePricingGuidanceItem(
+  item: CommissionPricingGuidanceItem,
+  path: string,
+): void {
+  assertNonEmptyText(item.id, `${path}.id`)
+  assertOrder(item.order, `${path}.order`)
+  assertBoolean(item.enabled, `${path}.enabled`)
+  assertNonEmptyText(item.label, `${path}.label`)
+  assertNonEmptyText(item.description, `${path}.description`)
+}
+
 function validateMatrixPricingGroup(
   group: CommissionMatrixPricingGroup,
   path: string,
@@ -276,6 +288,27 @@ function validateMatrixPricingGroup(
   assertNonEmptyText(group.rowAxisLabel, `${path}.rowAxisLabel`)
   assertNonEmptyText(group.columnAxisLabel, `${path}.columnAxisLabel`)
   validateMatrixAxes(group.columns, group.rows, group.cells, path)
+
+  if (!Array.isArray(group.guidanceItems)) {
+    fail(`${path}.guidanceItems must be an array`)
+  }
+
+  const guidanceIds = new Set<string>()
+  const guidanceOrders = new Set<number>()
+  group.guidanceItems.forEach((item, index) => {
+    validatePricingGuidanceItem(
+      item,
+      `${path}.guidanceItems[${index}]`,
+    )
+    if (guidanceIds.has(item.id)) {
+      fail(`${path} duplicate guidance id: ${item.id}`)
+    }
+    if (guidanceOrders.has(item.order)) {
+      fail(`${path} duplicate guidance order: ${item.order}`)
+    }
+    guidanceIds.add(item.id)
+    guidanceOrders.add(item.order)
+  })
 }
 
 function validateMatrixSetPricing(
@@ -411,8 +444,8 @@ function deepFreeze<T>(value: T): T {
 export function createCommissionGuideSnapshot(
   input: CommissionGuideContent,
 ): CommissionGuideContent {
-  if (input.schemaVersion !== 4) {
-    fail('schemaVersion must equal 4')
+  if (input.schemaVersion !== 5) {
+    fail('schemaVersion must equal 5')
   }
 
   assertNonEmptyText(input.eyebrow, 'eyebrow')

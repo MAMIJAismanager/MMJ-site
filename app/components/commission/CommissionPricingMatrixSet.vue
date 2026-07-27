@@ -6,6 +6,7 @@ import {
   watch,
 } from 'vue'
 
+import CommissionPricingGroupGuidance from '~/components/commission/CommissionPricingGroupGuidance.vue'
 import CommissionPricingGroupTabs from '~/components/commission/CommissionPricingGroupTabs.vue'
 import CommissionPricingMatrix from '~/components/commission/CommissionPricingMatrix.vue'
 import {
@@ -109,6 +110,7 @@ async function selectGroup(groupId: CommissionPricingGroupId): Promise<void> {
       :active-group-id="activePricingGroupId"
       :id-prefix="idPrefix"
       :mode="mode"
+      :service-label="serviceLabel"
       @select="selectGroup"
     />
 
@@ -127,5 +129,11 @@ async function selectGroup(groupId: CommissionPricingGroupId): Promise<void> {
         :accessible-title="activeAccessibleTitle"
       />
     </div>
+
+    <CommissionPricingGroupGuidance
+      heading="가격표 안내"
+      :items="activeGroup.guidanceItems"
+      :mode="mode"
+    />
   </section>
 </template>

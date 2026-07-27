@@ -1478,3 +1478,118 @@
     padding: 0.3rem 0.5rem;
   }
 }
+
+
+/* MMJ-UI28-R2-R5: costume design/production dual matrix and group guidance. */
+.mm-commission-pricing-guidance {
+  display: grid;
+  gap: var(--mm-space-3);
+  min-width: 0;
+}
+
+.mm-commission-pricing-guidance__heading,
+.mm-commission-pricing-guidance__list,
+.mm-commission-pricing-guidance__item dd {
+  margin: 0;
+}
+
+.mm-commission-pricing-guidance__heading {
+  font-size: var(--mm-font-size-subheading);
+  line-height: var(--mm-line-height-heading);
+}
+
+.mm-commission-pricing-guidance__list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--mm-space-3);
+}
+
+.mm-commission-pricing-guidance__item {
+  display: grid;
+  align-content: start;
+  gap: var(--mm-space-2);
+  min-width: 0;
+  padding: var(--mm-space-4);
+  border: 1px solid var(--mm-color-border);
+  border-radius: var(--mm-radius-small);
+  background: color-mix(in srgb, var(--mm-color-page) 48%, transparent);
+}
+
+.mm-commission-pricing-guidance__item dt {
+  font-weight: var(--mm-font-weight-bold);
+  line-height: var(--mm-line-height-meta);
+}
+
+.mm-commission-pricing-guidance__item dd {
+  color: var(--mm-color-text-muted);
+  font-size: var(--mm-font-size-small);
+  line-height: var(--mm-line-height-meta);
+}
+
+@media (min-width: 80rem) and (min-height: 54rem) {
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  .mm-commission-matrix-set[data-mm-commission-pricing-group-count='2']
+  .mm-commission-pricing-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  .mm-commission-pricing-guidance {
+    gap: 0.4rem;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  .mm-commission-pricing-guidance__heading {
+    font-size: var(--mm-font-size-small);
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  .mm-commission-pricing-guidance__list {
+    gap: 0.5rem 0.65rem;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  .mm-commission-pricing-guidance__item {
+    gap: 0.2rem;
+    padding: 0.45rem 0.6rem;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  .mm-commission-pricing-guidance__item dt,
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  .mm-commission-pricing-guidance__item dd {
+    font-size: var(--mm-font-size-caption);
+  }
+
+  .mm-commission-pricing-guidance[data-mm-guidance-count='5']
+  .mm-commission-pricing-guidance__list {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .mm-commission-pricing-guidance[data-mm-guidance-count='5']
+  .mm-commission-pricing-guidance__item:nth-child(1),
+  .mm-commission-pricing-guidance[data-mm-guidance-count='5']
+  .mm-commission-pricing-guidance__item:nth-child(2) {
+    grid-column: span 3;
+  }
+
+  .mm-commission-pricing-guidance[data-mm-guidance-count='5']
+  .mm-commission-pricing-guidance__item:nth-child(n + 3) {
+    grid-column: span 2;
+  }
+
+  .mm-commission-pricing-guidance[data-mm-guidance-count='2']
+  .mm-commission-pricing-guidance__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set'][data-mm-commission-density='compact']
+  .mm-commission-pricing-guidance__list {
+    gap: 0.4rem 0.5rem;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set'][data-mm-commission-density='compact']
+  .mm-commission-pricing-guidance__item {
+    padding: 0.35rem 0.5rem;
+  }
+}
