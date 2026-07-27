@@ -131,7 +131,7 @@ export const COMMISSION_GUIDE_MOCK = {
       summary: '콘셉트와 사용 목적에 맞춘 음원 제작',
       description:
         '곡의 콘셉트와 사용 목적에 맞춰 작사, 작곡 또는 두 작업을 함께 진행합니다.',
-      excludedGlobalTermIds: ['final-price-after-consultation'],
+      excludedGlobalTermIds: [],
       pricing: {
         kind: 'matrix-set',
         title: '작사/작곡 기본 가격표',
@@ -157,22 +157,15 @@ export const COMMISSION_GUIDE_MOCK = {
             description: '반복성이 없고 형식에 구애받지 않는 구성',
           },
           {
-            id: 'lyrics-composition-final-price',
-            order: 30,
-            enabled: true,
-            label: '최종 금액',
-            description: '모든 작업비용은 상의 후 최종 결정',
-          },
-          {
             id: 'lyrics-composition-delivery-files',
-            order: 40,
+            order: 30,
             enabled: true,
             label: '제공 파일',
             description: 'inst 파일 + 탑라인 보컬 가이드 파일 + 가사 파일 제공',
           },
           {
             id: 'lyrics-composition-synth-vocal-guide',
-            order: 50,
+            order: 40,
             enabled: true,
             label: '보컬 가이드',
             description: '보컬 가이드는 어울리는 음성합성엔진으로 조교해서 제공',
