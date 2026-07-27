@@ -32,7 +32,10 @@ withDefaults(defineProps<Props>(), {
     <h3 class="mm-commission-terms__heading">
       {{ heading }}
     </h3>
-    <ul class="mm-commission-terms__list">
+    <ul
+      class="mm-commission-terms__list"
+      :data-mm-term-count="terms.length"
+    >
       <li
         v-for="term in terms"
         :key="term.id"

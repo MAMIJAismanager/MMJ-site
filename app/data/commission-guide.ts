@@ -5,6 +5,9 @@ import {
 import {
   createCommissionGuideSnapshot,
 } from '~~/shared/schema/commission-guide'
+import {
+  resolveCommissionTermsForService,
+} from '~/utils/commission-terms'
 
 import type {
   CommissionServiceId,
@@ -24,10 +27,17 @@ export const enabledCommissionTerms = Object.freeze(
 export function resolveCommissionTerms(
   serviceId: CommissionServiceId,
 ) {
+  const service = enabledCommissionServices.find(candidate => (
+    candidate.id === serviceId
+  ))
+  if (service === undefined) {
+    throw new TypeError(`commission-service-missing:${serviceId}`)
+  }
+
   return Object.freeze(
-    enabledCommissionTerms.filter(term => (
-      term.scope === 'global'
-      || term.serviceId === serviceId
-    )),
+    resolveCommissionTermsForService(
+      enabledCommissionTerms,
+      service,
+    ),
   )
 }

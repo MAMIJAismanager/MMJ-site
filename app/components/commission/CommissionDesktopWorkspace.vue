@@ -13,6 +13,9 @@ import {
 import {
   useCommissionWorkspaceLayout,
 } from '~/composables/useCommissionWorkspaceLayout'
+import {
+  resolveCommissionTermsForService,
+} from '~/utils/commission-terms'
 
 import type {
   ComponentPublicInstance,
@@ -88,14 +91,11 @@ function isDetailStage(serviceId: CommissionServiceId): boolean {
   return readSlotRole(serviceId) === 'detail-stage'
 }
 
-function resolveTerms(serviceId: CommissionServiceId) {
-  return props.terms.filter(term => (
-    term.enabled
-    && (
-      term.scope === 'global'
-      || term.serviceId === serviceId
-    )
-  ))
+function resolveTerms(service: CommissionService) {
+  return resolveCommissionTermsForService(
+    props.terms,
+    service,
+  )
 }
 
 function setServiceCardElement(
@@ -274,7 +274,7 @@ function closeActiveService(): void {
             <CommissionServiceDetail
               v-if="isDetailVisible(service.id)"
               :service="service"
-              :terms="resolveTerms(service.id)"
+              :terms="resolveTerms(service)"
               :common-notice-heading="commonNoticeHeading"
               :id-prefix="`mm-commission-desktop-${service.id}`"
               mode="desktop"

@@ -131,6 +131,13 @@ async function selectGroup(groupId: CommissionPricingGroupId): Promise<void> {
     </div>
 
     <CommissionPricingGroupGuidance
+      v-if="pricing.sharedGuidanceHeading !== null && pricing.sharedGuidanceItems.length > 0"
+      :heading="pricing.sharedGuidanceHeading"
+      :items="pricing.sharedGuidanceItems"
+      :mode="mode"
+    />
+
+    <CommissionPricingGroupGuidance
       heading="가격표 안내"
       :items="activeGroup.guidanceItems"
       :mode="mode"

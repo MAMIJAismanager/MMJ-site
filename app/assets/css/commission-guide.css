@@ -1593,3 +1593,12 @@
     padding: 0.35rem 0.5rem;
   }
 }
+
+
+/* MMJ-UI28-R2-R5-R1: lyrics five-item guidance and four-item common notice split. */
+@media (min-width: 80rem) and (min-height: 54rem) {
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  .mm-commission-terms__list[data-mm-term-count='4'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

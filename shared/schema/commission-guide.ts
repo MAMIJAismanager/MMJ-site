@@ -98,6 +98,20 @@ function assertStringList(
   })
 }
 
+function assertUniqueTextList(
+  value: unknown,
+  path: string,
+): asserts value is readonly string[] {
+  if (!Array.isArray(value)) fail(`${path} must be an array`)
+
+  const seen = new Set<string>()
+  value.forEach((item, index) => {
+    assertNonEmptyText(item, `${path}[${index}]`)
+    if (seen.has(item)) fail(`${path} contains duplicate item: ${item}`)
+    seen.add(item)
+  })
+}
+
 function validateQuotePricing(
   pricing: CommissionQuotePricing,
   path: string,
@@ -276,6 +290,27 @@ function validatePricingGuidanceItem(
   assertNonEmptyText(item.description, `${path}.description`)
 }
 
+function validatePricingGuidanceItems(
+  items: readonly CommissionPricingGuidanceItem[],
+  path: string,
+): void {
+  if (!Array.isArray(items)) fail(`${path} must be an array`)
+
+  const guidanceIds = new Set<string>()
+  const guidanceOrders = new Set<number>()
+  items.forEach((item, index) => {
+    validatePricingGuidanceItem(item, `${path}[${index}]`)
+    if (guidanceIds.has(item.id)) {
+      fail(`${path} duplicate guidance id: ${item.id}`)
+    }
+    if (guidanceOrders.has(item.order)) {
+      fail(`${path} duplicate guidance order: ${item.order}`)
+    }
+    guidanceIds.add(item.id)
+    guidanceOrders.add(item.order)
+  })
+}
+
 function validateMatrixPricingGroup(
   group: CommissionMatrixPricingGroup,
   path: string,
@@ -289,26 +324,10 @@ function validateMatrixPricingGroup(
   assertNonEmptyText(group.columnAxisLabel, `${path}.columnAxisLabel`)
   validateMatrixAxes(group.columns, group.rows, group.cells, path)
 
-  if (!Array.isArray(group.guidanceItems)) {
-    fail(`${path}.guidanceItems must be an array`)
-  }
-
-  const guidanceIds = new Set<string>()
-  const guidanceOrders = new Set<number>()
-  group.guidanceItems.forEach((item, index) => {
-    validatePricingGuidanceItem(
-      item,
-      `${path}.guidanceItems[${index}]`,
-    )
-    if (guidanceIds.has(item.id)) {
-      fail(`${path} duplicate guidance id: ${item.id}`)
-    }
-    if (guidanceOrders.has(item.order)) {
-      fail(`${path} duplicate guidance order: ${item.order}`)
-    }
-    guidanceIds.add(item.id)
-    guidanceOrders.add(item.order)
-  })
+  validatePricingGuidanceItems(
+    group.guidanceItems,
+    `${path}.guidanceItems`,
+  )
 }
 
 function validateMatrixSetPricing(
@@ -326,6 +345,26 @@ function validateMatrixSetPricing(
     fail(`${path}.displayUnit is unsupported`)
   }
   assertNonEmptyText(pricing.unitLabel, `${path}.unitLabel`)
+  assertNullableText(
+    pricing.sharedGuidanceHeading,
+    `${path}.sharedGuidanceHeading`,
+  )
+  validatePricingGuidanceItems(
+    pricing.sharedGuidanceItems,
+    `${path}.sharedGuidanceItems`,
+  )
+  if (
+    pricing.sharedGuidanceHeading === null
+    && pricing.sharedGuidanceItems.length > 0
+  ) {
+    fail(`${path}.sharedGuidanceItems require sharedGuidanceHeading`)
+  }
+  if (
+    pricing.sharedGuidanceHeading !== null
+    && !pricing.sharedGuidanceItems.some(item => item.enabled)
+  ) {
+    fail(`${path}.sharedGuidanceHeading requires an enabled item`)
+  }
   assertNullableText(pricing.footnote, `${path}.footnote`)
   assertBoolean(pricing.mock, `${path}.mock`)
 
@@ -381,6 +420,10 @@ function validateService(
   assertNonEmptyText(service.summary, `${path}.summary`)
   assertNonEmptyText(service.description, `${path}.description`)
   validatePricing(service.pricing, `${path}.pricing`)
+  assertUniqueTextList(
+    service.excludedGlobalTermIds,
+    `${path}.excludedGlobalTermIds`,
+  )
   assertStringList(service.includedItems, `${path}.includedItems`)
   assertNonEmptyText(service.turnaroundLabel, `${path}.turnaroundLabel`)
   assertNonEmptyText(service.revisionLabel, `${path}.revisionLabel`)
@@ -444,8 +487,8 @@ function deepFreeze<T>(value: T): T {
 export function createCommissionGuideSnapshot(
   input: CommissionGuideContent,
 ): CommissionGuideContent {
-  if (input.schemaVersion !== 5) {
-    fail('schemaVersion must equal 5')
+  if (input.schemaVersion !== 6) {
+    fail('schemaVersion must equal 6')
   }
 
   assertNonEmptyText(input.eyebrow, 'eyebrow')
@@ -494,6 +537,21 @@ export function createCommissionGuideSnapshot(
   if (!input.terms.some(term => term.enabled)) {
     fail('at least one term must be enabled')
   }
+
+  const globalTermIds = new Set(
+    input.terms
+      .filter(term => term.scope === 'global')
+      .map(term => term.id),
+  )
+  input.services.forEach((service, serviceIndex) => {
+    service.excludedGlobalTermIds.forEach((termId: string) => {
+      if (!globalTermIds.has(termId)) {
+        fail(
+          `services[${serviceIndex}].excludedGlobalTermIds references non-global term: ${termId}`,
+        )
+      }
+    })
+  })
 
   return deepFreeze({
     ...input,

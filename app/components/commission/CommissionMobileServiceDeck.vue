@@ -11,6 +11,9 @@ import CommissionServiceTabRail from '~/components/commission/CommissionServiceT
 import {
   useCommissionSwipeDeck,
 } from '~/composables/useCommissionSwipeDeck'
+import {
+  resolveCommissionTermsForService,
+} from '~/utils/commission-terms'
 
 import type {
   ComponentPublicInstance,
@@ -59,13 +62,10 @@ const activeService = computed(() => {
 })
 
 const activeTerms = computed(() => (
-  props.terms.filter(term => (
-    term.enabled
-    && (
-      term.scope === 'global'
-      || term.serviceId === activeServiceId.value
-    )
-  ))
+  resolveCommissionTermsForService(
+    props.terms,
+    activeService.value,
+  )
 ))
 
 function setPanelElement(

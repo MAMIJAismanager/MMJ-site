@@ -102,6 +102,8 @@ export interface CommissionMatrixSetPricing {
   readonly displayUnit: 'manwon' | 'won'
   readonly unitLabel: string
   readonly groups: readonly CommissionMatrixPricingGroup[]
+  readonly sharedGuidanceHeading: string | null
+  readonly sharedGuidanceItems: readonly CommissionPricingGuidanceItem[]
   readonly footnote: string | null
   readonly mock: boolean
 }
@@ -119,6 +121,7 @@ export interface CommissionService {
   readonly summary: string
   readonly description: string
   readonly pricing: CommissionPricing
+  readonly excludedGlobalTermIds: readonly CommissionTermId[]
   readonly includedItems: readonly string[]
   readonly turnaroundLabel: string
   readonly revisionLabel: string
@@ -154,7 +157,7 @@ export interface CommissionTerm {
 }
 
 export interface CommissionGuideContent {
-  readonly schemaVersion: 5
+  readonly schemaVersion: 6
   readonly eyebrow: string
   readonly title: string
   readonly lead: string
@@ -211,14 +214,23 @@ export interface CommissionPricingGroupSheetRow {
   readonly column_axis_label: string
 }
 
-export interface CommissionPricingGroupGuidanceSheetRow {
+export type CommissionPricingGuidanceScope = 'set' | 'group'
+
+export interface CommissionPricingGuidanceSheetRow {
   readonly service_id: string
-  readonly pricing_group_id: string
+  readonly guidance_scope: CommissionPricingGuidanceScope
+  readonly pricing_group_id: string | null
   readonly guidance_id: string
   readonly order: number
   readonly enabled: boolean
+  readonly heading: string
   readonly label: string
   readonly description: string
+}
+
+export interface CommissionServiceTermExclusionSheetRow {
+  readonly service_id: string
+  readonly term_id: string
 }
 
 export interface CommissionPricingColumnSheetRow {
@@ -288,7 +300,8 @@ export interface CommissionGuideSheetBundle {
   readonly services: readonly CommissionServiceSheetRow[]
   readonly matrixPricing: readonly CommissionMatrixPricingSheetRow[]
   readonly pricingGroups: readonly CommissionPricingGroupSheetRow[]
-  readonly pricingGroupGuidance: readonly CommissionPricingGroupGuidanceSheetRow[]
+  readonly pricingGuidance: readonly CommissionPricingGuidanceSheetRow[]
+  readonly serviceTermExclusions: readonly CommissionServiceTermExclusionSheetRow[]
   readonly pricingColumns: readonly CommissionPricingColumnSheetRow[]
   readonly pricingRows: readonly CommissionPricingRowSheetRow[]
   readonly pricingCells: readonly CommissionPricingCellSheetRow[]

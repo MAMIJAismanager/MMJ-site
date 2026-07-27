@@ -3,7 +3,7 @@ import type {
 } from '~~/shared/types/commission-guide'
 
 export const COMMISSION_GUIDE_MOCK = {
-  schemaVersion: 5,
+  schemaVersion: 6,
 
   eyebrow: 'Commission Guide',
   title: '의뢰 안내',
@@ -23,6 +23,7 @@ export const COMMISSION_GUIDE_MOCK = {
       summary: '곡과 무대의 흐름에 맞춘 안무 설계',
       description:
         '곡의 길이와 참여 인원을 기준으로 한 안무 창작 기본 비용입니다.',
+      excludedGlobalTermIds: [],
       pricing: {
         kind: 'matrix',
         title: '안무 창작 기본 가격표',
@@ -130,6 +131,7 @@ export const COMMISSION_GUIDE_MOCK = {
       summary: '콘셉트와 사용 목적에 맞춘 음원 제작',
       description:
         '곡의 콘셉트와 사용 목적에 맞춰 작사, 작곡 또는 두 작업을 함께 진행합니다.',
+      excludedGlobalTermIds: ['final-price-after-consultation'],
       pricing: {
         kind: 'matrix-set',
         title: '작사/작곡 기본 가격표',
@@ -138,6 +140,44 @@ export const COMMISSION_GUIDE_MOCK = {
         currency: 'KRW',
         displayUnit: 'manwon',
         unitLabel: '만원 · 부가세 포함',
+        sharedGuidanceHeading: '구성방식',
+        sharedGuidanceItems: [
+          {
+            id: 'lyrics-composition-regular-structure',
+            order: 10,
+            enabled: true,
+            label: '일반 구성',
+            description: '1절/2절처럼 반복성 있는 구성',
+          },
+          {
+            id: 'lyrics-composition-musical-edition',
+            order: 20,
+            enabled: true,
+            label: '뮤지컬 에디션',
+            description: '반복성이 없고 형식에 구애받지 않는 구성',
+          },
+          {
+            id: 'lyrics-composition-final-price',
+            order: 30,
+            enabled: true,
+            label: '최종 금액',
+            description: '모든 작업비용은 상의 후 최종 결정',
+          },
+          {
+            id: 'lyrics-composition-delivery-files',
+            order: 40,
+            enabled: true,
+            label: '제공 파일',
+            description: 'inst 파일 + 탑라인 보컬 가이드 파일 + 가사 파일 제공',
+          },
+          {
+            id: 'lyrics-composition-synth-vocal-guide',
+            order: 50,
+            enabled: true,
+            label: '보컬 가이드',
+            description: '보컬 가이드는 어울리는 음성합성엔진으로 조교해서 제공',
+          },
+        ],
         groups: [
           {
             id: 'theme-composition',
@@ -267,6 +307,7 @@ export const COMMISSION_GUIDE_MOCK = {
       summary: '무대와 촬영 콘셉트에 맞춘 의상 설계',
       description:
         '무대와 촬영 콘셉트에 맞춰 의상 방향을 정리하고 디자인 또는 제작 범위를 협의합니다.',
+      excludedGlobalTermIds: [],
       pricing: {
         kind: 'matrix-set',
         title: '의상디자인 / 제작 기본 가격표',
@@ -275,6 +316,8 @@ export const COMMISSION_GUIDE_MOCK = {
         currency: 'KRW',
         displayUnit: 'manwon',
         unitLabel: '만원 · 부가세 포함',
+        sharedGuidanceHeading: null,
+        sharedGuidanceItems: [],
         groups: [
           {
             id: 'costume-design',
@@ -400,6 +443,7 @@ export const COMMISSION_GUIDE_MOCK = {
       summary: '촬영 목적에 맞춘 장면 구성과 현장 진행',
       description:
         '촬영 목적과 결과물의 톤에 맞춰 장면 구성, 현장 진행과 디렉션 방향을 설계합니다.',
+      excludedGlobalTermIds: [],
       pricing: {
         kind: 'quote',
         displayLabel: '촬영 시간, 장소와 장비 조건 확인 후 견적',
@@ -426,6 +470,7 @@ export const COMMISSION_GUIDE_MOCK = {
       summary: '목표, 일정과 역할을 연결하는 제작 구조 설계',
       description:
         '프로젝트의 목표와 일정, 참여자의 역할을 정리하고 실제 제작이 굴러갈 수 있는 흐름을 설계합니다.',
+      excludedGlobalTermIds: [],
       pricing: {
         kind: 'quote',
         displayLabel: '프로젝트 규모와 참여 범위 확인 후 견적',
@@ -452,6 +497,7 @@ export const COMMISSION_GUIDE_MOCK = {
       summary: '음원 밸런스 정리와 최종 출력',
       description:
         '보컬과 반주의 밸런스를 정리하고 최종 사용 환경에 맞춰 음원을 출력합니다.',
+      excludedGlobalTermIds: [],
       pricing: {
         kind: 'quote',
         displayLabel: '트랙 수, 러닝타임과 수정 범위 확인 후 견적',
@@ -484,46 +530,6 @@ export const COMMISSION_GUIDE_MOCK = {
       description:
         '작업 범위와 일정, 사용 목적을 확인한 뒤 최종 견적을 안내합니다.',
       iconKey: 'consultation',
-    },
-    {
-      id: 'lyrics-composition-regular-structure',
-      order: 11,
-      enabled: true,
-      scope: 'service',
-      serviceId: 'lyrics-composition',
-      label: '일반 구성 · 1절/2절처럼 반복성 있는 구성',
-      description: null,
-      iconKey: null,
-    },
-    {
-      id: 'lyrics-composition-musical-edition',
-      order: 12,
-      enabled: true,
-      scope: 'service',
-      serviceId: 'lyrics-composition',
-      label: '뮤지컬 에디션 · 반복성이 없고 형식에 구애받지 않는 구성',
-      description: null,
-      iconKey: null,
-    },
-    {
-      id: 'lyrics-composition-delivery-files',
-      order: 13,
-      enabled: true,
-      scope: 'service',
-      serviceId: 'lyrics-composition',
-      label: 'inst 파일 + 탑라인 보컬 가이드 파일 + 가사 파일 제공',
-      description: null,
-      iconKey: null,
-    },
-    {
-      id: 'lyrics-composition-synth-vocal-guide',
-      order: 14,
-      enabled: true,
-      scope: 'service',
-      serviceId: 'lyrics-composition',
-      label: '보컬 가이드는 어울리는 음성합성엔진으로 조교해서 제공',
-      description: null,
-      iconKey: null,
     },
     {
       id: 'formation-included-over-two',
