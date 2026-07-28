@@ -39,6 +39,7 @@ export function createCommissionPricingMatrixSetView(
       group.rows,
       group.columns,
       group.cells,
+      group.fullSpanCells,
     )
 
     ids.add(group.id)
@@ -73,6 +74,7 @@ export function projectCommissionPricingGroup(
     columns: group.columns,
     rows: group.rows,
     cells: group.cells,
+    fullSpanCells: group.fullSpanCells,
     footnote: pricing.footnote,
     mock: pricing.mock,
   })

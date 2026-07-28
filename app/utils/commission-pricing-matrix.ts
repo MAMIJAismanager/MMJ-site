@@ -2,6 +2,7 @@ import type {
   CommissionMatrixPricing,
   CommissionPricingCell,
   CommissionPricingColumn,
+  CommissionPricingFullSpanCell,
   CommissionPricingRow,
 } from '~~/shared/types/commission-guide'
 
@@ -9,7 +10,10 @@ export interface CommissionPricingMatrixView {
   readonly columns: readonly CommissionPricingColumn[]
   readonly rows: readonly CommissionPricingRow[]
   readonly cellByCoordinate: ReadonlyMap<string, CommissionPricingCell>
+  readonly fullSpanCellByRowId: ReadonlyMap<string, CommissionPricingFullSpanCell>
   readonly expectedCellCount: number
+  readonly standardCellCount: number
+  readonly fullSpanCellCount: number
 }
 
 export function createCommissionPricingCoordinate(
@@ -23,12 +27,14 @@ export function assertCommissionPricingMatrixParity(
   rows: readonly CommissionPricingRow[],
   columns: readonly CommissionPricingColumn[],
   cells: readonly CommissionPricingCell[],
+  fullSpanCells: readonly CommissionPricingFullSpanCell[],
 ): void {
   const enabledRows = rows.filter(row => row.enabled)
   const enabledColumns = columns.filter(column => column.enabled)
   const enabledRowIds = new Set(enabledRows.map(row => row.id))
   const enabledColumnIds = new Set(enabledColumns.map(column => column.id))
   const coordinates = new Set<string>()
+  const standardCellCountByRow = new Map<string, number>()
 
   for (const cell of cells) {
     if (
@@ -48,10 +54,36 @@ export function assertCommissionPricingMatrixParity(
       )
     }
     coordinates.add(coordinate)
+    standardCellCountByRow.set(
+      cell.rowId,
+      (standardCellCountByRow.get(cell.rowId) ?? 0) + 1,
+    )
+  }
+
+  const fullSpanRowIds = new Set<string>()
+  for (const cell of fullSpanCells) {
+    if (!enabledRowIds.has(cell.rowId)) continue
+    if (fullSpanRowIds.has(cell.rowId)) {
+      throw new TypeError(
+        `duplicate-commission-pricing-full-span-row:${cell.rowId}`,
+      )
+    }
+    fullSpanRowIds.add(cell.rowId)
   }
 
   for (const row of enabledRows) {
-    let rowCellCount = 0
+    const hasFullSpan = fullSpanRowIds.has(row.id)
+    const standardCount = standardCellCountByRow.get(row.id) ?? 0
+
+    if (hasFullSpan) {
+      if (standardCount > 0) {
+        throw new TypeError(
+          `commission-pricing-row-mixed-cell-modes:${row.id}`,
+        )
+      }
+      continue
+    }
+
     for (const column of enabledColumns) {
       const coordinate = createCommissionPricingCoordinate(
         row.id,
@@ -62,21 +94,13 @@ export function assertCommissionPricingMatrixParity(
           `missing-commission-pricing-cell:${coordinate}`,
         )
       }
-      rowCellCount += 1
     }
 
-    if (rowCellCount !== enabledColumns.length) {
+    if (standardCount !== enabledColumns.length) {
       throw new TypeError(
-        `commission-pricing-row-cell-count:${row.id}:${rowCellCount}:${enabledColumns.length}`,
+        `commission-pricing-row-cell-count:${row.id}:${standardCount}:${enabledColumns.length}`,
       )
     }
-  }
-
-  const expectedCellCount = enabledRows.length * enabledColumns.length
-  if (coordinates.size !== expectedCellCount) {
-    throw new TypeError(
-      `commission-pricing-matrix-cell-count:${coordinates.size}:${expectedCellCount}`,
-    )
   }
 }
 
@@ -87,6 +111,7 @@ export function createCommissionPricingMatrixView(
     pricing.rows,
     pricing.columns,
     pricing.cells,
+    pricing.fullSpanCells,
   )
 
   const columns = Object.freeze(
@@ -100,6 +125,10 @@ export function createCommissionPricingMatrixView(
       .sort((left, right) => left.order - right.order),
   )
   const cellByCoordinate = new Map<string, CommissionPricingCell>()
+  const fullSpanCellByRowId = new Map<
+    string,
+    CommissionPricingFullSpanCell
+  >()
 
   for (const cell of pricing.cells) {
     const rowEnabled = rows.some(row => row.id === cell.rowId)
@@ -112,10 +141,18 @@ export function createCommissionPricingMatrixView(
     )
   }
 
+  for (const cell of pricing.fullSpanCells) {
+    if (!rows.some(row => row.id === cell.rowId)) continue
+    fullSpanCellByRowId.set(cell.rowId, cell)
+  }
+
   return Object.freeze({
     columns,
     rows,
     cellByCoordinate,
-    expectedCellCount: rows.length * columns.length,
+    fullSpanCellByRowId,
+    expectedCellCount: cellByCoordinate.size + fullSpanCellByRowId.size,
+    standardCellCount: cellByCoordinate.size,
+    fullSpanCellCount: fullSpanCellByRowId.size,
   })
 }

@@ -47,6 +47,10 @@ const activePricingGroupId = ref<CommissionPricingGroupId>(
   matrixSet.value.firstGroupId,
 )
 
+const showPricingGroupTabs = computed(() => (
+  matrixSet.value.groups.length > 1
+))
+
 const activeGroup = computed(() => {
   const group = matrixSet.value.groups.find(candidate => (
     candidate.id === activePricingGroupId.value
@@ -70,7 +74,25 @@ const headerProjection = computed<CommissionMatrixHeaderProjection>(() => (
 ))
 
 const activeAccessibleTitle = computed(() => (
-  `${props.serviceLabel} ${activeGroup.value.label} 기본 가격표`
+  showPricingGroupTabs.value
+    ? `${props.serviceLabel} ${activeGroup.value.label} 기본 가격표`
+    : `${props.serviceLabel} 기본 가격표`
+))
+
+const panelRole = computed(() => (
+  showPricingGroupTabs.value ? 'tabpanel' : 'region'
+))
+
+const panelLabelledBy = computed(() => (
+  showPricingGroupTabs.value
+    ? `${props.idPrefix}-pricing-group-tab-${activePricingGroupId.value}`
+    : undefined
+))
+
+const panelAriaLabel = computed(() => (
+  showPricingGroupTabs.value
+    ? undefined
+    : activeAccessibleTitle.value
 ))
 
 watch(
@@ -104,8 +126,10 @@ async function selectGroup(groupId: CommissionPricingGroupId): Promise<void> {
     data-mm-commission-pricing-kind="matrix-set"
     :data-mm-commission-active-pricing-group="activePricingGroupId"
     :data-mm-commission-pricing-group-count="matrixSet.groups.length"
+    :data-mm-commission-pricing-group-tabs-visible="showPricingGroupTabs ? 'true' : 'false'"
   >
     <CommissionPricingGroupTabs
+      v-if="showPricingGroupTabs"
       :groups="matrixSet.groups"
       :active-group-id="activePricingGroupId"
       :id-prefix="idPrefix"
@@ -117,8 +141,9 @@ async function selectGroup(groupId: CommissionPricingGroupId): Promise<void> {
     <div
       :id="`${idPrefix}-pricing-group-panel`"
       class="mm-commission-pricing-group-panel"
-      role="tabpanel"
-      :aria-labelledby="`${idPrefix}-pricing-group-tab-${activePricingGroupId}`"
+      :role="panelRole"
+      :aria-labelledby="panelLabelledBy"
+      :aria-label="panelAriaLabel"
     >
       <CommissionPricingMatrix
         :key="activePricingGroupId"
