@@ -15,7 +15,7 @@ defineProps<Props>()
     v-if="display.kind === 'numeric'"
     class="mm-commission-price-token"
     :aria-label="display.accessibleLabel"
-    :data-has-suffix="display.suffix !== null ? 'true' : 'false'"
+    :data-has-optical-suffix="display.opticalSuffix !== null ? 'true' : 'false'"
   >
     <span
       class="mm-commission-price-token__core"
@@ -24,10 +24,10 @@ defineProps<Props>()
       {{ display.core }}
     </span>
     <span
-      v-if="display.suffix !== null"
-      class="mm-commission-price-token__suffix"
+      v-if="display.opticalSuffix !== null"
+      class="mm-commission-price-token__optical-suffix"
       aria-hidden="true"
-    >{{ display.suffix }}</span>
+    >{{ display.opticalSuffix }}</span>
   </strong>
 
   <strong

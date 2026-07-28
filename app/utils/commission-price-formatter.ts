@@ -1,5 +1,7 @@
 import {
+  createCommissionNumericPriceDisplay,
   createCommissionOverridePriceDisplay,
+  createCommissionTextPriceDisplay,
   serializeCommissionPriceDisplay,
 } from '~/types/commission-price-display'
 
@@ -62,19 +64,17 @@ export function createCommissionPriceCellDisplay(
   )
 
   if (cell.mode === 'not-listed') {
-    return Object.freeze({
-      kind: 'text',
-      text: '—',
+    return createCommissionTextPriceDisplay(
+      '—',
       accessibleLabel,
-    })
+    )
   }
 
   if (cell.mode === 'quote') {
-    return Object.freeze({
-      kind: 'text',
-      text: '협의',
+    return createCommissionTextPriceDisplay(
+      '협의',
       accessibleLabel,
-    })
+    )
   }
 
   if (cell.displayOverride !== null) {
@@ -84,13 +84,23 @@ export function createCommissionPriceCellDisplay(
     )
   }
 
-  const core = readCommissionPriceValue(cell, pricing)
-  return Object.freeze({
-    kind: 'numeric',
-    core,
-    suffix: cell.mode === 'from' ? '~' : ' 고정',
-    accessibleLabel,
-  })
+  const value = readCommissionPriceValue(cell, pricing)
+  switch (cell.mode) {
+    case 'from':
+      return createCommissionNumericPriceDisplay(
+        value,
+        '~',
+        accessibleLabel,
+      )
+
+    case 'fixed':
+      return createCommissionTextPriceDisplay(
+        `${value} 고정`,
+        accessibleLabel,
+      )
+  }
+
+  throw new TypeError('commission-price-mode-unsupported')
 }
 
 export function formatCommissionPriceCell(

@@ -1860,7 +1860,7 @@
   letter-spacing: 0.08em;
 }
 
-/* MMJ-UI28-R2-R9-R1: center the numeric core independently of price suffixes. */
+/* MMJ-UI28-R2-R9-R1-R1: only symbolic optical suffixes leave the centered price flow. */
 .mm-commission-price-token {
   position: relative;
   display: inline-block;
@@ -1876,7 +1876,7 @@
   text-align: center;
 }
 
-.mm-commission-price-token__suffix {
+.mm-commission-price-token__optical-suffix {
   position: absolute;
   inset-block-start: 0;
   inset-inline-start: 100%;

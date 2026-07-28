@@ -3,7 +3,9 @@ import {
   formatCommissionRecurringPriceAccessible,
 } from '~/utils/commission-recurring-price-formatter'
 import {
+  createCommissionNumericPriceDisplay,
   createCommissionOverridePriceDisplay,
+  createCommissionTextPriceDisplay,
   serializeCommissionPriceDisplay,
 } from '~/types/commission-price-display'
 
@@ -59,20 +61,24 @@ export function createCommissionFullSpanPriceDisplay(
         )
       }
 
-      return Object.freeze({
-        kind: 'numeric',
-        core: formatAmount(cell.amountKrw, pricing),
-        suffix: cell.mode === 'from' ? '~' : null,
-        accessibleLabel,
-      })
+      const value = formatAmount(cell.amountKrw, pricing)
+      return cell.mode === 'from'
+        ? createCommissionNumericPriceDisplay(
+            value,
+            '~',
+            accessibleLabel,
+          )
+        : createCommissionTextPriceDisplay(
+            `${value} 고정`,
+            accessibleLabel,
+          )
     }
 
     case 'recurring-from':
-      return Object.freeze({
-        kind: 'text',
-        text: formatCommissionRecurringPrice(cell, pricing),
-        accessibleLabel: formatCommissionRecurringPriceAccessible(cell),
-      })
+      return createCommissionTextPriceDisplay(
+        formatCommissionRecurringPrice(cell, pricing),
+        formatCommissionRecurringPriceAccessible(cell),
+      )
   }
 
   throw new TypeError('commission-full-span-price-mode-unsupported')

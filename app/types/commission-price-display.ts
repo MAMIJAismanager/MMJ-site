@@ -1,7 +1,9 @@
+export type CommissionOpticalPriceSuffix = '~'
+
 export interface CommissionNumericPriceDisplay {
   readonly kind: 'numeric'
   readonly core: string
-  readonly suffix: string | null
+  readonly opticalSuffix: CommissionOpticalPriceSuffix | null
   readonly accessibleLabel: string
 }
 
@@ -17,31 +19,53 @@ export type CommissionPriceDisplay =
 
 const PLAIN_NUMERIC_PRICE_OVERRIDE = /^\d{1,3}(?:,\d{3})*(?:\.\d+)?$|^\d+(?:\.\d+)?$/
 
+export function createCommissionNumericPriceDisplay(
+  core: string,
+  opticalSuffix: CommissionOpticalPriceSuffix | null,
+  accessibleLabel: string,
+): CommissionNumericPriceDisplay {
+  return Object.freeze({
+    kind: 'numeric',
+    core,
+    opticalSuffix,
+    accessibleLabel,
+  })
+}
+
+export function createCommissionTextPriceDisplay(
+  text: string,
+  accessibleLabel: string,
+): CommissionTextPriceDisplay {
+  return Object.freeze({
+    kind: 'text',
+    text,
+    accessibleLabel,
+  })
+}
+
 export function createCommissionOverridePriceDisplay(
   value: string,
   accessibleLabel: string,
 ): CommissionPriceDisplay {
   const normalized = value.trim()
   if (PLAIN_NUMERIC_PRICE_OVERRIDE.test(normalized)) {
-    return Object.freeze({
-      kind: 'numeric',
-      core: normalized,
-      suffix: null,
+    return createCommissionNumericPriceDisplay(
+      normalized,
+      null,
       accessibleLabel,
-    })
+    )
   }
 
-  return Object.freeze({
-    kind: 'text',
-    text: value,
+  return createCommissionTextPriceDisplay(
+    value,
     accessibleLabel,
-  })
+  )
 }
 
 export function serializeCommissionPriceDisplay(
   display: CommissionPriceDisplay,
 ): string {
   return display.kind === 'numeric'
-    ? `${display.core}${display.suffix ?? ''}`
+    ? `${display.core}${display.opticalSuffix ?? ''}`
     : display.text
 }
