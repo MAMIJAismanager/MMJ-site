@@ -20,6 +20,8 @@ import type {
 } from '~~/shared/types/commission-guide'
 import type {
   CommissionMatrixHeaderProjection,
+  CommissionMobileMatrixRowProjection,
+  CommissionPricingRowTabLayout,
 } from '~/types/commission-presentation'
 import type {
   CommissionDetailDensity,
@@ -31,12 +33,15 @@ interface Props {
   readonly density: CommissionDetailDensity
   readonly mode: 'desktop' | 'mobile'
   readonly serviceLabel: string
+  readonly mobileRowProjection: CommissionMobileMatrixRowProjection
+  readonly mobileRowTabLayout: CommissionPricingRowTabLayout
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
   groupChange: []
+  rowChange: []
 }>()
 
 const matrixSet = computed(() => (
@@ -152,6 +157,9 @@ async function selectGroup(groupId: CommissionPricingGroupId): Promise<void> {
         :density="density"
         :header-projection="headerProjection"
         :accessible-title="activeAccessibleTitle"
+        :mobile-row-projection="mobileRowProjection"
+        :mobile-row-tab-layout="mobileRowTabLayout"
+        @row-change="emit('rowChange')"
       />
     </div>
 

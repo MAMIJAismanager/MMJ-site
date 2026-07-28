@@ -10,3 +10,7 @@ export type CommissionTermsProjection =
 export type CommissionMobileMatrixRowProjection =
   | 'stacked'
   | 'single-row-tabs'
+
+export type CommissionPricingRowTabLayout =
+  | 'equal'
+  | 'scroll'

@@ -25,6 +25,7 @@ import type {
 import type {
   CommissionMatrixHeaderProjection,
   CommissionMobileMatrixRowProjection,
+  CommissionPricingRowTabLayout,
   CommissionTermsProjection,
 } from '~/types/commission-presentation'
 
@@ -75,11 +76,22 @@ const termsProjection = computed<CommissionTermsProjection>(() => (
     : 'full'
 ))
 
-const mobileMatrixRowProjection = computed<CommissionMobileMatrixRowProjection>(() => (
-  props.mode === 'mobile'
-  && props.service.id === 'choreography'
-    ? 'single-row-tabs'
-    : 'stacked'
+const mobileMatrixRowProjection = computed<CommissionMobileMatrixRowProjection>(() => {
+  if (props.mode !== 'mobile') return 'stacked'
+
+  switch (props.service.id) {
+    case 'choreography':
+    case 'project-planning':
+      return 'single-row-tabs'
+    default:
+      return 'stacked'
+  }
+})
+
+const mobileMatrixRowTabLayout = computed<CommissionPricingRowTabLayout>(() => (
+  props.service.id === 'project-planning'
+    ? 'scroll'
+    : 'equal'
 ))
 
 const shouldRenderDetailInquiry = computed(() => (
@@ -148,6 +160,8 @@ onMounted(async () => {
       :header-projection="matrixHeaderProjection"
       :accessible-title="`${service.label} 기본 가격표`"
       :mobile-row-projection="mobileMatrixRowProjection"
+      :mobile-row-tab-layout="mobileMatrixRowTabLayout"
+      @row-change="remeasure"
     />
 
     <CommissionPricingMatrixSet
@@ -157,7 +171,10 @@ onMounted(async () => {
       :density="density"
       :mode="mode"
       :service-label="service.label"
+      :mobile-row-projection="mobileMatrixRowProjection"
+      :mobile-row-tab-layout="mobileMatrixRowTabLayout"
       @group-change="remeasure"
+      @row-change="remeasure"
     />
 
     <CommissionRateRangePricing

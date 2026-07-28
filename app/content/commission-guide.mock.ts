@@ -567,10 +567,10 @@ export const COMMISSION_GUIDE_MOCK = {
               { id: 'team-formation', order: 40, enabled: true, label: '팀 결성', detailLabel: null, shortLabel: '팀 결성' },
             ],
             rows: [
-              { id: 'advice-feedback', order: 10, enabled: true, label: '조언 / 피드백', detailLabel: null },
-              { id: 'simple-concept', order: 20, enabled: true, label: '간단 구상', detailLabel: null },
-              { id: 'full-planning', order: 30, enabled: true, label: '단순 기획', detailLabel: null },
-              { id: 'continuous-feedback', order: 40, enabled: true, label: '지속적인 피드백', detailLabel: null },
+              { id: 'advice-feedback', order: 10, enabled: true, label: '조언 / 피드백', detailLabel: null, shortLabel: '조언/피드백' },
+              { id: 'simple-concept', order: 20, enabled: true, label: '간단 구상', detailLabel: null, shortLabel: '간단 구상' },
+              { id: 'full-planning', order: 30, enabled: true, label: '단순 기획', detailLabel: null, shortLabel: '단순 기획' },
+              { id: 'continuous-feedback', order: 40, enabled: true, label: '지속적인 피드백', detailLabel: null, shortLabel: '지속 피드백' },
             ],
             cells: [
               { rowId: 'advice-feedback', columnId: 'one-off-project', mode: 'fixed', amountKrw: 10_000, displayOverride: null, note: null },

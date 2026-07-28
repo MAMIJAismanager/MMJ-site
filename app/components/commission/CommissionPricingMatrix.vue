@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   computed,
+  nextTick,
   ref,
   watch,
 } from 'vue'
@@ -29,6 +30,7 @@ import type {
 import type {
   CommissionMatrixHeaderProjection,
   CommissionMobileMatrixRowProjection,
+  CommissionPricingRowTabLayout,
 } from '~/types/commission-presentation'
 import type {
   CommissionDetailDensity,
@@ -41,6 +43,7 @@ interface Props {
   readonly headerProjection?: CommissionMatrixHeaderProjection
   readonly accessibleTitle?: string
   readonly mobileRowProjection?: CommissionMobileMatrixRowProjection
+  readonly mobileRowTabLayout?: CommissionPricingRowTabLayout
 }
 
 interface CommissionPricingCellView {
@@ -71,7 +74,12 @@ const props = withDefaults(defineProps<Props>(), {
   density: 'comfortable',
   headerProjection: 'full',
   mobileRowProjection: 'stacked',
+  mobileRowTabLayout: 'equal',
 })
+
+const emit = defineEmits<{
+  rowChange: [rowId: CommissionPricingRowId]
+}>()
 
 const matrix = computed(() => (
   createCommissionPricingMatrixView(props.pricing)
@@ -180,12 +188,16 @@ watch(
   },
 )
 
-function selectPricingRow(rowId: CommissionPricingRowId): void {
+async function selectPricingRow(rowId: CommissionPricingRowId): Promise<void> {
   const exists = rowViews.value.some(row => row.id === rowId)
   if (!exists) {
     throw new TypeError(`commission-pricing-row-unknown:${rowId}`)
   }
+  if (activePricingRowId.value === rowId) return
+
   activePricingRowId.value = rowId
+  await nextTick()
+  emit('rowChange', rowId)
 }
 
 function createFullSpanCellView(
@@ -228,6 +240,7 @@ function getCell(
     :data-mm-commission-density="density"
     :data-mm-commission-header-projection="headerProjection"
     :data-mm-commission-mobile-row-projection="mobileRowProjection"
+    :data-mm-commission-row-tab-layout="mobileRowTabLayout"
     :data-mm-commission-active-row-id="activePricingRowId ?? undefined"
   >
     <CommissionPricingRowTabs
@@ -236,6 +249,7 @@ function getCell(
       :active-row-id="activePricingRowId"
       :id-prefix="idPrefix"
       :accessible-title="tableCaption"
+      :layout="mobileRowTabLayout"
       @select="selectPricingRow"
     />
 

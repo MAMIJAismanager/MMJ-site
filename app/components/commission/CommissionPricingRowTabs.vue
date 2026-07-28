@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   nextTick,
-  ref,
+  watch,
 } from 'vue'
 
 import type {
@@ -10,6 +10,9 @@ import type {
 import type {
   CommissionPricingRowId,
 } from '~~/shared/types/commission-guide'
+import type {
+  CommissionPricingRowTabLayout,
+} from '~/types/commission-presentation'
 
 interface RowTabItem {
   readonly id: CommissionPricingRowId
@@ -22,6 +25,7 @@ interface Props {
   readonly activeRowId: CommissionPricingRowId
   readonly idPrefix: string
   readonly accessibleTitle: string
+  readonly layout: CommissionPricingRowTabLayout
 }
 
 const props = defineProps<Props>()
@@ -30,7 +34,6 @@ const emit = defineEmits<{
 }>()
 
 const tabElements = new Map<CommissionPricingRowId, HTMLButtonElement>()
-const tabListElement = ref<HTMLElement | null>(null)
 
 function setTabElement(
   rowId: CommissionPricingRowId,
@@ -41,6 +44,23 @@ function setTabElement(
     return
   }
   tabElements.delete(rowId)
+}
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
+}
+
+async function alignActiveTab(rowId: CommissionPricingRowId): Promise<void> {
+  if (props.layout !== 'scroll' || typeof window === 'undefined') return
+  await nextTick()
+  tabElements.get(rowId)?.scrollIntoView({
+    behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+    block: 'nearest',
+    inline: 'center',
+  })
 }
 
 async function selectByIndex(index: number): Promise<void> {
@@ -74,14 +94,22 @@ function handleKeydown(event: KeyboardEvent): void {
       break
   }
 }
+
+watch(
+  () => props.activeRowId,
+  rowId => {
+    void alignActiveTab(rowId)
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
   <div
-    ref="tabListElement"
     class="mm-commission-pricing-row-tabs"
     role="tablist"
-    :aria-label="`${accessibleTitle} 참여 인원 선택`"
+    :aria-label="`${accessibleTitle} 가격 유형 선택`"
+    :data-mm-commission-row-tab-layout="layout"
     data-mm-commission-swipe-ignore
     @keydown="handleKeydown"
   >
@@ -93,6 +121,7 @@ function handleKeydown(event: KeyboardEvent): void {
       class="mm-commission-pricing-row-tab"
       type="button"
       role="tab"
+      :aria-label="row.label"
       :aria-selected="row.id === activeRowId"
       :aria-controls="`${idPrefix}-row-panel`"
       :tabindex="row.id === activeRowId ? 0 : -1"

@@ -1775,12 +1775,30 @@
   }
 }
 
-/* MMJ-UI28-R2-R8: mobile choreography row tabs and sticky service header. */
+/* MMJ-UI28-R2-R8-R1: mobile choreography and project-planning row tabs. */
 .mm-commission-pricing-row-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
   min-width: 0;
+}
+
+.mm-commission-pricing-row-tabs[data-mm-commission-row-tab-layout='equal'] {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.mm-commission-pricing-row-tabs[data-mm-commission-row-tab-layout='scroll'] {
+  display: flex;
+  overflow-x: auto;
+  padding-block: 0.1875rem;
+  scroll-padding-inline: var(--mm-space-2);
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mm-commission-pricing-row-tabs[data-mm-commission-row-tab-layout='scroll']::-webkit-scrollbar {
+  display: none;
 }
 
 .mm-commission-pricing-row-tab {
@@ -1807,6 +1825,13 @@
 .mm-commission-pricing-row-tab:focus-visible {
   outline: 0.1875rem solid var(--mm-color-focus);
   outline-offset: 0.1875rem;
+}
+
+.mm-commission-pricing-row-tabs[data-mm-commission-row-tab-layout='scroll']
+.mm-commission-pricing-row-tab {
+  flex: 0 0 auto;
+  min-width: max-content;
+  scroll-snap-align: center;
 }
 
 .mm-commission-pricing-matrix[data-mm-commission-mobile-row-projection='single-row-tabs']
