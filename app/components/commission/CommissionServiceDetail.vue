@@ -14,6 +14,7 @@ import CommissionQuotePricing from '~/components/commission/CommissionQuotePrici
 import CommissionRateRangePricing from '~/components/commission/CommissionRateRangePricing.vue'
 import {
   intersectionArea,
+  isCommissionDesktopMeasurementFit,
   resolveCommissionDesktopDensity,
   resolveCommissionDesktopDetailLayout,
 } from '~/utils/commission-desktop-presentation'
@@ -243,32 +244,71 @@ function measureDesktopLayout(): CommissionDesktopDetailMeasurement | null {
           - document.documentElement.clientHeight,
       )
   const supplementVisible = supplementRect.width > 0 && supplementRect.height > 0
+  const usesSupplementRail = detailLayout.value === 'supplement-rail'
   const pricingSupplementIntersectionArea = supplementVisible
     ? intersectionArea(pricingRect, supplementRect)
     : 0
+  const pricingInlineShare = rootRect.width > 0
+    ? pricingRect.width / rootRect.width
+    : 0
+  const supplementInlineShare = usesSupplementRail && rootRect.width > 0
+    ? supplementRect.width / rootRect.width
+    : 0
+  const pricingBeforeSupplement = !usesSupplementRail || !supplementVisible
+    ? true
+    : (
+        pricingRect.left < supplementRect.left
+        && pricingRect.right <= supplementRect.left + 1
+      )
+  const pricingTableFrame = pricing.querySelector<HTMLElement>(
+    '.mm-commission-pricing-table-frame',
+  )
+  const pricingTableCoverage = pricingTableFrame === null || pricingRect.width <= 0
+    ? 1
+    : pricingTableFrame.getBoundingClientRect().width / pricingRect.width
+  const matrixElement = pricing.querySelector<HTMLElement>(
+    '[data-mm-commission-pricing-column-count]',
+  )
+  const matrixColumnCount = Number.parseInt(
+    matrixElement?.dataset.mmCommissionPricingColumnCount ?? '0',
+    10,
+  )
+  const minimumPricingWidth = matrixColumnCount >= 4 ? 704 : 0
+  const pricingWidthSatisfiesMinimum = pricingRect.width + 1 >= minimumPricingWidth
 
-  const base = {
+  const base: Omit<CommissionDesktopDetailMeasurement, 'fits'> = {
     stageWidth: stageRect.width,
     stageHeight: stageRect.height,
     rootWidth: rootRect.width,
     rootHeight: rootRect.height,
+    pricingLeft: pricingRect.left,
+    pricingRight: pricingRect.right,
     pricingWidth: pricingRect.width,
     pricingHeight: pricingRect.height,
+    supplementLeft: supplementRect.left,
+    supplementRight: supplementRect.right,
     supplementWidth: supplementRect.width,
     supplementHeight: supplementRect.height,
+    pricingInlineShare,
+    supplementInlineShare,
+    pricingBeforeSupplement,
+    pricingTableCoverage,
+    minimumPricingWidth,
+    pricingWidthSatisfiesMinimum,
     overflowWidth,
     overflowHeight,
     documentOverflowHeight,
     pricingSupplementIntersectionArea,
   }
+  const measurement: CommissionDesktopDetailMeasurement = {
+    ...base,
+    fits: false,
+  }
 
   return Object.freeze({
-    ...base,
+    ...measurement,
     fits: (
-      overflowWidth <= 1
-      && overflowHeight <= 1
-      && documentOverflowHeight <= 1
-      && pricingSupplementIntersectionArea <= 0.5
+      isCommissionDesktopMeasurementFit(measurement)
       && rootRect.bottom <= stageRect.bottom + 1
     ),
   })
@@ -329,6 +369,7 @@ defineExpose({
     :data-mm-commission-pricing-kind="service.pricing.kind"
     :data-mm-desktop-profile="mode === 'desktop' ? desktopProfile : undefined"
     :data-mm-detail-layout="detailLayout"
+    data-mm-detail-grid-contract="pricing-left-supplement-right"
   >
     <header
       v-if="shouldRenderDesktopMatrixTitle"

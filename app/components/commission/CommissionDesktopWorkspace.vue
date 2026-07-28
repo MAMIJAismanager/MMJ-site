@@ -17,7 +17,8 @@ import {
   useCommissionWorkspaceLayout,
 } from '~/composables/useCommissionWorkspaceLayout'
 import {
-  COMMISSION_DESKTOP_PRESENTATION_CANDIDATES,
+  isCommissionDesktopMeasurementFit,
+  resolveCommissionDesktopPresentationCandidates,
   resolveCommissionDetailWidthProfile,
 } from '~/utils/commission-desktop-presentation'
 import {
@@ -192,7 +193,13 @@ async function resolveDesktopPresentation(
   activePresentationProfile.value = 'measuring'
   layoutReceipt.value = null
 
-  for (const candidate of COMMISSION_DESKTOP_PRESENTATION_CANDIDATES) {
+  const activeService = services.value.find(service => service.id === serviceId)
+  if (activeService === undefined) {
+    throw new TypeError(`commission-active-service-missing:${serviceId}`)
+  }
+  const candidates = resolveCommissionDesktopPresentationCandidates(activeService)
+
+  for (const candidate of candidates) {
     const measurement = await evaluatePresentationCandidate(
       serviceId,
       candidate.profile,
@@ -216,9 +223,7 @@ async function resolveDesktopPresentation(
     }
   }
 
-  const finalCandidate = COMMISSION_DESKTOP_PRESENTATION_CANDIDATES[
-    COMMISSION_DESKTOP_PRESENTATION_CANDIDATES.length - 1
-  ]
+  const finalCandidate = candidates[candidates.length - 1]
   if (finalCandidate === undefined) {
     throw new TypeError('commission-desktop-presentation-candidates-empty')
   }
@@ -230,20 +235,13 @@ async function resolveDesktopPresentation(
   if (layoutEpoch.value !== epoch || activeServiceId.value !== serviceId) return
 
   const measurement = detailComponents.get(serviceId)?.measureDesktopLayout()
-  if (measurement !== null && measurement !== undefined) {
-    layoutReceipt.value = Object.freeze({
-      serviceId,
-      epoch,
-      profile: finalCandidate.profile,
-      measurement,
-    })
-  }
-
-  detailPaintReady.value = true
-  phase.value = 'detail'
-
-  if (import.meta.dev) {
-    console.error('MMJ_DESKTOP_1920_FIXED_STAGE_OVERFLOW', {
+  if (
+    measurement === null
+    || measurement === undefined
+    || !isCommissionDesktopMeasurementFit(measurement)
+  ) {
+    detailPaintReady.value = false
+    console.error('MMJ_DESKTOP_LAYOUT_COMMIT_REJECTED', {
       serviceId,
       reason,
       viewportWidth: window.innerWidth,
@@ -251,7 +249,17 @@ async function resolveDesktopPresentation(
       profile: finalCandidate.profile,
       measurement,
     })
+    return
   }
+
+  layoutReceipt.value = Object.freeze({
+    serviceId,
+    epoch,
+    profile: finalCandidate.profile,
+    measurement,
+  })
+  detailPaintReady.value = true
+  phase.value = 'detail'
 }
 
 function scheduleDesktopLayoutResolve(
@@ -414,6 +422,10 @@ onBeforeUnmount(() => {
     :data-mm-layout-overflow-width="layoutReceipt ? Math.round(layoutReceipt.measurement.overflowWidth) : undefined"
     :data-mm-layout-intersection-area="layoutReceipt ? Math.round(layoutReceipt.measurement.pricingSupplementIntersectionArea) : undefined"
     :data-mm-layout-document-overflow-height="layoutReceipt ? Math.round(layoutReceipt.measurement.documentOverflowHeight) : undefined"
+    :data-mm-layout-pricing-share="layoutReceipt ? layoutReceipt.measurement.pricingInlineShare.toFixed(3) : undefined"
+    :data-mm-layout-supplement-share="layoutReceipt ? layoutReceipt.measurement.supplementInlineShare.toFixed(3) : undefined"
+    :data-mm-layout-pricing-before-supplement="layoutReceipt ? String(layoutReceipt.measurement.pricingBeforeSupplement) : undefined"
+    :data-mm-layout-table-coverage="layoutReceipt ? layoutReceipt.measurement.pricingTableCoverage.toFixed(3) : undefined"
     :aria-busy="transitionBusy || (activeServiceId !== null && !detailPaintReady) ? 'true' : undefined"
     @keydown.esc.prevent="closeActiveService"
   >

@@ -43,10 +43,20 @@ export interface CommissionDesktopDetailMeasurement {
   readonly stageHeight: number
   readonly rootWidth: number
   readonly rootHeight: number
+  readonly pricingLeft: number
+  readonly pricingRight: number
   readonly pricingWidth: number
   readonly pricingHeight: number
+  readonly supplementLeft: number
+  readonly supplementRight: number
   readonly supplementWidth: number
   readonly supplementHeight: number
+  readonly pricingInlineShare: number
+  readonly supplementInlineShare: number
+  readonly pricingBeforeSupplement: boolean
+  readonly pricingTableCoverage: number
+  readonly minimumPricingWidth: number
+  readonly pricingWidthSatisfiesMinimum: boolean
   readonly overflowWidth: number
   readonly overflowHeight: number
   readonly documentOverflowHeight: number

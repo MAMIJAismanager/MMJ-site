@@ -2377,3 +2377,63 @@
     font-size: 1rem;
   }
 }
+
+/* MMJ-UI28-R2-R11-R4: pricing-first verified topology and full-width matrix ownership. */
+@media (min-width: 80rem) and (min-height: 54rem) {
+  .mm-commission-detail[
+    data-mm-detail-grid-contract='pricing-left-supplement-right'
+  ][data-mm-detail-layout='supplement-rail'] {
+    grid-template-columns:
+      minmax(0, 1fr)
+      clamp(14rem, 17%, 18rem);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: none;
+    column-gap: clamp(0.6rem, 0.9vw, 0.9rem);
+  }
+
+  .mm-commission-detail[
+    data-mm-detail-grid-contract='pricing-left-supplement-right'
+  ][data-mm-detail-layout='supplement-rail']
+  > .mm-commission-matrix-stage-header {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .mm-commission-detail[
+    data-mm-detail-grid-contract='pricing-left-supplement-right'
+  ][data-mm-detail-layout='supplement-rail']
+  > .mm-commission-detail__pricing-host {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: stretch;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .mm-commission-detail[
+    data-mm-detail-grid-contract='pricing-left-supplement-right'
+  ][data-mm-detail-layout='supplement-rail']
+  > .mm-commission-detail__supplement-host {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: stretch;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .mm-commission-detail__pricing-host,
+  .mm-commission-detail__pricing-host > .mm-commission-matrix-set,
+  .mm-commission-detail__pricing-host .mm-commission-pricing-group-panel,
+  .mm-commission-detail__pricing-host .mm-commission-pricing-matrix,
+  .mm-commission-detail__pricing-host .mm-commission-pricing-matrix__desktop,
+  .mm-commission-detail__pricing-host .mm-commission-pricing-table-frame,
+  .mm-commission-detail__pricing-host .mm-commission-pricing-table {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    justify-self: stretch;
+  }
+}
+

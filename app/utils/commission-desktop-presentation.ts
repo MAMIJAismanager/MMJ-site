@@ -5,6 +5,9 @@ import type {
   CommissionDetailWidthProfile,
 } from '~/types/commission-presentation'
 import type {
+  CommissionService,
+} from '~~/shared/types/commission-guide'
+import type {
   CommissionDetailDensity,
 } from '~/utils/commission-detail-density'
 
@@ -59,6 +62,35 @@ export const COMMISSION_DESKTOP_PRESENTATION_CANDIDATES = Object.freeze([
     density: 'fitted',
   }),
 ] as const satisfies readonly CommissionDesktopPresentationCandidate[])
+
+
+const COMMISSION_DESKTOP_COMPLEX_MATRIX_CANDIDATES = Object.freeze([
+  COMMISSION_DESKTOP_PRESENTATION_CANDIDATES[5],
+  COMMISSION_DESKTOP_PRESENTATION_CANDIDATES[6],
+] as const)
+
+export const COMMISSION_DESKTOP_MIN_PRICING_INLINE_SHARE = 0.68
+export const COMMISSION_DESKTOP_MAX_SUPPLEMENT_INLINE_SHARE = 0.30
+export const COMMISSION_DESKTOP_MIN_TABLE_COVERAGE = 0.97
+
+export function resolveCommissionDesktopPresentationCandidates(
+  service: CommissionService,
+): readonly CommissionDesktopPresentationCandidate[] {
+  const enabledGroupCount = service.pricing.kind === 'matrix-set'
+    ? service.pricing.groups.filter(group => group.enabled).length
+    : 0
+  const hasGuidance = service.pricing.kind === 'matrix-set'
+    && (
+      service.pricing.sharedGuidanceItems.some(item => item.enabled)
+      || service.pricing.groups.some(group => (
+        group.enabled && group.guidanceItems.some(item => item.enabled)
+      ))
+    )
+
+  return enabledGroupCount >= 3 && hasGuidance
+    ? COMMISSION_DESKTOP_COMPLEX_MATRIX_CANDIDATES
+    : COMMISSION_DESKTOP_PRESENTATION_CANDIDATES
+}
 
 export function resolveCommissionDetailWidthProfile(
   profile: CommissionDesktopPresentationProfile,
@@ -137,5 +169,13 @@ export function isCommissionDesktopMeasurementFit(
     && measurement.overflowHeight <= 1
     && measurement.documentOverflowHeight <= 1
     && measurement.pricingSupplementIntersectionArea <= 0.5
+    && measurement.pricingBeforeSupplement
+    && measurement.pricingInlineShare
+      >= COMMISSION_DESKTOP_MIN_PRICING_INLINE_SHARE
+    && measurement.supplementInlineShare
+      <= COMMISSION_DESKTOP_MAX_SUPPLEMENT_INLINE_SHARE
+    && measurement.pricingTableCoverage
+      >= COMMISSION_DESKTOP_MIN_TABLE_COVERAGE
+    && measurement.pricingWidthSatisfiesMinimum
   )
 }
