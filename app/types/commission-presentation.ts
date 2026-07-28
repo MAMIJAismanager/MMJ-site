@@ -25,12 +25,14 @@ export type CommissionDesktopPresentationProfile =
   | 'balanced-supplement'
   | 'wide-supplement'
   | 'wide-supplement-compact'
-  | 'document-flow'
+  | 'wide-supplement-tight'
+  | 'max-stage-tight'
+  | 'max-stage-fitted'
 
 export type CommissionDetailWidthProfile =
   | 'balanced'
   | 'wide'
-  | 'full'
+  | 'max'
 
 export type CommissionDesktopDetailLayout =
   | 'stacked'
@@ -47,6 +49,7 @@ export interface CommissionDesktopDetailMeasurement {
   readonly supplementHeight: number
   readonly overflowWidth: number
   readonly overflowHeight: number
+  readonly documentOverflowHeight: number
   readonly pricingSupplementIntersectionArea: number
   readonly fits: boolean
 }

@@ -235,6 +235,13 @@ function measureDesktopLayout(): CommissionDesktopDetailMeasurement | null {
   const supplementRect = supplement.getBoundingClientRect()
   const overflowWidth = Math.max(0, root.scrollWidth - stage.clientWidth)
   const overflowHeight = Math.max(0, root.scrollHeight - stage.clientHeight)
+  const documentOverflowHeight = typeof document === 'undefined'
+    ? 0
+    : Math.max(
+        0,
+        document.documentElement.scrollHeight
+          - document.documentElement.clientHeight,
+      )
   const supplementVisible = supplementRect.width > 0 && supplementRect.height > 0
   const pricingSupplementIntersectionArea = supplementVisible
     ? intersectionArea(pricingRect, supplementRect)
@@ -251,6 +258,7 @@ function measureDesktopLayout(): CommissionDesktopDetailMeasurement | null {
     supplementHeight: supplementRect.height,
     overflowWidth,
     overflowHeight,
+    documentOverflowHeight,
     pricingSupplementIntersectionArea,
   }
 
@@ -259,6 +267,7 @@ function measureDesktopLayout(): CommissionDesktopDetailMeasurement | null {
     fits: (
       overflowWidth <= 1
       && overflowHeight <= 1
+      && documentOverflowHeight <= 1
       && pricingSupplementIntersectionArea <= 0.5
       && rootRect.bottom <= stageRect.bottom + 1
     ),

@@ -62,7 +62,7 @@ type CommissionExplorerPhase =
 
 const props = defineProps<Props>()
 const emit = defineEmits<{
-  flowFallbackChange: [enabled: boolean]
+  detailActiveChange: [active: boolean]
 }>()
 
 const services = computed(() => props.services)
@@ -73,7 +73,6 @@ const detailPaintReady = ref(false)
 const transitionBusy = ref(false)
 const activePresentationProfile = ref<CommissionDesktopPresentationProfile>('measuring')
 const layoutReceipt = ref<CommissionDesktopLayoutReceipt | null>(null)
-const flowFallback = ref(false)
 const layoutEpoch = ref(0)
 const detailComponents = new Map<CommissionServiceId, CommissionServiceDetailExpose>()
 let pendingServiceId: CommissionServiceId | null = null
@@ -160,15 +159,9 @@ function setDetailComponent(
   }
 }
 
-function setFlowFallback(enabled: boolean): void {
-  if (flowFallback.value === enabled) return
-  flowFallback.value = enabled
-  emit('flowFallbackChange', enabled)
-}
-
 async function evaluatePresentationCandidate(
   serviceId: CommissionServiceId,
-  profile: Exclude<CommissionDesktopPresentationProfile, 'measuring' | 'document-flow'>,
+  profile: Exclude<CommissionDesktopPresentationProfile, 'measuring'>,
   epoch: number,
 ): Promise<CommissionDesktopDetailMeasurement | null> {
   activePresentationProfile.value = profile
@@ -198,7 +191,6 @@ async function resolveDesktopPresentation(
   detailPaintReady.value = false
   activePresentationProfile.value = 'measuring'
   layoutReceipt.value = null
-  setFlowFallback(false)
 
   for (const candidate of COMMISSION_DESKTOP_PRESENTATION_CANDIDATES) {
     const measurement = await evaluatePresentationCandidate(
@@ -224,8 +216,14 @@ async function resolveDesktopPresentation(
     }
   }
 
-  activePresentationProfile.value = 'document-flow'
-  setFlowFallback(true)
+  const finalCandidate = COMMISSION_DESKTOP_PRESENTATION_CANDIDATES[
+    COMMISSION_DESKTOP_PRESENTATION_CANDIDATES.length - 1
+  ]
+  if (finalCandidate === undefined) {
+    throw new TypeError('commission-desktop-presentation-candidates-empty')
+  }
+
+  activePresentationProfile.value = finalCandidate.profile
   await nextTick()
   await nextAnimationFrame()
   await nextAnimationFrame()
@@ -236,17 +234,22 @@ async function resolveDesktopPresentation(
     layoutReceipt.value = Object.freeze({
       serviceId,
       epoch,
-      profile: 'document-flow',
+      profile: finalCandidate.profile,
       measurement,
     })
   }
+
   detailPaintReady.value = true
   phase.value = 'detail'
 
   if (import.meta.dev) {
-    console.info('MMJ-UI28-R2-R11-R2: document-flow fallback', {
+    console.error('MMJ_DESKTOP_1920_FIXED_STAGE_OVERFLOW', {
       serviceId,
       reason,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      profile: finalCandidate.profile,
+      measurement,
     })
   }
 }
@@ -318,7 +321,6 @@ async function runServiceTransition(
   detailContentMounted.value = false
   activePresentationProfile.value = 'measuring'
   layoutReceipt.value = null
-  setFlowFallback(false)
 
   if (previousServiceId !== null) {
     await nextTick()
@@ -376,11 +378,12 @@ onMounted(() => {
   }
 })
 
+watch(activeServiceId, serviceId => {
+  emit('detailActiveChange', serviceId !== null)
+})
+
 watch(viewportMode, mode => {
-  if (mode !== 'desktop') {
-    setFlowFallback(false)
-    return
-  }
+  if (mode !== 'desktop') return
   const active = activeServiceId.value
   if (active !== null && detailContentMounted.value) {
     scheduleDesktopLayoutResolve(active, 'viewport-resize')
@@ -406,11 +409,11 @@ onBeforeUnmount(() => {
     :data-mm-commission-presentation-profile="activePresentationProfile"
     :data-mm-commission-width-profile="activeWidthProfile"
     :data-mm-detail-paint-ready="detailPaintReady ? 'true' : 'false'"
-    :data-mm-flow-fallback="flowFallback ? 'true' : 'false'"
     :data-mm-layout-epoch="layoutReceipt?.epoch ?? undefined"
     :data-mm-layout-overflow-height="layoutReceipt ? Math.round(layoutReceipt.measurement.overflowHeight) : undefined"
     :data-mm-layout-overflow-width="layoutReceipt ? Math.round(layoutReceipt.measurement.overflowWidth) : undefined"
     :data-mm-layout-intersection-area="layoutReceipt ? Math.round(layoutReceipt.measurement.pricingSupplementIntersectionArea) : undefined"
+    :data-mm-layout-document-overflow-height="layoutReceipt ? Math.round(layoutReceipt.measurement.documentOverflowHeight) : undefined"
     :aria-busy="transitionBusy || (activeServiceId !== null && !detailPaintReady) ? 'true' : undefined"
     @keydown.esc.prevent="closeActiveService"
   >

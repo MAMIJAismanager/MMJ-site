@@ -9,8 +9,8 @@ import type {
 } from '~/utils/commission-detail-density'
 
 export interface CommissionDesktopPresentationCandidate {
-  readonly profile: Exclude<CommissionDesktopPresentationProfile, 'measuring' | 'document-flow'>
-  readonly widthProfile: Exclude<CommissionDetailWidthProfile, 'full'>
+  readonly profile: Exclude<CommissionDesktopPresentationProfile, 'measuring'>
+  readonly widthProfile: CommissionDetailWidthProfile
   readonly detailLayout: CommissionDesktopDetailLayout
   readonly density: CommissionDetailDensity
 }
@@ -40,6 +40,24 @@ export const COMMISSION_DESKTOP_PRESENTATION_CANDIDATES = Object.freeze([
     detailLayout: 'supplement-rail',
     density: 'compact',
   }),
+  Object.freeze({
+    profile: 'wide-supplement-tight',
+    widthProfile: 'wide',
+    detailLayout: 'supplement-rail',
+    density: 'tight',
+  }),
+  Object.freeze({
+    profile: 'max-stage-tight',
+    widthProfile: 'max',
+    detailLayout: 'supplement-rail',
+    density: 'tight',
+  }),
+  Object.freeze({
+    profile: 'max-stage-fitted',
+    widthProfile: 'max',
+    detailLayout: 'supplement-rail',
+    density: 'fitted',
+  }),
 ] as const satisfies readonly CommissionDesktopPresentationCandidate[])
 
 export function resolveCommissionDetailWidthProfile(
@@ -48,9 +66,11 @@ export function resolveCommissionDetailWidthProfile(
   switch (profile) {
     case 'wide-supplement':
     case 'wide-supplement-compact':
+    case 'wide-supplement-tight':
       return 'wide'
-    case 'document-flow':
-      return 'full'
+    case 'max-stage-tight':
+    case 'max-stage-fitted':
+      return 'max'
     case 'measuring':
     case 'balanced-stacked':
     case 'balanced-supplement':
@@ -65,10 +85,12 @@ export function resolveCommissionDesktopDetailLayout(
     case 'balanced-supplement':
     case 'wide-supplement':
     case 'wide-supplement-compact':
+    case 'wide-supplement-tight':
+    case 'max-stage-tight':
+    case 'max-stage-fitted':
       return 'supplement-rail'
     case 'measuring':
     case 'balanced-stacked':
-    case 'document-flow':
       return 'stacked'
   }
 }
@@ -76,9 +98,20 @@ export function resolveCommissionDesktopDetailLayout(
 export function resolveCommissionDesktopDensity(
   profile: CommissionDesktopPresentationProfile,
 ): CommissionDetailDensity {
-  return profile === 'wide-supplement-compact'
-    ? 'compact'
-    : 'comfortable'
+  switch (profile) {
+    case 'wide-supplement-compact':
+      return 'compact'
+    case 'wide-supplement-tight':
+    case 'max-stage-tight':
+      return 'tight'
+    case 'max-stage-fitted':
+      return 'fitted'
+    case 'measuring':
+    case 'balanced-stacked':
+    case 'balanced-supplement':
+    case 'wide-supplement':
+      return 'comfortable'
+  }
 }
 
 export function intersectionArea(
@@ -102,6 +135,7 @@ export function isCommissionDesktopMeasurementFit(
   return (
     measurement.overflowWidth <= 1
     && measurement.overflowHeight <= 1
+    && measurement.documentOverflowHeight <= 1
     && measurement.pricingSupplementIntersectionArea <= 0.5
   )
 }

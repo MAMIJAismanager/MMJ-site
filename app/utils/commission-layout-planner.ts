@@ -32,7 +32,6 @@ export interface CommissionLayoutPlan {
     | 'mobile-flow'
     | 'desktop-overview'
     | 'desktop-detail'
-    | 'desktop-document-flow'
   readonly orderedServiceIds: readonly CommissionServiceId[]
   readonly slots: ReadonlyMap<CommissionServiceId, CommissionLayoutSlot>
 }
@@ -57,7 +56,13 @@ const DETAIL_WIDTHS = Object.freeze({
     railColumnStart: 10,
     railColumnSpan: 3,
   }),
-} satisfies Record<Exclude<CommissionDetailWidthProfile, 'full'>, CommissionDetailWidthDefinition>)
+  max: Object.freeze({
+    detailColumnStart: 1,
+    detailColumnSpan: 10,
+    railColumnStart: 11,
+    railColumnSpan: 2,
+  }),
+} satisfies Record<CommissionDetailWidthProfile, CommissionDetailWidthDefinition>)
 
 function assertUniqueServiceIds(
   serviceIds: readonly CommissionServiceId[],
@@ -116,48 +121,10 @@ function createDesktopOverviewPlan(
   })
 }
 
-function createDesktopDocumentFlowPlan(
-  serviceIds: readonly CommissionServiceId[],
-  activeServiceId: CommissionServiceId,
-): CommissionLayoutPlan {
-  const inactiveServiceIds = serviceIds.filter(
-    serviceId => serviceId !== activeServiceId,
-  )
-  const slots = new Map<CommissionServiceId, CommissionLayoutSlot>()
-
-  slots.set(activeServiceId, Object.freeze({
-    serviceId: activeServiceId,
-    role: 'detail-stage',
-    columnStart: 1,
-    columnSpan: 12,
-    rowStart: 1,
-    rowSpan: 1,
-  }))
-
-  inactiveServiceIds.forEach((serviceId, index) => {
-    const columnIndex = index % 3
-    const rowIndex = Math.floor(index / 3)
-    slots.set(serviceId, Object.freeze({
-      serviceId,
-      role: 'compact-rail',
-      columnStart: (columnIndex * 4) + 1,
-      columnSpan: 4,
-      rowStart: rowIndex + 2,
-      rowSpan: 1,
-    }))
-  })
-
-  return Object.freeze({
-    mode: 'desktop-document-flow',
-    orderedServiceIds: Object.freeze([activeServiceId, ...inactiveServiceIds]),
-    slots,
-  })
-}
-
 function createDesktopDetailPlan(
   serviceIds: readonly CommissionServiceId[],
   activeServiceId: CommissionServiceId,
-  widthProfile: Exclude<CommissionDetailWidthProfile, 'full'>,
+  widthProfile: CommissionDetailWidthProfile,
 ): CommissionLayoutPlan {
   if (!serviceIds.includes(activeServiceId)) {
     return createDesktopOverviewPlan(serviceIds)
@@ -214,10 +181,6 @@ export function createCommissionLayoutPlan(
 
   if (activeServiceId === null) {
     return createDesktopOverviewPlan(serviceIds)
-  }
-
-  if (widthProfile === 'full') {
-    return createDesktopDocumentFlowPlan(serviceIds, activeServiceId)
   }
 
   return createDesktopDetailPlan(

@@ -3,11 +3,6 @@ import {
   ref,
 } from 'vue'
 
-definePageMeta({
-  hideSiteFooter: true,
-  viewportComposition: 'commission',
-})
-
 import CommissionServiceExplorer from '~/components/commission/CommissionServiceExplorer.vue'
 import InfoPageSurface from '~/components/info/InfoPageSurface.vue'
 import {
@@ -19,11 +14,16 @@ import {
   enabledCommissionTerms,
 } from '~/data/commission-guide'
 
+definePageMeta({
+  hideSiteFooter: true,
+  viewportComposition: 'commission',
+})
+
 const {
   viewportMode,
 } = useCommissionViewportMode()
 
-const commissionFlowFallback = ref(false)
+const commissionDetailActive = ref(false)
 
 useSeoMeta({
   title: commissionGuide.seoTitle,
@@ -37,7 +37,7 @@ useSeoMeta({
     :eyebrow="commissionGuide.eyebrow"
     :title="commissionGuide.title"
     :lead="commissionGuide.lead"
-    :flow-fallback="commissionFlowFallback"
+    :detail-active="commissionDetailActive"
   >
     <CommissionServiceExplorer
       :heading="commissionGuide.sectionHeading"
@@ -45,7 +45,7 @@ useSeoMeta({
       :terms="enabledCommissionTerms"
       :common-notice-heading="commissionGuide.commonNoticeHeading"
       :viewport-mode="viewportMode"
-      @flow-fallback-change="commissionFlowFallback = $event"
+      @detail-active-change="commissionDetailActive = $event"
     />
 
     <footer

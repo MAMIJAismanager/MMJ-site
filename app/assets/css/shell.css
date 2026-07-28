@@ -403,21 +403,3 @@
     pointer-events: none;
   }
 }
-
-/* MMJ-UI28-R2-R11-R2: unlock the page only when Vue commits document-flow. */
-@media (min-width: 80rem) and (min-height: 54rem) {
-  .mm-layout--viewport-commission:has(
-    .mm-info-page[data-mm-flow-fallback='true']
-  ) {
-    grid-template-rows: auto auto;
-    height: auto;
-    min-height: 100dvh;
-    overflow: visible;
-  }
-
-  .mm-layout--viewport-commission:has(
-    .mm-info-page[data-mm-flow-fallback='true']
-  ) .mm-main {
-    overflow: visible;
-  }
-}

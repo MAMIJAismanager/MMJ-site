@@ -4,11 +4,11 @@ interface Props {
   readonly eyebrow: string
   readonly title: string
   readonly lead: string
-  readonly flowFallback?: boolean
+  readonly detailActive?: boolean
 }
 
 withDefaults(defineProps<Props>(), {
-  flowFallback: false,
+  detailActive: false,
 })
 </script>
 
@@ -17,7 +17,7 @@ withDefaults(defineProps<Props>(), {
     class="mm-page mm-info-page"
     data-mm-info-page
     :data-mm-page="page"
-    :data-mm-flow-fallback="flowFallback ? 'true' : 'false'"
+    :data-mm-detail-active="detailActive ? 'true' : 'false'"
   >
     <header class="mm-page__header mm-info-page__header">
       <p class="mm-label">

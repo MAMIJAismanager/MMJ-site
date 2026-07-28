@@ -235,21 +235,64 @@
   }
 }
 
-/* MMJ-UI28-R2-R11-R2: document-flow is the only desktop overflow fallback. */
+
+/* MMJ-UI28-R2-R11-R3: active commission detail reclaims vertical budget at 1920x1080. */
 @media (min-width: 80rem) and (min-height: 54rem) {
-  .mm-info-page[data-mm-page='commission'][data-mm-flow-fallback='true'] {
-    grid-template-rows: auto auto;
-    height: auto;
-    min-height: calc(100dvh - 4.5rem);
-    overflow: visible;
+  .mm-info-page[data-mm-page='commission'][data-mm-detail-active='true'] {
+    gap: 0.42rem;
+    padding-block: 0.42rem;
   }
 
-  .mm-info-page[data-mm-page='commission'][data-mm-flow-fallback='true']
-  .mm-info-page__body,
-  .mm-info-page[data-mm-page='commission'][data-mm-flow-fallback='true']
+  .mm-info-page[data-mm-page='commission'][data-mm-detail-active='true']
+  .mm-info-page__header {
+    gap: 0.16rem;
+    max-width: 48rem;
+  }
+
+  .mm-info-page[data-mm-page='commission'][data-mm-detail-active='true']
+  .mm-label {
+    font-size: 0.64rem;
+    line-height: 1.15;
+  }
+
+  .mm-info-page[data-mm-page='commission'][data-mm-detail-active='true']
+  .mm-page-title {
+    font-size: clamp(1.85rem, 2vw, 2.25rem);
+    line-height: 1.02;
+  }
+
+  .mm-info-page[data-mm-page='commission'][data-mm-detail-active='true']
+  .mm-page__lead {
+    font-size: 0.8rem;
+    line-height: 1.22;
+  }
+
+  .mm-info-page[data-mm-page='commission'][data-mm-detail-active='true']
+  .mm-info-page__body {
+    gap: 0.42rem;
+  }
+
+  .mm-info-page[data-mm-page='commission'][data-mm-detail-active='true']
   .mm-commission-explorer {
-    grid-template-rows: auto auto;
-    height: auto;
-    overflow: visible;
+    gap: 0.38rem;
+    padding-block-start: 0.38rem;
+  }
+
+  .mm-info-page[data-mm-page='commission'][data-mm-detail-active='true']
+  .mm-commission-explorer > .mm-info-section__title {
+    font-size: clamp(1.35rem, 1.55vw, 1.75rem);
+    line-height: 1.05;
+  }
+
+  .mm-info-page[data-mm-page='commission'][data-mm-detail-active='true']
+  .mm-commission-utility-dock {
+    padding-block-start: 0.3rem;
+  }
+
+  .mm-info-page[data-mm-page='commission'][data-mm-detail-active='true']
+  .mm-commission-utility-dock .mm-info-action {
+    min-height: 2rem;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.74rem;
   }
 }

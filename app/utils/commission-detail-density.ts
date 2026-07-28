@@ -1,6 +1,8 @@
 export type CommissionDetailDensity =
   | 'comfortable'
   | 'compact'
+  | 'tight'
+  | 'fitted'
 
 export interface CommissionDetailDensityInput {
   readonly availableHeight: number
@@ -47,5 +49,5 @@ export function resolveCommissionDetailDensity(
     return 'comfortable'
   }
 
-  return 'compact'
+  return input.currentDensity
 }
