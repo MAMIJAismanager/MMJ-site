@@ -3,26 +3,37 @@ import {
   computed,
   nextTick,
   onMounted,
-  toRef,
+  ref,
+  watch,
 } from 'vue'
 
+import CommissionDetailSupplementRail from '~/components/commission/CommissionDetailSupplementRail.vue'
 import CommissionPricingMatrix from '~/components/commission/CommissionPricingMatrix.vue'
 import CommissionPricingMatrixSet from '~/components/commission/CommissionPricingMatrixSet.vue'
 import CommissionQuotePricing from '~/components/commission/CommissionQuotePricing.vue'
 import CommissionRateRangePricing from '~/components/commission/CommissionRateRangePricing.vue'
-import CommissionTermsList from '~/components/commission/CommissionTermsList.vue'
 import {
-  useCommissionDetailDensity,
-} from '~/composables/useCommissionDetailDensity'
+  intersectionArea,
+  resolveCommissionDesktopDensity,
+  resolveCommissionDesktopDetailLayout,
+} from '~/utils/commission-desktop-presentation'
+import {
+  createCommissionPricingMatrixSetView,
+} from '~/utils/commission-pricing-matrix-set'
 
 import type {
   ComponentPublicInstance,
 } from 'vue'
 import type {
+  CommissionMatrixPricingGroup,
+  CommissionPricingGroupId,
   CommissionService,
   CommissionTerm,
 } from '~~/shared/types/commission-guide'
 import type {
+  CommissionDesktopDetailMeasurement,
+  CommissionDesktopPresentationProfile,
+  CommissionLayoutInvalidationReason,
   CommissionMatrixHeaderProjection,
   CommissionMobileMatrixRowProjection,
   CommissionPricingRowTabLayout,
@@ -35,25 +46,100 @@ interface Props {
   readonly commonNoticeHeading: string
   readonly idPrefix: string
   readonly mode: 'desktop' | 'mobile'
+  readonly desktopProfile?: CommissionDesktopPresentationProfile
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  desktopProfile: 'balanced-stacked',
+})
 
 const emit = defineEmits<{
-  layoutReady: []
+  layoutReady: [{
+    readonly profile: CommissionDesktopPresentationProfile
+    readonly measurement: CommissionDesktopDetailMeasurement
+  }]
+  layoutInvalidated: [reason: CommissionLayoutInvalidationReason]
 }>()
 
-const {
-  density,
-  availableHeight,
-  requiredHeight,
-  overflowAmount,
-  internalScrollFallback,
-  setRootElement,
-  remeasure,
-} = useCommissionDetailDensity({
-  mode: toRef(props, 'mode'),
+const rootElement = ref<HTMLElement | null>(null)
+const stageElement = ref<HTMLElement | null>(null)
+const pricingHostElement = ref<HTMLElement | null>(null)
+const supplementHostElement = ref<HTMLElement | null>(null)
+let publishEpoch = 0
+
+const density = computed(() => (
+  props.mode === 'desktop'
+    ? resolveCommissionDesktopDensity(props.desktopProfile)
+    : 'comfortable'
+))
+
+const detailLayout = computed(() => (
+  props.mode === 'desktop'
+    ? resolveCommissionDesktopDetailLayout(props.desktopProfile)
+    : 'stacked'
+))
+
+const matrixSetView = computed(() => (
+  props.service.pricing.kind === 'matrix-set'
+    ? createCommissionPricingMatrixSetView(props.service.pricing)
+    : null
+))
+
+const activePricingGroupId = ref<CommissionPricingGroupId | null>(
+  matrixSetView.value?.firstGroupId ?? null,
+)
+
+const activePricingGroup = computed<CommissionMatrixPricingGroup | null>(() => {
+  const view = matrixSetView.value
+  if (view === null) return null
+
+  return view.groups.find(group => (
+    group.id === activePricingGroupId.value
+  )) ?? view.groups[0] ?? null
 })
+
+const sharedGuidanceHeading = computed(() => (
+  props.service.pricing.kind === 'matrix-set'
+    ? props.service.pricing.sharedGuidanceHeading
+    : null
+))
+
+const sharedGuidanceItems = computed(() => (
+  props.service.pricing.kind === 'matrix-set'
+    ? props.service.pricing.sharedGuidanceItems
+    : []
+))
+
+const activeGuidanceHeading = computed(() => (
+  (activePricingGroup.value?.guidanceItems.length ?? 0) > 0
+    ? '가격표 안내'
+    : null
+))
+
+const activeGuidanceItems = computed(() => (
+  activePricingGroup.value?.guidanceItems ?? []
+))
+
+watch(
+  () => ({
+    serviceId: props.service.id,
+    groupIds: matrixSetView.value?.groups.map(group => group.id).join('|') ?? '',
+  }),
+  () => {
+    const view = matrixSetView.value
+    if (view === null) {
+      activePricingGroupId.value = null
+      return
+    }
+
+    const activeStillExists = view.groups.some(group => (
+      group.id === activePricingGroupId.value
+    ))
+    if (!activeStillExists) {
+      activePricingGroupId.value = view.firstGroupId
+    }
+  },
+)
 
 const shouldRenderDesktopMatrixTitle = computed(() => (
   props.mode === 'desktop'
@@ -105,19 +191,123 @@ const MATRIX_STAGE_TITLE = '기본 가격표' as const
 function setDetailElement(
   element: Element | ComponentPublicInstance | null,
 ): void {
-  setRootElement(element instanceof HTMLElement ? element : null)
+  rootElement.value = element instanceof HTMLElement ? element : null
+  stageElement.value = rootElement.value?.closest<HTMLElement>(
+    '.mm-commission-service__panel-inner',
+  ) ?? rootElement.value?.parentElement ?? null
+}
+
+function setPricingHostElement(
+  element: Element | ComponentPublicInstance | null,
+): void {
+  pricingHostElement.value = element instanceof HTMLElement ? element : null
+}
+
+function setSupplementHostElement(
+  element: Element | ComponentPublicInstance | null,
+): void {
+  supplementHostElement.value = element instanceof HTMLElement ? element : null
 }
 
 function nextAnimationFrame(): Promise<void> {
   return new Promise(resolve => requestAnimationFrame(() => resolve()))
 }
 
-onMounted(async () => {
+function measureDesktopLayout(): CommissionDesktopDetailMeasurement | null {
+  const root = rootElement.value
+  const stage = stageElement.value
+  const pricing = pricingHostElement.value
+  const supplement = supplementHostElement.value
+
+  if (
+    props.mode !== 'desktop'
+    || root === null
+    || stage === null
+    || pricing === null
+    || supplement === null
+  ) {
+    return null
+  }
+
+  const stageRect = stage.getBoundingClientRect()
+  const rootRect = root.getBoundingClientRect()
+  const pricingRect = pricing.getBoundingClientRect()
+  const supplementRect = supplement.getBoundingClientRect()
+  const overflowWidth = Math.max(0, root.scrollWidth - stage.clientWidth)
+  const overflowHeight = Math.max(0, root.scrollHeight - stage.clientHeight)
+  const supplementVisible = supplementRect.width > 0 && supplementRect.height > 0
+  const pricingSupplementIntersectionArea = supplementVisible
+    ? intersectionArea(pricingRect, supplementRect)
+    : 0
+
+  const base = {
+    stageWidth: stageRect.width,
+    stageHeight: stageRect.height,
+    rootWidth: rootRect.width,
+    rootHeight: rootRect.height,
+    pricingWidth: pricingRect.width,
+    pricingHeight: pricingRect.height,
+    supplementWidth: supplementRect.width,
+    supplementHeight: supplementRect.height,
+    overflowWidth,
+    overflowHeight,
+    pricingSupplementIntersectionArea,
+  }
+
+  return Object.freeze({
+    ...base,
+    fits: (
+      overflowWidth <= 1
+      && overflowHeight <= 1
+      && pricingSupplementIntersectionArea <= 0.5
+      && rootRect.bottom <= stageRect.bottom + 1
+    ),
+  })
+}
+
+async function publishLayoutReady(): Promise<void> {
+  if (props.mode !== 'desktop') return
+  const epoch = ++publishEpoch
   await nextTick()
   await nextAnimationFrame()
   await nextAnimationFrame()
-  await remeasure()
-  emit('layoutReady')
+  if (epoch !== publishEpoch) return
+
+  const measurement = measureDesktopLayout()
+  if (measurement !== null) {
+    emit('layoutReady', {
+      profile: props.desktopProfile,
+      measurement,
+    })
+  }
+}
+
+function invalidateLayout(reason: CommissionLayoutInvalidationReason): void {
+  emit('layoutInvalidated', reason)
+  void publishLayoutReady()
+}
+
+async function updateActiveGroupId(
+  groupId: CommissionPricingGroupId,
+): Promise<void> {
+  activePricingGroupId.value = groupId
+  await nextTick()
+  invalidateLayout('group-change')
+}
+
+watch(
+  () => props.desktopProfile,
+  () => {
+    void publishLayoutReady()
+  },
+)
+
+onMounted(() => {
+  void publishLayoutReady()
+})
+
+defineExpose({
+  measureDesktopLayout,
 })
 </script>
 
@@ -128,10 +318,8 @@ onMounted(async () => {
     :data-mm-commission-detail-mode="mode"
     :data-mm-commission-density="density"
     :data-mm-commission-pricing-kind="service.pricing.kind"
-    :data-mm-content-overflow="internalScrollFallback ? 'true' : 'false'"
-    :data-mm-available-height="Math.round(availableHeight)"
-    :data-mm-required-height="Math.round(requiredHeight)"
-    :data-mm-overflow-amount="Math.round(overflowAmount)"
+    :data-mm-desktop-profile="mode === 'desktop' ? desktopProfile : undefined"
+    :data-mm-detail-layout="detailLayout"
   >
     <header
       v-if="shouldRenderDesktopMatrixTitle"
@@ -146,90 +334,100 @@ onMounted(async () => {
       </h3>
     </header>
 
-    <p
-      v-if="service.pricing.kind === 'quote'"
-      class="mm-commission-service__description"
-      data-mm-commission-service-description
+    <section
+      :ref="setPricingHostElement"
+      class="mm-commission-detail__pricing-host"
     >
-      {{ service.description }}
-    </p>
-
-    <CommissionPricingMatrix
-      v-if="service.pricing.kind === 'matrix'"
-      :pricing="service.pricing"
-      :id-prefix="idPrefix"
-      :density="density"
-      :header-projection="matrixHeaderProjection"
-      :accessible-title="`${service.label} 기본 가격표`"
-      :mobile-row-projection="mobileMatrixRowProjection"
-      :mobile-row-tab-layout="mobileMatrixRowTabLayout"
-      @row-change="remeasure"
-    />
-
-    <CommissionPricingMatrixSet
-      v-else-if="service.pricing.kind === 'matrix-set'"
-      :pricing="service.pricing"
-      :id-prefix="idPrefix"
-      :density="density"
-      :mode="mode"
-      :service-label="service.label"
-      :mobile-row-projection="mobileMatrixRowProjection"
-      :mobile-row-tab-layout="mobileMatrixRowTabLayout"
-      @group-change="remeasure"
-      @row-change="remeasure"
-    />
-
-    <CommissionRateRangePricing
-      v-else-if="service.pricing.kind === 'rate-range'"
-      :pricing="service.pricing"
-      :id-prefix="idPrefix"
-      :density="density"
-      :mode="mode"
-      :service-label="service.label"
-    />
-
-    <template v-else>
-      <CommissionQuotePricing :pricing="service.pricing" />
-
-      <dl class="mm-commission-service__facts">
-        <div class="mm-commission-service__fact">
-          <dt>예상 기간</dt>
-          <dd>{{ service.turnaroundLabel }}</dd>
-        </div>
-        <div class="mm-commission-service__fact">
-          <dt>수정 범위</dt>
-          <dd>{{ service.revisionLabel }}</dd>
-        </div>
-      </dl>
-
-      <section class="mm-commission-service__included">
-        <h3 class="mm-commission-service__subheading">
-          기본 포함
-        </h3>
-        <ul class="mm-commission-service__included-list">
-          <li
-            v-for="item in service.includedItems"
-            :key="item"
-          >
-            {{ item }}
-          </li>
-        </ul>
-      </section>
-
       <p
-        v-if="service.additionalCostNote"
-        class="mm-commission-service__additional-note"
+        v-if="service.pricing.kind === 'quote'"
+        class="mm-commission-service__description"
+        data-mm-commission-service-description
       >
-        {{ service.additionalCostNote }}
+        {{ service.description }}
       </p>
-    </template>
 
-    <CommissionTermsList
-      :heading="commonNoticeHeading"
-      :terms="terms"
-      :density="density"
-      :projection="termsProjection"
-    />
+      <CommissionPricingMatrix
+        v-if="service.pricing.kind === 'matrix'"
+        :pricing="service.pricing"
+        :id-prefix="idPrefix"
+        :density="density"
+        :header-projection="matrixHeaderProjection"
+        :accessible-title="`${service.label} 기본 가격표`"
+        :mobile-row-projection="mobileMatrixRowProjection"
+        :mobile-row-tab-layout="mobileMatrixRowTabLayout"
+        @row-change="invalidateLayout('row-change')"
+      />
+
+      <CommissionPricingMatrixSet
+        v-else-if="service.pricing.kind === 'matrix-set' && activePricingGroupId"
+        :pricing="service.pricing"
+        :active-group-id="activePricingGroupId"
+        :id-prefix="idPrefix"
+        :density="density"
+        :mode="mode"
+        :service-label="service.label"
+        :mobile-row-projection="mobileMatrixRowProjection"
+        :mobile-row-tab-layout="mobileMatrixRowTabLayout"
+        @update:active-group-id="updateActiveGroupId"
+        @row-change="invalidateLayout('row-change')"
+      />
+
+      <CommissionRateRangePricing
+        v-else-if="service.pricing.kind === 'rate-range'"
+        :pricing="service.pricing"
+        :id-prefix="idPrefix"
+        :density="density"
+        :mode="mode"
+        :service-label="service.label"
+      />
+
+      <template v-else-if="service.pricing.kind === 'quote'">
+        <CommissionQuotePricing :pricing="service.pricing" />
+
+        <dl class="mm-commission-service__facts">
+          <div class="mm-commission-service__fact">
+            <dt>예상 기간</dt>
+            <dd>{{ service.turnaroundLabel }}</dd>
+          </div>
+          <div class="mm-commission-service__fact">
+            <dt>수정 범위</dt>
+            <dd>{{ service.revisionLabel }}</dd>
+          </div>
+        </dl>
+
+        <section class="mm-commission-service__included">
+          <h3 class="mm-commission-service__subheading">
+            기본 포함
+          </h3>
+          <ul class="mm-commission-service__included-list">
+            <li
+              v-for="item in service.includedItems"
+              :key="item"
+            >
+              {{ item }}
+            </li>
+          </ul>
+        </section>
+      </template>
+    </section>
+
+    <aside
+      :ref="setSupplementHostElement"
+      class="mm-commission-detail__supplement-host"
+    >
+      <CommissionDetailSupplementRail
+        :shared-guidance-heading="sharedGuidanceHeading"
+        :shared-guidance-items="sharedGuidanceItems"
+        :active-guidance-heading="activeGuidanceHeading"
+        :active-guidance-items="activeGuidanceItems"
+        :additional-note="service.additionalCostNote"
+        :terms="terms"
+        :common-notice-heading="commonNoticeHeading"
+        :density="density"
+        :terms-projection="termsProjection"
+        :mode="mode"
+      />
+    </aside>
 
     <NuxtLink
       v-if="shouldRenderDetailInquiry"

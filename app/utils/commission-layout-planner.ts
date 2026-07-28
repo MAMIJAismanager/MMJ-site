@@ -4,6 +4,9 @@ import type {
 import type {
   CommissionServiceId,
 } from '~~/shared/types/commission-guide'
+import type {
+  CommissionDetailWidthProfile,
+} from '~/types/commission-presentation'
 
 export type CommissionViewportMode =
   | 'flow'
@@ -29,9 +32,32 @@ export interface CommissionLayoutPlan {
     | 'mobile-flow'
     | 'desktop-overview'
     | 'desktop-detail'
+    | 'desktop-document-flow'
   readonly orderedServiceIds: readonly CommissionServiceId[]
   readonly slots: ReadonlyMap<CommissionServiceId, CommissionLayoutSlot>
 }
+
+interface CommissionDetailWidthDefinition {
+  readonly detailColumnStart: number
+  readonly detailColumnSpan: number
+  readonly railColumnStart: number
+  readonly railColumnSpan: number
+}
+
+const DETAIL_WIDTHS = Object.freeze({
+  balanced: Object.freeze({
+    detailColumnStart: 1,
+    detailColumnSpan: 8,
+    railColumnStart: 9,
+    railColumnSpan: 4,
+  }),
+  wide: Object.freeze({
+    detailColumnStart: 1,
+    detailColumnSpan: 9,
+    railColumnStart: 10,
+    railColumnSpan: 3,
+  }),
+} satisfies Record<Exclude<CommissionDetailWidthProfile, 'full'>, CommissionDetailWidthDefinition>)
 
 function assertUniqueServiceIds(
   serviceIds: readonly CommissionServiceId[],
@@ -90,9 +116,48 @@ function createDesktopOverviewPlan(
   })
 }
 
+function createDesktopDocumentFlowPlan(
+  serviceIds: readonly CommissionServiceId[],
+  activeServiceId: CommissionServiceId,
+): CommissionLayoutPlan {
+  const inactiveServiceIds = serviceIds.filter(
+    serviceId => serviceId !== activeServiceId,
+  )
+  const slots = new Map<CommissionServiceId, CommissionLayoutSlot>()
+
+  slots.set(activeServiceId, Object.freeze({
+    serviceId: activeServiceId,
+    role: 'detail-stage',
+    columnStart: 1,
+    columnSpan: 12,
+    rowStart: 1,
+    rowSpan: 1,
+  }))
+
+  inactiveServiceIds.forEach((serviceId, index) => {
+    const columnIndex = index % 3
+    const rowIndex = Math.floor(index / 3)
+    slots.set(serviceId, Object.freeze({
+      serviceId,
+      role: 'compact-rail',
+      columnStart: (columnIndex * 4) + 1,
+      columnSpan: 4,
+      rowStart: rowIndex + 2,
+      rowSpan: 1,
+    }))
+  })
+
+  return Object.freeze({
+    mode: 'desktop-document-flow',
+    orderedServiceIds: Object.freeze([activeServiceId, ...inactiveServiceIds]),
+    slots,
+  })
+}
+
 function createDesktopDetailPlan(
   serviceIds: readonly CommissionServiceId[],
   activeServiceId: CommissionServiceId,
+  widthProfile: Exclude<CommissionDetailWidthProfile, 'full'>,
 ): CommissionLayoutPlan {
   if (!serviceIds.includes(activeServiceId)) {
     return createDesktopOverviewPlan(serviceIds)
@@ -106,12 +171,13 @@ function createDesktopDetailPlan(
     ...inactiveServiceIds,
   ]
   const slots = new Map<CommissionServiceId, CommissionLayoutSlot>()
+  const width = DETAIL_WIDTHS[widthProfile]
 
   slots.set(activeServiceId, Object.freeze({
     serviceId: activeServiceId,
     role: 'detail-stage',
-    columnStart: 1,
-    columnSpan: 8,
+    columnStart: width.detailColumnStart,
+    columnSpan: width.detailColumnSpan,
     rowStart: 1,
     rowSpan: 5,
   }))
@@ -120,8 +186,8 @@ function createDesktopDetailPlan(
     slots.set(serviceId, Object.freeze({
       serviceId,
       role: 'compact-rail',
-      columnStart: 9,
-      columnSpan: 4,
+      columnStart: width.railColumnStart,
+      columnSpan: width.railColumnSpan,
       rowStart: index + 1,
       rowSpan: 1,
     }))
@@ -138,6 +204,7 @@ export function createCommissionLayoutPlan(
   serviceIds: readonly CommissionServiceId[],
   activeServiceId: CommissionServiceId | null,
   viewportMode: CommissionViewportMode,
+  widthProfile: CommissionDetailWidthProfile = 'balanced',
 ): CommissionLayoutPlan {
   assertUniqueServiceIds(serviceIds)
 
@@ -149,7 +216,15 @@ export function createCommissionLayoutPlan(
     return createDesktopOverviewPlan(serviceIds)
   }
 
-  return createDesktopDetailPlan(serviceIds, activeServiceId)
+  if (widthProfile === 'full') {
+    return createDesktopDocumentFlowPlan(serviceIds, activeServiceId)
+  }
+
+  return createDesktopDetailPlan(
+    serviceIds,
+    activeServiceId,
+    widthProfile,
+  )
 }
 
 export function createCommissionSlotStyle(

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import {
+  ref,
+} from 'vue'
+
 definePageMeta({
   hideSiteFooter: true,
   viewportComposition: 'commission',
@@ -19,6 +23,8 @@ const {
   viewportMode,
 } = useCommissionViewportMode()
 
+const commissionFlowFallback = ref(false)
+
 useSeoMeta({
   title: commissionGuide.seoTitle,
   description: commissionGuide.seoDescription,
@@ -31,6 +37,7 @@ useSeoMeta({
     :eyebrow="commissionGuide.eyebrow"
     :title="commissionGuide.title"
     :lead="commissionGuide.lead"
+    :flow-fallback="commissionFlowFallback"
   >
     <CommissionServiceExplorer
       :heading="commissionGuide.sectionHeading"
@@ -38,6 +45,7 @@ useSeoMeta({
       :terms="enabledCommissionTerms"
       :common-notice-heading="commissionGuide.commonNoticeHeading"
       :viewport-mode="viewportMode"
+      @flow-fallback-change="commissionFlowFallback = $event"
     />
 
     <footer

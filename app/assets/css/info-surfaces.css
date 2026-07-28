@@ -234,3 +234,22 @@
     overflow: visible;
   }
 }
+
+/* MMJ-UI28-R2-R11-R2: document-flow is the only desktop overflow fallback. */
+@media (min-width: 80rem) and (min-height: 54rem) {
+  .mm-info-page[data-mm-page='commission'][data-mm-flow-fallback='true'] {
+    grid-template-rows: auto auto;
+    height: auto;
+    min-height: calc(100dvh - 4.5rem);
+    overflow: visible;
+  }
+
+  .mm-info-page[data-mm-page='commission'][data-mm-flow-fallback='true']
+  .mm-info-page__body,
+  .mm-info-page[data-mm-page='commission'][data-mm-flow-fallback='true']
+  .mm-commission-explorer {
+    grid-template-rows: auto auto;
+    height: auto;
+    overflow: visible;
+  }
+}

@@ -19,6 +19,10 @@ interface Props {
 }
 
 defineProps<Props>()
+
+const emit = defineEmits<{
+  flowFallbackChange: [enabled: boolean]
+}>()
 </script>
 
 <template>
@@ -39,6 +43,7 @@ defineProps<Props>()
       :terms="terms"
       :common-notice-heading="commonNoticeHeading"
       :viewport-mode="viewportMode"
+      @flow-fallback-change="enabled => emit('flowFallbackChange', enabled)"
     />
 
     <CommissionMobileServiceDeck

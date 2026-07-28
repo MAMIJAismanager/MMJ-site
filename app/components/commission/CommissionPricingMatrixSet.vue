@@ -2,11 +2,8 @@
 import {
   computed,
   nextTick,
-  ref,
-  watch,
 } from 'vue'
 
-import CommissionPricingGroupGuidance from '~/components/commission/CommissionPricingGroupGuidance.vue'
 import CommissionPricingGroupTabs from '~/components/commission/CommissionPricingGroupTabs.vue'
 import CommissionPricingMatrix from '~/components/commission/CommissionPricingMatrix.vue'
 import {
@@ -29,6 +26,7 @@ import type {
 
 interface Props {
   readonly pricing: CommissionMatrixSetPricing
+  readonly activeGroupId: CommissionPricingGroupId
   readonly idPrefix: string
   readonly density: CommissionDetailDensity
   readonly mode: 'desktop' | 'mobile'
@@ -40,7 +38,8 @@ interface Props {
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  groupChange: []
+  'update:activeGroupId': [groupId: CommissionPricingGroupId]
+  groupChange: [groupId: CommissionPricingGroupId]
   rowChange: []
 }>()
 
@@ -48,21 +47,17 @@ const matrixSet = computed(() => (
   createCommissionPricingMatrixSetView(props.pricing)
 ))
 
-const activePricingGroupId = ref<CommissionPricingGroupId>(
-  matrixSet.value.firstGroupId,
-)
-
 const showPricingGroupTabs = computed(() => (
   matrixSet.value.groups.length > 1
 ))
 
 const activeGroup = computed(() => {
   const group = matrixSet.value.groups.find(candidate => (
-    candidate.id === activePricingGroupId.value
+    candidate.id === props.activeGroupId
   ))
   if (group === undefined) {
     throw new TypeError(
-      `commission-pricing-active-group-missing:${activePricingGroupId.value}`,
+      `commission-pricing-active-group-missing:${props.activeGroupId}`,
     )
   }
   return group
@@ -90,7 +85,7 @@ const panelRole = computed(() => (
 
 const panelLabelledBy = computed(() => (
   showPricingGroupTabs.value
-    ? `${props.idPrefix}-pricing-group-tab-${activePricingGroupId.value}`
+    ? `${props.idPrefix}-pricing-group-tab-${props.activeGroupId}`
     : undefined
 ))
 
@@ -100,28 +95,16 @@ const panelAriaLabel = computed(() => (
     : activeAccessibleTitle.value
 ))
 
-watch(
-  () => matrixSet.value.groups.map(group => group.id).join('|'),
-  () => {
-    const activeStillExists = matrixSet.value.groups.some(group => (
-      group.id === activePricingGroupId.value
-    ))
-    if (!activeStillExists) {
-      activePricingGroupId.value = matrixSet.value.firstGroupId
-    }
-  },
-)
-
 async function selectGroup(groupId: CommissionPricingGroupId): Promise<void> {
-  if (groupId === activePricingGroupId.value) return
+  if (groupId === props.activeGroupId) return
   const exists = matrixSet.value.groups.some(group => group.id === groupId)
   if (!exists) {
     throw new TypeError(`commission-pricing-group-unknown:${groupId}`)
   }
 
-  activePricingGroupId.value = groupId
+  emit('update:activeGroupId', groupId)
   await nextTick()
-  emit('groupChange')
+  emit('groupChange', groupId)
 }
 </script>
 
@@ -129,14 +112,14 @@ async function selectGroup(groupId: CommissionPricingGroupId): Promise<void> {
   <section
     class="mm-commission-matrix-set"
     data-mm-commission-pricing-kind="matrix-set"
-    :data-mm-commission-active-pricing-group="activePricingGroupId"
+    :data-mm-commission-active-pricing-group="activeGroupId"
     :data-mm-commission-pricing-group-count="matrixSet.groups.length"
     :data-mm-commission-pricing-group-tabs-visible="showPricingGroupTabs ? 'true' : 'false'"
   >
     <CommissionPricingGroupTabs
       v-if="showPricingGroupTabs"
       :groups="matrixSet.groups"
-      :active-group-id="activePricingGroupId"
+      :active-group-id="activeGroupId"
       :id-prefix="idPrefix"
       :mode="mode"
       :service-label="serviceLabel"
@@ -151,9 +134,9 @@ async function selectGroup(groupId: CommissionPricingGroupId): Promise<void> {
       :aria-label="panelAriaLabel"
     >
       <CommissionPricingMatrix
-        :key="activePricingGroupId"
+        :key="activeGroupId"
         :pricing="activeMatrixPricing"
-        :id-prefix="`${idPrefix}-${activePricingGroupId}`"
+        :id-prefix="`${idPrefix}-${activeGroupId}`"
         :density="density"
         :header-projection="headerProjection"
         :accessible-title="activeAccessibleTitle"
@@ -162,18 +145,5 @@ async function selectGroup(groupId: CommissionPricingGroupId): Promise<void> {
         @row-change="emit('rowChange')"
       />
     </div>
-
-    <CommissionPricingGroupGuidance
-      v-if="pricing.sharedGuidanceHeading !== null && pricing.sharedGuidanceItems.length > 0"
-      :heading="pricing.sharedGuidanceHeading"
-      :items="pricing.sharedGuidanceItems"
-      :mode="mode"
-    />
-
-    <CommissionPricingGroupGuidance
-      heading="가격표 안내"
-      :items="activeGroup.guidanceItems"
-      :mode="mode"
-    />
   </section>
 </template>

@@ -1106,11 +1106,6 @@
     line-height: 1.2;
   }
 
-  .mm-commission-detail[data-mm-content-overflow='true'] {
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1905,4 +1900,263 @@
 .mm-commission-pricing-card__full-span {
   justify-items: center;
   text-align: center;
+}
+
+/* MMJ-UI28-R2-R11-R2: Vue-owned desktop profile, extracted supplement rail, no nested scroll. */
+.mm-commission-detail__pricing-host,
+.mm-commission-detail__supplement-host,
+.mm-commission-detail-supplement-rail {
+  min-width: 0;
+  min-height: 0;
+}
+
+.mm-commission-detail__pricing-host,
+.mm-commission-detail-supplement-rail {
+  display: grid;
+  align-content: start;
+  gap: var(--mm-space-4);
+}
+
+.mm-commission-detail__supplement-host {
+  display: block;
+}
+
+@media (min-width: 80rem) and (min-height: 54rem) {
+  .mm-commission-service[data-detail-mounted='true']
+  .mm-commission-service__panel {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .mm-commission-desktop-workspace[data-mm-detail-paint-ready='false']
+  .mm-commission-service[data-detail-mounted='true']
+  .mm-commission-service__panel-inner {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .mm-commission-desktop-workspace[data-mm-detail-paint-ready='true']
+  .mm-commission-service[data-detail-mounted='true']
+  .mm-commission-service__panel-inner {
+    opacity: 1;
+  }
+
+  .mm-commission-service[data-layout-role='detail-stage']
+  .mm-commission-service__panel-inner,
+  .mm-commission-detail,
+  .mm-commission-detail__pricing-host,
+  .mm-commission-detail__supplement-host {
+    overflow: visible;
+  }
+
+  .mm-commission-detail[data-mm-desktop-profile] {
+    display: grid;
+    height: 100%;
+    min-height: 0;
+    align-items: start;
+  }
+
+  .mm-commission-detail[data-mm-desktop-profile='measuring'],
+  .mm-commission-detail[data-mm-desktop-profile='balanced-stacked'] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'title'
+      'pricing'
+      'supplement';
+    grid-template-rows: auto auto auto;
+    align-content: start;
+  }
+
+  .mm-commission-detail[data-mm-desktop-profile='balanced-supplement'],
+  .mm-commission-detail[data-mm-desktop-profile='wide-supplement'],
+  .mm-commission-detail[data-mm-desktop-profile='wide-supplement-compact'] {
+    grid-template-columns: minmax(0, 1fr) minmax(14rem, 18rem);
+    grid-template-areas:
+      'title title'
+      'pricing supplement';
+    grid-template-rows: auto minmax(0, 1fr);
+    align-content: stretch;
+    column-gap: clamp(0.7rem, 1vw, 1rem);
+  }
+
+  .mm-commission-detail[data-mm-desktop-profile='document-flow'] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'title'
+      'pricing'
+      'supplement';
+    grid-template-rows: auto auto auto;
+    height: auto;
+    align-content: start;
+  }
+
+  .mm-commission-detail[data-mm-desktop-profile]
+  > .mm-commission-matrix-stage-header {
+    grid-area: title;
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .mm-commission-detail[data-mm-desktop-profile]
+  > .mm-commission-detail__pricing-host {
+    grid-area: pricing;
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .mm-commission-detail[data-mm-desktop-profile]
+  > .mm-commission-detail__supplement-host {
+    grid-area: supplement;
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .mm-commission-detail[data-mm-detail-layout='supplement-rail']
+  .mm-commission-detail-supplement-rail {
+    gap: 0.55rem;
+  }
+
+  .mm-commission-detail[data-mm-detail-layout='supplement-rail']
+  .mm-commission-pricing-guidance,
+  .mm-commission-detail[data-mm-detail-layout='supplement-rail']
+  .mm-commission-terms {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  .mm-commission-detail[data-mm-detail-layout='supplement-rail']
+  .mm-commission-pricing-guidance__list,
+  .mm-commission-detail[data-mm-detail-layout='supplement-rail']
+  .mm-commission-terms__list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.35rem;
+  }
+
+  .mm-commission-detail[data-mm-detail-layout='supplement-rail']
+  .mm-commission-pricing-guidance__heading,
+  .mm-commission-detail[data-mm-detail-layout='supplement-rail']
+  .mm-commission-terms__heading {
+    padding: 0;
+    font-size: var(--mm-font-size-caption);
+    white-space: normal;
+  }
+
+  .mm-commission-detail[data-mm-detail-layout='supplement-rail']
+  .mm-commission-pricing-guidance__item,
+  .mm-commission-detail[data-mm-detail-layout='supplement-rail']
+  .mm-commission-term {
+    min-height: 0;
+    padding: 0.42rem 0.55rem;
+  }
+
+  .mm-commission-detail[data-mm-detail-layout='supplement-rail']
+  .mm-commission-pricing-guidance__item dt,
+  .mm-commission-detail[data-mm-detail-layout='supplement-rail']
+  .mm-commission-term__copy strong {
+    font-size: clamp(0.68rem, 0.66vw, 0.8rem);
+    line-height: 1.2;
+  }
+
+  .mm-commission-detail[data-mm-detail-layout='supplement-rail']
+  .mm-commission-pricing-guidance__item dd {
+    font-size: clamp(0.64rem, 0.61vw, 0.74rem);
+    line-height: 1.25;
+  }
+
+  .mm-commission-detail[data-mm-desktop-profile='wide-supplement-compact']
+  .mm-commission-detail-supplement-rail {
+    gap: 0.3rem;
+  }
+
+  .mm-commission-detail[data-mm-desktop-profile='wide-supplement-compact']
+  .mm-commission-pricing-guidance,
+  .mm-commission-detail[data-mm-desktop-profile='wide-supplement-compact']
+  .mm-commission-terms {
+    gap: 0.25rem;
+  }
+
+  .mm-commission-detail[data-mm-desktop-profile='wide-supplement-compact']
+  .mm-commission-pricing-guidance__list,
+  .mm-commission-detail[data-mm-desktop-profile='wide-supplement-compact']
+  .mm-commission-terms__list {
+    gap: 0.22rem;
+  }
+
+  .mm-commission-detail[data-mm-desktop-profile='wide-supplement-compact']
+  .mm-commission-pricing-guidance__item,
+  .mm-commission-detail[data-mm-desktop-profile='wide-supplement-compact']
+  .mm-commission-term {
+    gap: 0.35rem;
+    padding: 0.28rem 0.42rem;
+  }
+
+  .mm-commission-detail[data-mm-desktop-profile='wide-supplement-compact']
+  .mm-commission-term__mark {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+
+  .mm-commission-desktop-workspace[data-mm-commission-width-profile='wide']
+  .mm-commission-service[data-layout-role='compact-rail']
+  .mm-commission-service__summary {
+    display: none;
+  }
+
+  .mm-commission-desktop-workspace[data-mm-commission-width-profile='wide']
+  .mm-commission-service[data-layout-role='compact-rail']
+  .mm-commission-service__trigger {
+    padding-inline: clamp(0.55rem, 0.75vw, 0.75rem);
+  }
+
+  .mm-commission-desktop-workspace[data-mm-commission-layout='desktop-document-flow'] {
+    height: auto;
+  }
+
+  .mm-commission-desktop-workspace[data-mm-commission-layout='desktop-document-flow']
+  .mm-commission-service-list {
+    height: auto;
+    min-height: 0;
+    grid-template-rows: auto;
+    align-items: stretch;
+  }
+
+  .mm-commission-desktop-workspace[data-mm-commission-layout='desktop-document-flow']
+  .mm-commission-service {
+    height: auto;
+  }
+
+  .mm-commission-desktop-workspace[data-mm-commission-layout='desktop-document-flow']
+  .mm-commission-service[data-layout-role='detail-stage'] {
+    min-height: 0;
+  }
+
+  .mm-commission-desktop-workspace[data-mm-commission-layout='desktop-document-flow']
+  .mm-commission-service[data-layout-role='detail-stage']
+  .mm-commission-service__panel,
+  .mm-commission-desktop-workspace[data-mm-commission-layout='desktop-document-flow']
+  .mm-commission-service[data-layout-role='detail-stage']
+  .mm-commission-service__panel-inner {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+}
+
+@media (min-width: 80rem) and (min-height: 54rem) {
+  .mm-commission-detail[data-mm-detail-layout='supplement-rail']
+  .mm-commission-pricing-guidance__list,
+  .mm-commission-detail[data-mm-detail-layout='supplement-rail']
+  .mm-commission-terms__list {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .mm-commission-detail[data-mm-detail-layout='supplement-rail']
+  .mm-commission-pricing-guidance__item {
+    grid-column: 1 / -1 !important;
+  }
 }

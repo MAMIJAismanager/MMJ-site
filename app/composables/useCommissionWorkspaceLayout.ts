@@ -23,11 +23,15 @@ import type {
 import type {
   CommissionViewportMode,
 } from '~/utils/commission-layout-planner'
+import type {
+  CommissionDetailWidthProfile,
+} from '~/types/commission-presentation'
 
 interface UseCommissionWorkspaceLayoutOptions {
   readonly services: ComputedRef<readonly CommissionService[]>
   readonly activeServiceId: Readonly<Ref<CommissionServiceId | null>>
   readonly viewportMode: Readonly<Ref<CommissionViewportMode>>
+  readonly widthProfile: Readonly<Ref<CommissionDetailWidthProfile>>
 }
 
 export function useCommissionWorkspaceLayout(
@@ -44,6 +48,7 @@ export function useCommissionWorkspaceLayout(
       serviceIds.value,
       options.activeServiceId.value,
       options.viewportMode.value,
+      options.widthProfile.value,
     )
   ))
 
