@@ -3,7 +3,7 @@ import type {
 } from '~~/shared/types/commission-guide'
 
 export const COMMISSION_GUIDE_MOCK = {
-  schemaVersion: 7,
+  schemaVersion: 9,
 
   eyebrow: 'Commission Guide',
   title: '의뢰 안내',
@@ -77,6 +77,7 @@ export const COMMISSION_GUIDE_MOCK = {
             enabled: true,
             label: '1인',
             detailLabel: null,
+            shortLabel: '1인',
           },
           {
             id: 'duo',
@@ -84,6 +85,7 @@ export const COMMISSION_GUIDE_MOCK = {
             enabled: true,
             label: '2인',
             detailLabel: '동선 구성 포함',
+            shortLabel: '2인',
           },
           {
             id: 'group-3-plus',
@@ -91,6 +93,7 @@ export const COMMISSION_GUIDE_MOCK = {
             enabled: true,
             label: '3인 이상',
             detailLabel: '동선 구성 포함',
+            shortLabel: '3인',
           },
         ],
         cells: [
@@ -107,6 +110,7 @@ export const COMMISSION_GUIDE_MOCK = {
           { rowId: 'group-3-plus', columnId: 'full-3m', mode: 'from', amountKrw: 170_000, displayOverride: null, note: null },
           { rowId: 'group-3-plus', columnId: 'full-3m30-plus', mode: 'from', amountKrw: 220_000, displayOverride: null, note: null },
         ],
+        fullSpanCells: [],
         footnote:
           '표의 금액은 기본 기준이며 용도, 마감 일정과 수정 범위에 따라 조정될 수 있습니다.',
         mock: true,
@@ -205,6 +209,7 @@ export const COMMISSION_GUIDE_MOCK = {
               { rowId: 'ppongppongre-omakase', columnId: 'general-theme-up-to-3m', mode: 'from', amountKrw: 240_000, displayOverride: null, note: null },
               { rowId: 'ppongppongre-omakase', columnId: 'long-theme-5m-plus', mode: 'from', amountKrw: 360_000, displayOverride: null, note: null },
             ],
+            fullSpanCells: [],
             guidanceItems: [],
           },
           {
@@ -240,6 +245,7 @@ export const COMMISSION_GUIDE_MOCK = {
               { rowId: 'ppongppongre-omakase', columnId: 'standard-long-up-to-3m', mode: 'from', amountKrw: 250_000, displayOverride: null, note: null },
               { rowId: 'ppongppongre-omakase', columnId: 'musical-edition-min-4m', mode: 'from', amountKrw: 380_000, displayOverride: null, note: null },
             ],
+            fullSpanCells: [],
             guidanceItems: [],
           },
           {
@@ -275,6 +281,7 @@ export const COMMISSION_GUIDE_MOCK = {
               { rowId: 'ppongppongre-omakase', columnId: 'standard-long-up-to-3m', mode: 'from', amountKrw: 400_000, displayOverride: null, note: null },
               { rowId: 'ppongppongre-omakase', columnId: 'musical-edition-min-4m', mode: 'from', amountKrw: 500_000, displayOverride: null, note: null },
             ],
+            fullSpanCells: [],
             guidanceItems: [],
           },
         ],
@@ -337,6 +344,7 @@ export const COMMISSION_GUIDE_MOCK = {
               { rowId: 'formal-design', columnId: 'hongdae-punk', mode: 'from', amountKrw: 20_000, displayOverride: null, note: null },
               { rowId: 'formal-design', columnId: 'concept-stage-costume', mode: 'from', amountKrw: 40_000, displayOverride: null, note: null },
             ],
+            fullSpanCells: [],
             guidanceItems: [
               {
                 id: 'simple-design-format',
@@ -396,6 +404,7 @@ export const COMMISSION_GUIDE_MOCK = {
               { rowId: 'per-piece-production-fee', columnId: 'costume-reform', mode: 'from', amountKrw: 10_000, displayOverride: null, note: null },
               { rowId: 'per-piece-production-fee', columnId: 'custom-production', mode: 'from', amountKrw: 15_000, displayOverride: null, note: null },
             ],
+            fullSpanCells: [],
             guidanceItems: [
               {
                 id: 'production-material-cost-excluded',
@@ -497,10 +506,100 @@ export const COMMISSION_GUIDE_MOCK = {
         '프로젝트의 목표와 일정, 참여자의 역할을 정리하고 실제 제작이 굴러갈 수 있는 흐름을 설계합니다.',
       excludedGlobalTermIds: [],
       pricing: {
-        kind: 'quote',
-        displayLabel: '프로젝트 규모와 참여 범위 확인 후 견적',
-        note: '현재 목업 문구이며 실제 견적은 상담 후 확정됩니다.',
-        mock: true,
+        kind: 'matrix-set',
+        title: '프로젝트 기획 기본 가격표',
+        description: null,
+        compactDescription: null,
+        currency: 'KRW',
+        displayUnit: 'manwon',
+        unitLabel: '만원 · 부가세 포함',
+        sharedGuidanceHeading: '조언 / 피드백',
+        sharedGuidanceItems: [
+          {
+            id: 'advice-feedback-format',
+            order: 10,
+            enabled: true,
+            label: '조언 / 피드백',
+            description: '이미 있는 기획형태를 검토하고 방향성을 제시하는 형식',
+          },
+          {
+            id: 'simple-concept-format',
+            order: 20,
+            enabled: true,
+            label: '간단 구상',
+            description: '아이디어를 제공하고 아이디어에 적합한 팁들을 함께 제공하는 형식',
+          },
+          {
+            id: 'full-planning-format',
+            order: 30,
+            enabled: true,
+            label: '단순 기획',
+            description: '원하는 추구미만 제시받고 그에 맞는 기획 전반을 도맡아 제공하는 형식',
+          },
+          {
+            id: 'continuous-feedback-format',
+            order: 40,
+            enabled: true,
+            label: '지속적인 피드백',
+            description: '코칭받은 프로젝트를 진행함에 있어서 주기적인 모니터링 및 진행 상황에 따른 피드백 제공',
+          },
+          {
+            id: 'continuous-feedback-order-condition',
+            order: 50,
+            enabled: true,
+            label: '지속적인 피드백 의뢰 조건',
+            description: '지속적인 피드백 단독 의뢰 불가 · 다른 기획 형태를 함께 의뢰 가능',
+          },
+        ],
+        groups: [
+          {
+            id: 'project-planning-default',
+            order: 10,
+            enabled: true,
+            label: '프로젝트 기획',
+            shortLabel: '프로젝트 기획',
+            rowAxisLabel: '프로젝트 기획',
+            columnAxisLabel: '프로젝트 유형',
+            columns: [
+              { id: 'one-off-project', order: 10, enabled: true, label: '일회성 프로젝트', detailLabel: null, shortLabel: '일회성' },
+              { id: 'short-term-project', order: 20, enabled: true, label: '단기 프로젝트', detailLabel: null, shortLabel: '단기' },
+              { id: 'long-term-project', order: 30, enabled: true, label: '장기 프로젝트', detailLabel: null, shortLabel: '장기' },
+              { id: 'team-formation', order: 40, enabled: true, label: '팀 결성', detailLabel: null, shortLabel: '팀 결성' },
+            ],
+            rows: [
+              { id: 'advice-feedback', order: 10, enabled: true, label: '조언 / 피드백', detailLabel: null },
+              { id: 'simple-concept', order: 20, enabled: true, label: '간단 구상', detailLabel: null },
+              { id: 'full-planning', order: 30, enabled: true, label: '단순 기획', detailLabel: null },
+              { id: 'continuous-feedback', order: 40, enabled: true, label: '지속적인 피드백', detailLabel: null },
+            ],
+            cells: [
+              { rowId: 'advice-feedback', columnId: 'one-off-project', mode: 'fixed', amountKrw: 10_000, displayOverride: null, note: null },
+              { rowId: 'advice-feedback', columnId: 'short-term-project', mode: 'fixed', amountKrw: 10_000, displayOverride: null, note: null },
+              { rowId: 'advice-feedback', columnId: 'long-term-project', mode: 'fixed', amountKrw: 20_000, displayOverride: null, note: null },
+              { rowId: 'advice-feedback', columnId: 'team-formation', mode: 'fixed', amountKrw: 10_000, displayOverride: null, note: null },
+              { rowId: 'simple-concept', columnId: 'one-off-project', mode: 'fixed', amountKrw: 20_000, displayOverride: null, note: null },
+              { rowId: 'simple-concept', columnId: 'short-term-project', mode: 'fixed', amountKrw: 20_000, displayOverride: null, note: null },
+              { rowId: 'simple-concept', columnId: 'long-term-project', mode: 'fixed', amountKrw: 30_000, displayOverride: null, note: null },
+              { rowId: 'simple-concept', columnId: 'team-formation', mode: 'fixed', amountKrw: 20_000, displayOverride: null, note: null },
+              { rowId: 'full-planning', columnId: 'one-off-project', mode: 'from', amountKrw: 10_000, displayOverride: null, note: null },
+              { rowId: 'full-planning', columnId: 'short-term-project', mode: 'from', amountKrw: 20_000, displayOverride: null, note: null },
+              { rowId: 'full-planning', columnId: 'long-term-project', mode: 'from', amountKrw: 30_000, displayOverride: null, note: null },
+              { rowId: 'full-planning', columnId: 'team-formation', mode: 'from', amountKrw: 20_000, displayOverride: null, note: null },
+            ],
+            fullSpanCells: [
+              {
+                rowId: 'continuous-feedback',
+                mode: 'recurring-from',
+                weeklyAmountKrw: 10_000,
+                monthlyAmountKrw: 40_000,
+                note: null,
+              },
+            ],
+            guidanceItems: [],
+          },
+        ],
+        footnote: null,
+        mock: false,
       },
       includedItems: [
         '기획 구조 정리',
@@ -510,8 +609,7 @@ export const COMMISSION_GUIDE_MOCK = {
       ],
       turnaroundLabel: '프로젝트 규모와 마감일 확인 후 협의',
       revisionLabel: '기획안 기준 기본 수정 범위 협의',
-      additionalCostNote:
-        '장기 운영, 현장 참여와 추가 문서 제작은 별도 범위로 산정합니다.',
+      additionalCostNote: null,
       inquiryLabel: '프로젝트 기획 문의하기',
     },
     {

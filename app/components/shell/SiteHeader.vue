@@ -3,6 +3,7 @@ import {
   computed,
   nextTick,
   onBeforeUnmount,
+  onMounted,
   ref,
   watch,
 } from 'vue'
@@ -49,12 +50,23 @@ const {
   forceRelease: forceReleaseDocumentScroll,
 } = useDocumentScrollLock()
 
+const siteHeaderRef = ref<HTMLElement | null>(null)
 const headerInnerRef = ref<HTMLElement | null>(null)
 const menuSurfaceRef = ref<HTMLElement | null>(null)
 const menuOpenButtonRef = ref<HTMLButtonElement | null>(null)
 const menuCloseButtonRef = ref<HTMLButtonElement | null>(null)
 const shouldRestoreTriggerFocus = ref(false)
 const inertSnapshots = new Map<HTMLElement, boolean>()
+let siteHeaderResizeObserver: ResizeObserver | null = null
+
+function publishMobileSiteHeaderHeight(): void {
+  if (!import.meta.client) return
+  const height = siteHeaderRef.value?.getBoundingClientRect().height ?? 0
+  document.documentElement.style.setProperty(
+    '--mm-mobile-site-header-height',
+    `${Math.max(0, height)}px`,
+  )
+}
 
 const hasWorksContext = computed(() => (
   resolveNavigationOriginPath(route.path) === '/works'
@@ -208,7 +220,22 @@ watch(
   },
 )
 
+onMounted(() => {
+  publishMobileSiteHeaderHeight()
+  if (typeof ResizeObserver !== 'undefined' && siteHeaderRef.value !== null) {
+    siteHeaderResizeObserver = new ResizeObserver(() => {
+      publishMobileSiteHeaderHeight()
+    })
+    siteHeaderResizeObserver.observe(siteHeaderRef.value)
+  }
+})
+
 onBeforeUnmount(() => {
+  siteHeaderResizeObserver?.disconnect()
+  siteHeaderResizeObserver = null
+  if (import.meta.client) {
+    document.documentElement.style.removeProperty('--mm-mobile-site-header-height')
+  }
   setBackgroundInert(false)
   forceReleaseDocumentScroll('site-menu')
 })
@@ -216,6 +243,7 @@ onBeforeUnmount(() => {
 
 <template>
   <header
+    ref="siteHeaderRef"
     class="mm-site-header"
     :data-menu-open="menuActive ? 'true' : 'false'"
     :data-mm-mobile-menu-phase="menuPhase"

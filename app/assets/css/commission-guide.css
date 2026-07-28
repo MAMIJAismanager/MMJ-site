@@ -1731,3 +1731,94 @@
     gap: 0.35rem;
   }
 }
+
+
+/* MMJ-UI28-R2-R7: project planning full-span recurring price row. */
+.mm-commission-pricing-table__full-span {
+  text-align: center;
+}
+
+.mm-commission-pricing-table__full-span strong {
+  font-size: var(--mm-font-size-subheading);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.mm-commission-pricing-card__full-span {
+  display: grid;
+  justify-items: start;
+  gap: var(--mm-space-2);
+  padding: var(--mm-space-4);
+  border-block-start: 1px solid var(--mm-color-border);
+}
+
+.mm-commission-pricing-card__full-span strong {
+  font-size: clamp(1.15rem, 5vw, 1.5rem);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--mm-line-height-heading);
+}
+
+.mm-commission-pricing-card__full-span small {
+  color: var(--mm-color-text-muted);
+  font-size: var(--mm-font-size-small);
+}
+
+@media (min-width: 80rem) and (min-height: 54rem) {
+  .mm-commission-matrix-set[data-mm-commission-pricing-group-tabs-visible='false'] {
+    gap: clamp(0.45rem, 0.75vh, 0.7rem);
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
+  .mm-commission-pricing-table__full-span {
+    padding-block: clamp(0.55rem, 1vh, 0.8rem);
+  }
+}
+
+/* MMJ-UI28-R2-R8: mobile choreography row tabs and sticky service header. */
+.mm-commission-pricing-row-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.mm-commission-pricing-row-tab {
+  min-width: 0;
+  min-height: 3rem;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--mm-color-border-strong);
+  border-radius: var(--mm-radius-round);
+  background: transparent;
+  color: var(--mm-color-text);
+  font: inherit;
+  font-weight: var(--mm-font-weight-bold);
+  line-height: var(--mm-line-height-heading);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mm-commission-pricing-row-tab[aria-selected='true'] {
+  border-color: var(--mm-color-surface);
+  background: var(--mm-color-surface);
+  color: var(--mm-color-on-surface);
+}
+
+.mm-commission-pricing-row-tab:focus-visible {
+  outline: 0.1875rem solid var(--mm-color-focus);
+  outline-offset: 0.1875rem;
+}
+
+.mm-commission-pricing-matrix[data-mm-commission-mobile-row-projection='single-row-tabs']
+.mm-commission-pricing-matrix__mobile {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 47.999rem) {
+  .mm-layout--viewport-commission .mm-commission-mobile-tabs {
+    inset-block-start: var(--mm-mobile-site-header-height, 4.5rem);
+    z-index: 250;
+    background: color-mix(in srgb, var(--mm-color-page) 96%, transparent);
+    box-shadow: 0 0.5rem 1.25rem rgb(23 26 30 / 0.06);
+  }
+}

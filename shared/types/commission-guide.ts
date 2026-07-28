@@ -42,6 +42,7 @@ export interface CommissionPricingRow {
   readonly enabled: boolean
   readonly label: string
   readonly detailLabel: string | null
+  readonly shortLabel?: string | null
 }
 
 export interface CommissionPricingCell {
@@ -50,6 +51,14 @@ export interface CommissionPricingCell {
   readonly mode: CommissionPriceCellMode
   readonly amountKrw: number | null
   readonly displayOverride: string | null
+  readonly note: string | null
+}
+
+export interface CommissionPricingFullSpanCell {
+  readonly rowId: CommissionPricingRowId
+  readonly mode: 'recurring-from'
+  readonly weeklyAmountKrw: number
+  readonly monthlyAmountKrw: number
   readonly note: string | null
 }
 
@@ -66,6 +75,7 @@ export interface CommissionMatrixPricing {
   readonly columns: readonly CommissionPricingColumn[]
   readonly rows: readonly CommissionPricingRow[]
   readonly cells: readonly CommissionPricingCell[]
+  readonly fullSpanCells: readonly CommissionPricingFullSpanCell[]
   readonly footnote: string | null
   readonly mock: boolean
 }
@@ -118,6 +128,7 @@ export interface CommissionMatrixPricingGroup {
   readonly columns: readonly CommissionPricingColumn[]
   readonly rows: readonly CommissionPricingRow[]
   readonly cells: readonly CommissionPricingCell[]
+  readonly fullSpanCells: readonly CommissionPricingFullSpanCell[]
   readonly guidanceItems: readonly CommissionPricingGuidanceItem[]
 }
 
@@ -186,7 +197,7 @@ export interface CommissionTerm {
 }
 
 export interface CommissionGuideContent {
-  readonly schemaVersion: 7
+  readonly schemaVersion: 9
   readonly eyebrow: string
   readonly title: string
   readonly lead: string
@@ -295,6 +306,7 @@ export interface CommissionPricingRowSheetRow {
   readonly enabled: boolean
   readonly label: string
   readonly detail_label: string | null
+  readonly short_label: string | null
 }
 
 export interface CommissionPricingCellSheetRow {
@@ -305,6 +317,16 @@ export interface CommissionPricingCellSheetRow {
   readonly price_mode: CommissionPriceCellMode
   readonly amount_krw: number | null
   readonly display_override: string | null
+  readonly note: string | null
+}
+
+export interface CommissionPricingFullSpanCellSheetRow {
+  readonly service_id: string
+  readonly pricing_group_id: string
+  readonly row_id: string
+  readonly price_mode: 'recurring-from'
+  readonly weekly_amount_krw: number
+  readonly monthly_amount_krw: number
   readonly note: string | null
 }
 
@@ -349,6 +371,7 @@ export interface CommissionGuideSheetBundle {
   readonly pricingColumns: readonly CommissionPricingColumnSheetRow[]
   readonly pricingRows: readonly CommissionPricingRowSheetRow[]
   readonly pricingCells: readonly CommissionPricingCellSheetRow[]
+  readonly pricingFullSpanCells: readonly CommissionPricingFullSpanCellSheetRow[]
   readonly terms: readonly CommissionTermSheetRow[]
   readonly pageCopy: readonly CommissionPageCopySheetRow[]
 }

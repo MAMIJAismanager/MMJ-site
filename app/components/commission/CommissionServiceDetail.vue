@@ -24,6 +24,7 @@ import type {
 } from '~~/shared/types/commission-guide'
 import type {
   CommissionMatrixHeaderProjection,
+  CommissionMobileMatrixRowProjection,
   CommissionTermsProjection,
 } from '~/types/commission-presentation'
 
@@ -72,6 +73,13 @@ const termsProjection = computed<CommissionTermsProjection>(() => (
   props.mode === 'mobile'
     ? 'title-only'
     : 'full'
+))
+
+const mobileMatrixRowProjection = computed<CommissionMobileMatrixRowProjection>(() => (
+  props.mode === 'mobile'
+  && props.service.id === 'choreography'
+    ? 'single-row-tabs'
+    : 'stacked'
 ))
 
 const shouldRenderDetailInquiry = computed(() => (
@@ -139,6 +147,7 @@ onMounted(async () => {
       :density="density"
       :header-projection="matrixHeaderProjection"
       :accessible-title="`${service.label} 기본 가격표`"
+      :mobile-row-projection="mobileMatrixRowProjection"
     />
 
     <CommissionPricingMatrixSet

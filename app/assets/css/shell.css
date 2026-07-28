@@ -359,3 +359,47 @@
     overflow: visible;
   }
 }
+
+/* MMJ-UI28-R2-R8: commission mobile sticky header stack. */
+@media (max-width: 47.999rem) {
+  .mm-layout--viewport-commission .mm-site-header {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: var(--mm-z-mobile-menu-trigger);
+    background: var(--mm-color-page);
+  }
+
+  .mm-layout--viewport-commission .mm-site-header__inner {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-inline-end: 0;
+  }
+
+  .mm-layout--viewport-commission
+  .mm-site-header__menu-button:not(.mm-site-header__menu-button--close) {
+    position: static;
+    inset: auto;
+    z-index: auto;
+    justify-self: end;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  .mm-layout--viewport-commission
+  .mm-site-header[data-mm-menu-trigger-visibility='hidden-during-scroll']
+  .mm-site-header__menu-button:not(.mm-site-header__menu-button--close) {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  .mm-layout--viewport-commission
+  .mm-site-header[data-menu-open='true']
+  .mm-site-header__menu-button:not(.mm-site-header__menu-button--close) {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}

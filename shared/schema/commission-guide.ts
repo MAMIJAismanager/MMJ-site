@@ -11,6 +11,7 @@ import type {
   CommissionPricing,
   CommissionPricingCell,
   CommissionPricingGuidanceItem,
+  CommissionPricingFullSpanCell,
   CommissionPricingColumn,
   CommissionPricingRow,
   CommissionQuotePricing,
@@ -157,6 +158,9 @@ function validatePricingRow(
   assertBoolean(row.enabled, `${path}.enabled`)
   assertNonEmptyText(row.label, `${path}.label`)
   assertNullableText(row.detailLabel, `${path}.detailLabel`)
+  if (row.shortLabel !== undefined) {
+    assertNullableText(row.shortLabel, `${path}.shortLabel`)
+  }
 }
 
 function validatePricingCell(
@@ -193,10 +197,24 @@ function validatePricingCell(
   }
 }
 
+function validatePricingFullSpanCell(
+  cell: CommissionPricingFullSpanCell,
+  path: string,
+): void {
+  assertNonEmptyText(cell.rowId, `${path}.rowId`)
+  if (cell.mode !== 'recurring-from') {
+    fail(`${path}.mode is unsupported`)
+  }
+  assertAmount(cell.weeklyAmountKrw, `${path}.weeklyAmountKrw`)
+  assertAmount(cell.monthlyAmountKrw, `${path}.monthlyAmountKrw`)
+  assertNullableText(cell.note, `${path}.note`)
+}
+
 function validateMatrixAxes(
   columns: readonly CommissionPricingColumn[],
   rows: readonly CommissionPricingRow[],
   cells: readonly CommissionPricingCell[],
+  fullSpanCells: readonly CommissionPricingFullSpanCell[],
   path: string,
 ): void {
   if (!Array.isArray(columns) || columns.length === 0) {
@@ -205,8 +223,11 @@ function validateMatrixAxes(
   if (!Array.isArray(rows) || rows.length === 0) {
     fail(`${path}.rows must contain at least one item`)
   }
-  if (!Array.isArray(cells) || cells.length === 0) {
-    fail(`${path}.cells must contain at least one item`)
+  if (!Array.isArray(cells)) {
+    fail(`${path}.cells must be an array`)
+  }
+  if (!Array.isArray(fullSpanCells)) {
+    fail(`${path}.fullSpanCells must be an array`)
   }
 
   const columnIds = new Set<string>()
@@ -235,7 +256,15 @@ function validateMatrixAxes(
     rowOrders.add(row.order)
   })
 
+  const enabledRows = rows.filter(row => row.enabled)
+  const enabledColumns = columns.filter(column => column.enabled)
+  if (enabledRows.length === 0) fail(`${path} requires an enabled row`)
+  if (enabledColumns.length === 0) fail(`${path} requires an enabled column`)
+  const enabledRowIds = new Set(enabledRows.map(row => row.id))
+  const enabledColumnIds = new Set(enabledColumns.map(column => column.id))
+
   const cellCoordinates = new Set<string>()
+  const standardCellCountByRow = new Map<string, number>()
   cells.forEach((cell, index) => {
     validatePricingCell(cell, `${path}.cells[${index}]`)
     if (!rowIds.has(cell.rowId)) {
@@ -249,19 +278,51 @@ function validateMatrixAxes(
       fail(`${path} duplicate cell coordinate: ${coordinate}`)
     }
     cellCoordinates.add(coordinate)
+    if (
+      enabledRowIds.has(cell.rowId)
+      && enabledColumnIds.has(cell.columnId)
+    ) {
+      standardCellCountByRow.set(
+        cell.rowId,
+        (standardCellCountByRow.get(cell.rowId) ?? 0) + 1,
+      )
+    }
   })
 
-  const enabledRows = rows.filter(row => row.enabled)
-  const enabledColumns = columns.filter(column => column.enabled)
-  if (enabledRows.length === 0) fail(`${path} requires an enabled row`)
-  if (enabledColumns.length === 0) fail(`${path} requires an enabled column`)
+  const fullSpanRowIds = new Set<string>()
+  fullSpanCells.forEach((cell, index) => {
+    validatePricingFullSpanCell(cell, `${path}.fullSpanCells[${index}]`)
+    if (!rowIds.has(cell.rowId)) {
+      fail(`${path} full-span cell references unknown row: ${cell.rowId}`)
+    }
+    if (fullSpanRowIds.has(cell.rowId)) {
+      fail(`${path} duplicate full-span row: ${cell.rowId}`)
+    }
+    fullSpanRowIds.add(cell.rowId)
+  })
 
   for (const row of enabledRows) {
+    const hasFullSpan = fullSpanRowIds.has(row.id)
+    const standardCount = standardCellCountByRow.get(row.id) ?? 0
+
+    if (hasFullSpan) {
+      if (standardCount > 0) {
+        fail(`${path} row cannot mix standard and full-span cells: ${row.id}`)
+      }
+      continue
+    }
+
     for (const column of enabledColumns) {
       const coordinate = `${row.id}:${column.id}`
       if (!cellCoordinates.has(coordinate)) {
         fail(`${path} missing enabled cell: ${coordinate}`)
       }
+    }
+
+    if (standardCount !== enabledColumns.length) {
+      fail(
+        `${path} row cell count mismatch: ${row.id}:${standardCount}:${enabledColumns.length}`,
+      )
     }
   }
 }
@@ -290,6 +351,7 @@ function validateMatrixPricing(
     pricing.columns,
     pricing.rows,
     pricing.cells,
+    pricing.fullSpanCells,
     path,
   )
 }
@@ -337,7 +399,13 @@ function validateMatrixPricingGroup(
   assertNonEmptyText(group.shortLabel, `${path}.shortLabel`)
   assertNonEmptyText(group.rowAxisLabel, `${path}.rowAxisLabel`)
   assertNonEmptyText(group.columnAxisLabel, `${path}.columnAxisLabel`)
-  validateMatrixAxes(group.columns, group.rows, group.cells, path)
+  validateMatrixAxes(
+    group.columns,
+    group.rows,
+    group.cells,
+    group.fullSpanCells,
+    path,
+  )
 
   validatePricingGuidanceItems(
     group.guidanceItems,
@@ -566,8 +634,8 @@ function deepFreeze<T>(value: T): T {
 export function createCommissionGuideSnapshot(
   input: CommissionGuideContent,
 ): CommissionGuideContent {
-  if (input.schemaVersion !== 7) {
-    fail('schemaVersion must equal 7')
+  if (input.schemaVersion !== 9) {
+    fail('schemaVersion must equal 9')
   }
 
   assertNonEmptyText(input.eyebrow, 'eyebrow')

@@ -126,8 +126,27 @@ export function useCommissionSwipeDeck(
     }
   }
 
+  function shouldIgnoreSwipeTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof Element)) return false
+    return target.closest([
+      'button',
+      'a',
+      'input',
+      'select',
+      'textarea',
+      '[role="tab"]',
+      '[data-mm-commission-swipe-ignore]',
+    ].join(',')) !== null
+  }
+
   function handlePointerDown(event: PointerEvent): void {
-    if (!event.isPrimary || transitionBusy.value) return
+    if (
+      !event.isPrimary
+      || transitionBusy.value
+      || shouldIgnoreSwipeTarget(event.target)
+    ) {
+      return
+    }
     const target = event.currentTarget
     if (!(target instanceof HTMLElement)) return
 
