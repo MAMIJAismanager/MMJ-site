@@ -3,7 +3,7 @@ import type {
 } from '~~/shared/types/commission-guide'
 
 export const COMMISSION_GUIDE_MOCK = {
-  schemaVersion: 6,
+  schemaVersion: 7,
 
   eyebrow: 'Commission Guide',
   title: '의뢰 안내',
@@ -11,7 +11,7 @@ export const COMMISSION_GUIDE_MOCK = {
     '서비스별 작업 범위와 기본 견적 기준을 확인할 수 있습니다.',
   seoTitle: '의뢰 안내 | 매미: 著',
   seoDescription:
-    '안무, 작사·작곡, 의상 디자인·제작, 영상감독, 프로젝트 기획, 믹싱·마스터링 의뢰 범위와 견적 기준을 안내합니다.',
+    '안무, 작사·작곡, 의상 디자인·제작, 영상기획, 프로젝트 기획, 믹싱·마스터링 의뢰 범위와 견적 기준을 안내합니다.',
 
   sectionHeading: '의뢰 분야',
   services: [
@@ -432,16 +432,49 @@ export const COMMISSION_GUIDE_MOCK = {
       id: 'video-direction',
       order: 40,
       enabled: true,
-      label: '영상감독',
+      label: '영상기획',
       summary: '촬영 목적에 맞춘 장면 구성과 현장 진행',
       description:
         '촬영 목적과 결과물의 톤에 맞춰 장면 구성, 현장 진행과 디렉션 방향을 설계합니다.',
       excludedGlobalTermIds: [],
       pricing: {
-        kind: 'quote',
-        displayLabel: '촬영 시간, 장소와 장비 조건 확인 후 견적',
-        note: '현재 목업 문구이며 실제 견적은 상담 후 확정됩니다.',
-        mock: true,
+        kind: 'rate-range',
+        title: '영상기획 기본 가격표',
+        description: null,
+        currency: 'KRW',
+        displayUnit: 'manwon',
+        unitLabel: '만원',
+        rowAxisLabel: '작업 구분',
+        rangeAxisLabel: '시간당 비용',
+        rangeAxisDetailLabel: '출장비 제외',
+        items: [
+          {
+            id: 'on-site-director',
+            order: 10,
+            enabled: true,
+            label: '촬영현장 감독',
+            detailLabel: null,
+            minimumAmountKrw: 10_000,
+            maximumAmountKrw: 40_000,
+            basisLabel: '시간당',
+            expenseLabel: '출장비 제외',
+            note: null,
+          },
+          {
+            id: 'camera-director',
+            order: 20,
+            enabled: true,
+            label: '카메라 감독',
+            detailLabel: null,
+            minimumAmountKrw: 10_000,
+            maximumAmountKrw: 20_000,
+            basisLabel: '시간당',
+            expenseLabel: '출장비 제외',
+            note: null,
+          },
+        ],
+        footnote: null,
+        mock: false,
       },
       includedItems: [
         '촬영 구성안',
@@ -451,9 +484,8 @@ export const COMMISSION_GUIDE_MOCK = {
       ],
       turnaroundLabel: '촬영일과 준비 범위 확인 후 협의',
       revisionLabel: '촬영 전 구성안 수정 범위 협의',
-      additionalCostNote:
-        '장거리 이동, 장비 대여, 추가 촬영과 긴급 일정은 별도 협의합니다.',
-      inquiryLabel: '영상감독 의뢰 문의하기',
+      additionalCostNote: null,
+      inquiryLabel: '영상기획 의뢰 문의하기',
     },
     {
       id: 'project-planning',
@@ -534,6 +566,16 @@ export const COMMISSION_GUIDE_MOCK = {
       description:
         '2인 이상 안무에는 기본 동선 구성 작업이 포함됩니다.',
       iconKey: 'people',
+    },
+    {
+      id: 'video-planning-equipment-surcharge',
+      order: 25,
+      enabled: true,
+      scope: 'service',
+      serviceId: 'video-direction',
+      label: '촬영현장 감독은 촬영장비에 따라 추가금 발생',
+      description: null,
+      iconKey: null,
     },
     {
       id: 'vat-included',

@@ -9,6 +9,7 @@ import {
 import CommissionPricingMatrix from '~/components/commission/CommissionPricingMatrix.vue'
 import CommissionPricingMatrixSet from '~/components/commission/CommissionPricingMatrixSet.vue'
 import CommissionQuotePricing from '~/components/commission/CommissionQuotePricing.vue'
+import CommissionRateRangePricing from '~/components/commission/CommissionRateRangePricing.vue'
 import CommissionTermsList from '~/components/commission/CommissionTermsList.vue'
 import {
   useCommissionDetailDensity,
@@ -57,6 +58,7 @@ const shouldRenderDesktopMatrixTitle = computed(() => (
   && (
     props.service.pricing.kind === 'matrix'
     || props.service.pricing.kind === 'matrix-set'
+    || props.service.pricing.kind === 'rate-range'
   )
 ))
 
@@ -147,6 +149,15 @@ onMounted(async () => {
       :mode="mode"
       :service-label="service.label"
       @group-change="remeasure"
+    />
+
+    <CommissionRateRangePricing
+      v-else-if="service.pricing.kind === 'rate-range'"
+      :pricing="service.pricing"
+      :id-prefix="idPrefix"
+      :density="density"
+      :mode="mode"
+      :service-label="service.label"
     />
 
     <template v-else>

@@ -71,6 +71,34 @@ export interface CommissionMatrixPricing {
 }
 
 
+export interface CommissionRateRangeItem {
+  readonly id: string
+  readonly order: number
+  readonly enabled: boolean
+  readonly label: string
+  readonly detailLabel: string | null
+  readonly minimumAmountKrw: number
+  readonly maximumAmountKrw: number
+  readonly basisLabel: string
+  readonly expenseLabel: string | null
+  readonly note: string | null
+}
+
+export interface CommissionRateRangePricing {
+  readonly kind: 'rate-range'
+  readonly title: string
+  readonly description: string | null
+  readonly currency: 'KRW'
+  readonly displayUnit: 'manwon' | 'won'
+  readonly unitLabel: string
+  readonly rowAxisLabel: string
+  readonly rangeAxisLabel: string
+  readonly rangeAxisDetailLabel: string | null
+  readonly items: readonly CommissionRateRangeItem[]
+  readonly footnote: string | null
+  readonly mock: boolean
+}
+
 export interface CommissionPricingGuidanceItem {
   readonly id: string
   readonly order: number
@@ -112,6 +140,7 @@ export type CommissionPricing =
   | CommissionQuotePricing
   | CommissionMatrixPricing
   | CommissionMatrixSetPricing
+  | CommissionRateRangePricing
 
 export interface CommissionService {
   readonly id: CommissionServiceId
@@ -157,7 +186,7 @@ export interface CommissionTerm {
 }
 
 export interface CommissionGuideContent {
-  readonly schemaVersion: 6
+  readonly schemaVersion: 7
   readonly eyebrow: string
   readonly title: string
   readonly lead: string
@@ -183,7 +212,7 @@ export interface CommissionServiceSheetRow {
   readonly label: string
   readonly summary: string
   readonly description: string
-  readonly pricing_kind: 'quote' | 'matrix' | 'matrix-set'
+  readonly pricing_kind: 'quote' | 'matrix' | 'matrix-set' | 'rate-range'
   readonly turnaround_label: string
   readonly revision_label: string
   readonly additional_cost_note: string | null
@@ -231,6 +260,20 @@ export interface CommissionPricingGuidanceSheetRow {
 export interface CommissionServiceTermExclusionSheetRow {
   readonly service_id: string
   readonly term_id: string
+}
+
+export interface CommissionRateRangeSheetRow {
+  readonly service_id: string
+  readonly rate_id: string
+  readonly order: number
+  readonly enabled: boolean
+  readonly label: string
+  readonly detail_label: string | null
+  readonly minimum_amount_krw: number
+  readonly maximum_amount_krw: number
+  readonly basis_label: string
+  readonly expense_label: string | null
+  readonly note: string | null
 }
 
 export interface CommissionPricingColumnSheetRow {
@@ -302,6 +345,7 @@ export interface CommissionGuideSheetBundle {
   readonly pricingGroups: readonly CommissionPricingGroupSheetRow[]
   readonly pricingGuidance: readonly CommissionPricingGuidanceSheetRow[]
   readonly serviceTermExclusions: readonly CommissionServiceTermExclusionSheetRow[]
+  readonly rateRanges: readonly CommissionRateRangeSheetRow[]
   readonly pricingColumns: readonly CommissionPricingColumnSheetRow[]
   readonly pricingRows: readonly CommissionPricingRowSheetRow[]
   readonly pricingCells: readonly CommissionPricingCellSheetRow[]

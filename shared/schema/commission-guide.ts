@@ -14,6 +14,8 @@ import type {
   CommissionPricingColumn,
   CommissionPricingRow,
   CommissionQuotePricing,
+  CommissionRateRangeItem,
+  CommissionRateRangePricing,
   CommissionService,
   CommissionServiceId,
   CommissionTerm,
@@ -79,6 +81,19 @@ function assertOptionalAmount(
     )
   ) {
     fail(`${path} must be a non-negative safe integer or null`)
+  }
+}
+
+function assertAmount(
+  value: unknown,
+  path: string,
+): asserts value is number {
+  if (
+    typeof value !== 'number'
+    || !Number.isSafeInteger(value)
+    || value < 0
+  ) {
+    fail(`${path} must be a non-negative safe integer`)
   }
 }
 
@@ -389,6 +404,66 @@ function validateMatrixSetPricing(
   }
 }
 
+function validateRateRangeItem(
+  item: CommissionRateRangeItem,
+  path: string,
+): void {
+  assertNonEmptyText(item.id, `${path}.id`)
+  assertOrder(item.order, `${path}.order`)
+  assertBoolean(item.enabled, `${path}.enabled`)
+  assertNonEmptyText(item.label, `${path}.label`)
+  assertNullableText(item.detailLabel, `${path}.detailLabel`)
+  assertAmount(item.minimumAmountKrw, `${path}.minimumAmountKrw`)
+  assertAmount(item.maximumAmountKrw, `${path}.maximumAmountKrw`)
+  if (item.minimumAmountKrw > item.maximumAmountKrw) {
+    fail(`${path}.minimumAmountKrw cannot exceed maximumAmountKrw`)
+  }
+  assertNonEmptyText(item.basisLabel, `${path}.basisLabel`)
+  assertNullableText(item.expenseLabel, `${path}.expenseLabel`)
+  assertNullableText(item.note, `${path}.note`)
+}
+
+function validateRateRangePricing(
+  pricing: CommissionRateRangePricing,
+  path: string,
+): void {
+  assertNonEmptyText(pricing.title, `${path}.title`)
+  assertNullableText(pricing.description, `${path}.description`)
+  if (pricing.currency !== 'KRW') fail(`${path}.currency must be KRW`)
+  if (pricing.displayUnit !== 'manwon' && pricing.displayUnit !== 'won') {
+    fail(`${path}.displayUnit is unsupported`)
+  }
+  assertNonEmptyText(pricing.unitLabel, `${path}.unitLabel`)
+  assertNonEmptyText(pricing.rowAxisLabel, `${path}.rowAxisLabel`)
+  assertNonEmptyText(pricing.rangeAxisLabel, `${path}.rangeAxisLabel`)
+  assertNullableText(
+    pricing.rangeAxisDetailLabel,
+    `${path}.rangeAxisDetailLabel`,
+  )
+  assertNullableText(pricing.footnote, `${path}.footnote`)
+  assertBoolean(pricing.mock, `${path}.mock`)
+
+  if (!Array.isArray(pricing.items) || pricing.items.length === 0) {
+    fail(`${path}.items must contain at least one item`)
+  }
+
+  const itemIds = new Set<string>()
+  const itemOrders = new Set<number>()
+  pricing.items.forEach((item, index) => {
+    validateRateRangeItem(item, `${path}.items[${index}]`)
+    if (itemIds.has(item.id)) fail(`${path} duplicate rate id: ${item.id}`)
+    if (itemOrders.has(item.order)) {
+      fail(`${path} duplicate rate order: ${item.order}`)
+    }
+    itemIds.add(item.id)
+    itemOrders.add(item.order)
+  })
+
+  if (!pricing.items.some(item => item.enabled)) {
+    fail(`${path} requires an enabled rate item`)
+  }
+}
+
 function validatePricing(
   pricing: CommissionPricing,
   path: string,
@@ -403,6 +478,10 @@ function validatePricing(
   }
   if (pricing.kind === 'matrix-set') {
     validateMatrixSetPricing(pricing, path)
+    return
+  }
+  if (pricing.kind === 'rate-range') {
+    validateRateRangePricing(pricing, path)
     return
   }
   fail(`${path}.kind is unsupported`)
@@ -487,8 +566,8 @@ function deepFreeze<T>(value: T): T {
 export function createCommissionGuideSnapshot(
   input: CommissionGuideContent,
 ): CommissionGuideContent {
-  if (input.schemaVersion !== 6) {
-    fail('schemaVersion must equal 6')
+  if (input.schemaVersion !== 7) {
+    fail('schemaVersion must equal 7')
   }
 
   assertNonEmptyText(input.eyebrow, 'eyebrow')

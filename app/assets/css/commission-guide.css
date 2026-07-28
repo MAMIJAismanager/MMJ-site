@@ -8,6 +8,7 @@
 .mm-commission-service__panel-inner,
 .mm-commission-detail,
 .mm-commission-pricing-matrix,
+.mm-commission-rate-range,
 .mm-commission-pricing-table,
 .mm-commission-terms,
 .mm-commission-mobile-panel {
@@ -284,7 +285,9 @@
 .mm-commission-quote-pricing__note,
 .mm-commission-pricing-matrix__description,
 .mm-commission-pricing-matrix__unit,
-.mm-commission-pricing-matrix__footnote {
+.mm-commission-pricing-matrix__footnote,
+.mm-commission-rate-range__unit,
+.mm-commission-rate-range__footnote {
   margin: 0;
 }
 
@@ -1600,5 +1603,131 @@
   .mm-commission-detail[data-mm-commission-pricing-kind='matrix-set']
   .mm-commission-terms__list[data-mm-term-count='4'] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+/* MMJ-UI28-R2-R6: video planning rate-range pricebook. */
+.mm-commission-rate-range {
+  display: grid;
+  gap: var(--mm-space-3);
+  min-width: 0;
+}
+
+.mm-commission-rate-range__header {
+  display: grid;
+  justify-items: end;
+}
+
+.mm-commission-rate-range__unit,
+.mm-commission-rate-range__footnote {
+  color: var(--mm-color-text-muted);
+  font-size: var(--mm-font-size-small);
+}
+
+.mm-commission-rate-range__unit {
+  font-weight: var(--mm-font-weight-semibold);
+  white-space: nowrap;
+}
+
+.mm-commission-rate-range__desktop {
+  display: none;
+}
+
+.mm-commission-rate-range__mobile {
+  display: grid;
+  gap: var(--mm-space-4);
+}
+
+.mm-commission-rate-card__body {
+  display: grid;
+  gap: var(--mm-space-2);
+  padding: var(--mm-space-4);
+}
+
+.mm-commission-rate-card__price {
+  font-size: clamp(1.25rem, 6vw, 1.65rem);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--mm-line-height-heading);
+}
+
+.mm-commission-rate-card__meta,
+.mm-commission-rate-card__body small {
+  color: var(--mm-color-text-muted);
+  font-size: var(--mm-font-size-small);
+  line-height: var(--mm-line-height-meta);
+}
+
+@media (min-width: 80rem) and (min-height: 54rem) {
+  .mm-commission-detail[data-mm-commission-pricing-kind='rate-range'] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    align-content: start;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='rate-range']
+  > .mm-commission-matrix-stage-header {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='rate-range']
+  > .mm-commission-rate-range {
+    grid-column: 1;
+    grid-row: 2;
+    min-height: 0;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='rate-range']
+  > .mm-commission-terms {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .mm-commission-rate-range {
+    grid-template-rows: auto auto;
+    height: auto;
+    gap: clamp(0.45rem, 0.75vh, 0.7rem);
+  }
+
+  .mm-commission-rate-range__header,
+  .mm-commission-rate-range__mobile {
+    display: none;
+  }
+
+  .mm-commission-rate-range__desktop {
+    display: block;
+    min-height: 0;
+    height: auto;
+  }
+
+  .mm-commission-rate-range .mm-commission-pricing-table-frame,
+  .mm-commission-rate-range .mm-commission-pricing-table {
+    height: auto;
+  }
+
+  .mm-commission-rate-range__role-column {
+    width: 42%;
+  }
+
+  .mm-commission-rate-range__price-column {
+    width: 58%;
+  }
+
+  .mm-commission-rate-range__table
+  .mm-commission-pricing-table__row-header,
+  .mm-commission-rate-range__table
+  .mm-commission-pricing-table__price-cell {
+    text-align: center;
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='rate-range']
+  .mm-commission-terms__list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .mm-commission-detail[data-mm-commission-pricing-kind='rate-range'][data-mm-commission-density='compact']
+  .mm-commission-rate-range {
+    gap: 0.35rem;
   }
 }
