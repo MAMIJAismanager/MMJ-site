@@ -2,7 +2,14 @@ import {
   formatCommissionRecurringPrice,
   formatCommissionRecurringPriceAccessible,
 } from '~/utils/commission-recurring-price-formatter'
+import {
+  createCommissionOverridePriceDisplay,
+  serializeCommissionPriceDisplay,
+} from '~/types/commission-price-display'
 
+import type {
+  CommissionPriceDisplay,
+} from '~/types/commission-price-display'
 import type {
   CommissionMatrixPricing,
   CommissionPricingFullSpanCell,
@@ -34,34 +41,55 @@ function formatAccessibleAmount(
     : `${new Intl.NumberFormat('ko-KR').format(amountKrw)}원`
 }
 
+export function createCommissionFullSpanPriceDisplay(
+  cell: CommissionPricingFullSpanCell,
+  pricing: PricingUnit,
+): CommissionPriceDisplay {
+  switch (cell.mode) {
+    case 'from':
+    case 'fixed': {
+      const accessibleLabel = cell.mode === 'from'
+        ? `${formatAccessibleAmount(cell.amountKrw, pricing)}부터`
+        : `${formatAccessibleAmount(cell.amountKrw, pricing)} 고정`
+
+      if (cell.displayOverride !== null) {
+        return createCommissionOverridePriceDisplay(
+          cell.displayOverride,
+          accessibleLabel,
+        )
+      }
+
+      return Object.freeze({
+        kind: 'numeric',
+        core: formatAmount(cell.amountKrw, pricing),
+        suffix: cell.mode === 'from' ? '~' : null,
+        accessibleLabel,
+      })
+    }
+
+    case 'recurring-from':
+      return Object.freeze({
+        kind: 'text',
+        text: formatCommissionRecurringPrice(cell, pricing),
+        accessibleLabel: formatCommissionRecurringPriceAccessible(cell),
+      })
+  }
+
+  throw new TypeError('commission-full-span-price-mode-unsupported')
+}
+
 export function formatCommissionFullSpanPrice(
   cell: CommissionPricingFullSpanCell,
   pricing: PricingUnit,
 ): string {
-  switch (cell.mode) {
-    case 'from':
-      return cell.displayOverride ?? `${formatAmount(cell.amountKrw, pricing)}~`
-
-    case 'fixed':
-      return cell.displayOverride ?? formatAmount(cell.amountKrw, pricing)
-
-    case 'recurring-from':
-      return formatCommissionRecurringPrice(cell, pricing)
-  }
+  return serializeCommissionPriceDisplay(
+    createCommissionFullSpanPriceDisplay(cell, pricing),
+  )
 }
 
 export function formatCommissionFullSpanPriceAccessible(
   cell: CommissionPricingFullSpanCell,
   pricing: PricingUnit,
 ): string {
-  switch (cell.mode) {
-    case 'from':
-      return `${formatAccessibleAmount(cell.amountKrw, pricing)}부터`
-
-    case 'fixed':
-      return `${formatAccessibleAmount(cell.amountKrw, pricing)} 고정`
-
-    case 'recurring-from':
-      return formatCommissionRecurringPriceAccessible(cell)
-  }
+  return createCommissionFullSpanPriceDisplay(cell, pricing).accessibleLabel
 }

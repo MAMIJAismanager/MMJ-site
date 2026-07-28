@@ -1,11 +1,21 @@
+import {
+  createCommissionOverridePriceDisplay,
+  serializeCommissionPriceDisplay,
+} from '~/types/commission-price-display'
+
+import type {
+  CommissionPriceDisplay,
+} from '~/types/commission-price-display'
 import type {
   CommissionMatrixPricing,
   CommissionPricingCell,
 } from '~~/shared/types/commission-guide'
 
+type PricingUnit = Pick<CommissionMatrixPricing, 'displayUnit'>
+
 function readCommissionPriceValue(
   cell: CommissionPricingCell,
-  pricing: Pick<CommissionMatrixPricing, 'displayUnit'>,
+  pricing: PricingUnit,
 ): string {
   if (cell.amountKrw === null) {
     throw new TypeError('commission-price-amount-required')
@@ -16,29 +26,9 @@ function readCommissionPriceValue(
     : cell.amountKrw.toLocaleString('ko-KR')
 }
 
-export function formatCommissionPriceCell(
+function formatCommissionPriceCellAccessibleLabel(
   cell: CommissionPricingCell,
-  pricing: Pick<CommissionMatrixPricing, 'displayUnit'>,
-): string {
-  if (cell.mode === 'not-listed') return '—'
-  if (cell.displayOverride !== null) return cell.displayOverride
-  if (cell.mode === 'quote') return '협의'
-
-  const value = readCommissionPriceValue(cell, pricing)
-
-  switch (cell.mode) {
-    case 'from':
-      return `${value}~`
-
-    case 'fixed':
-      return `${value} 고정`
-
-  }
-}
-
-export function formatCommissionPriceCellAccessible(
-  cell: CommissionPricingCell,
-  pricing: Pick<CommissionMatrixPricing, 'displayUnit'>,
+  pricing: PricingUnit,
 ): string {
   if (cell.mode === 'not-listed') return '가격 미기재'
   if (cell.mode === 'quote') return '가격 협의'
@@ -57,6 +47,64 @@ export function formatCommissionPriceCellAccessible(
 
     case 'fixed':
       return `${unit} 고정`
-
   }
+
+  throw new TypeError('commission-price-mode-unsupported')
+}
+
+export function createCommissionPriceCellDisplay(
+  cell: CommissionPricingCell,
+  pricing: PricingUnit,
+): CommissionPriceDisplay {
+  const accessibleLabel = formatCommissionPriceCellAccessibleLabel(
+    cell,
+    pricing,
+  )
+
+  if (cell.mode === 'not-listed') {
+    return Object.freeze({
+      kind: 'text',
+      text: '—',
+      accessibleLabel,
+    })
+  }
+
+  if (cell.mode === 'quote') {
+    return Object.freeze({
+      kind: 'text',
+      text: '협의',
+      accessibleLabel,
+    })
+  }
+
+  if (cell.displayOverride !== null) {
+    return createCommissionOverridePriceDisplay(
+      cell.displayOverride,
+      accessibleLabel,
+    )
+  }
+
+  const core = readCommissionPriceValue(cell, pricing)
+  return Object.freeze({
+    kind: 'numeric',
+    core,
+    suffix: cell.mode === 'from' ? '~' : ' 고정',
+    accessibleLabel,
+  })
+}
+
+export function formatCommissionPriceCell(
+  cell: CommissionPricingCell,
+  pricing: PricingUnit,
+): string {
+  return serializeCommissionPriceDisplay(
+    createCommissionPriceCellDisplay(cell, pricing),
+  )
+}
+
+export function formatCommissionPriceCellAccessible(
+  cell: CommissionPricingCell,
+  pricing: PricingUnit,
+): string {
+  return formatCommissionPriceCellAccessibleLabel(cell, pricing)
 }

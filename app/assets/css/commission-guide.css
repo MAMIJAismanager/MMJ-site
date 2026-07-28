@@ -1859,3 +1859,50 @@
 .mm-commission-pricing-table__price-cell--not-listed strong {
   letter-spacing: 0.08em;
 }
+
+/* MMJ-UI28-R2-R9-R1: center the numeric core independently of price suffixes. */
+.mm-commission-price-token {
+  position: relative;
+  display: inline-block;
+  width: max-content;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mm-commission-price-token__core {
+  display: block;
+  width: max-content;
+  text-align: center;
+}
+
+.mm-commission-price-token__suffix {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 100%;
+  display: block;
+  line-height: inherit;
+  white-space: pre;
+  pointer-events: none;
+}
+
+.mm-commission-price-token--text {
+  position: static;
+}
+
+.mm-commission-pricing-table__price-cell,
+.mm-commission-pricing-table__full-span,
+.mm-commission-pricing-card__item dd,
+.mm-commission-pricing-card__full-span {
+  overflow: visible;
+}
+
+.mm-commission-pricing-table__price-cell > .mm-commission-price-token,
+.mm-commission-pricing-table__full-span > .mm-commission-price-token {
+  margin-inline: auto;
+}
+
+.mm-commission-pricing-card__full-span {
+  justify-items: center;
+  text-align: center;
+}

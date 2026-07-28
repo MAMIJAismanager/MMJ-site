@@ -6,15 +6,14 @@ import {
   watch,
 } from 'vue'
 
+import CommissionPriceToken from '~/components/commission/CommissionPriceToken.vue'
 import CommissionPricingRowTabs from '~/components/commission/CommissionPricingRowTabs.vue'
 
 import {
-  formatCommissionPriceCell,
-  formatCommissionPriceCellAccessible,
+  createCommissionPriceCellDisplay,
 } from '~/utils/commission-price-formatter'
 import {
-  formatCommissionFullSpanPrice,
-  formatCommissionFullSpanPriceAccessible,
+  createCommissionFullSpanPriceDisplay,
 } from '~/utils/commission-full-span-price-formatter'
 import {
   createCommissionPricingCoordinate,
@@ -28,6 +27,9 @@ import type {
   CommissionPricingFullSpanCell,
   CommissionPricingRowId,
 } from '~~/shared/types/commission-guide'
+import type {
+  CommissionPriceDisplay,
+} from '~/types/commission-price-display'
 import type {
   CommissionMatrixHeaderProjection,
   CommissionMobileMatrixRowProjection,
@@ -51,15 +53,13 @@ interface CommissionPricingCellView {
   readonly columnId: string
   readonly columnLabel: string
   readonly columnDetailLabel: string | null
-  readonly displayPrice: string
-  readonly accessiblePrice: string
+  readonly display: CommissionPriceDisplay
   readonly note: string | null
   readonly mode: CommissionPriceCellMode
 }
 
 interface CommissionPricingFullSpanCellView {
-  readonly displayPrice: string
-  readonly accessiblePrice: string
+  readonly display: CommissionPriceDisplay
   readonly note: string | null
 }
 
@@ -144,8 +144,7 @@ const rowViews = computed<readonly CommissionPricingRowView[]>(() => (
               columnId: column.id,
               columnLabel: column.label,
               columnDetailLabel: column.detailLabel,
-              displayPrice: formatCommissionPriceCell(cell, props.pricing),
-              accessiblePrice: formatCommissionPriceCellAccessible(cell, props.pricing),
+              display: createCommissionPriceCellDisplay(cell, props.pricing),
               note: cell.note,
               mode: cell.mode,
             }
@@ -207,8 +206,7 @@ function createFullSpanCellView(
   cell: CommissionPricingFullSpanCell,
 ): CommissionPricingFullSpanCellView {
   return {
-    displayPrice: formatCommissionFullSpanPrice(cell, props.pricing),
-    accessiblePrice: formatCommissionFullSpanPriceAccessible(cell, props.pricing),
+    display: createCommissionFullSpanPriceDisplay(cell, props.pricing),
     note: cell.note,
   }
 }
@@ -345,9 +343,7 @@ function getCell(
                 :colspan="matrix.columns.length"
                 class="mm-commission-pricing-table__price-cell mm-commission-pricing-table__full-span"
               >
-                <strong :aria-label="row.fullSpanCell.accessiblePrice">
-                  {{ row.fullSpanCell.displayPrice }}
-                </strong>
+                <CommissionPriceToken :display="row.fullSpanCell.display" />
                 <small v-if="row.fullSpanCell.note">
                   {{ row.fullSpanCell.note }}
                 </small>
@@ -364,7 +360,7 @@ function getCell(
                     },
                   ]"
                 >
-                  <strong :aria-label="cell.accessiblePrice">{{ cell.displayPrice }}</strong>
+                  <CommissionPriceToken :display="cell.display" />
                   <small v-if="cell.note">
                     {{ cell.note }}
                   </small>
@@ -410,9 +406,7 @@ function getCell(
           v-if="row.fullSpanCell"
           class="mm-commission-pricing-card__full-span"
         >
-          <strong :aria-label="row.fullSpanCell.accessiblePrice">
-            {{ row.fullSpanCell.displayPrice }}
-          </strong>
+          <CommissionPriceToken :display="row.fullSpanCell.display" />
           <small v-if="row.fullSpanCell.note">
             {{ row.fullSpanCell.note }}
           </small>
@@ -439,7 +433,7 @@ function getCell(
               </small>
             </dt>
             <dd>
-              <strong :aria-label="cell.accessiblePrice">{{ cell.displayPrice }}</strong>
+              <CommissionPriceToken :display="cell.display" />
               <small v-if="cell.note">
                 {{ cell.note }}
               </small>
