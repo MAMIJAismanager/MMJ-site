@@ -21,13 +21,10 @@ export type CommissionPricingRowTabLayout =
 
 export type CommissionDesktopPresentationProfile =
   | 'measuring'
-  | 'balanced-stacked'
-  | 'balanced-supplement'
-  | 'wide-supplement'
-  | 'wide-supplement-compact'
-  | 'wide-supplement-tight'
-  | 'max-stage-tight'
-  | 'max-stage-fitted'
+  | 'balanced-horizontal'
+  | 'wide-horizontal-compact'
+  | 'wide-horizontal-tight'
+  | 'max-horizontal-fitted'
 
 export type CommissionDetailWidthProfile =
   | 'balanced'
@@ -35,32 +32,32 @@ export type CommissionDetailWidthProfile =
   | 'max'
 
 export type CommissionDesktopDetailLayout =
-  | 'stacked'
-  | 'supplement-rail'
+  | 'stacked-horizontal'
+  | 'compact-horizontal'
 
 export interface CommissionDesktopDetailMeasurement {
   readonly stageWidth: number
   readonly stageHeight: number
   readonly rootWidth: number
   readonly rootHeight: number
-  readonly pricingLeft: number
-  readonly pricingRight: number
   readonly pricingWidth: number
   readonly pricingHeight: number
-  readonly supplementLeft: number
-  readonly supplementRight: number
-  readonly supplementWidth: number
-  readonly supplementHeight: number
-  readonly pricingInlineShare: number
-  readonly supplementInlineShare: number
-  readonly pricingBeforeSupplement: boolean
+  readonly guidanceWidth: number
+  readonly guidanceHeight: number
+  readonly termsWidth: number
+  readonly termsHeight: number
   readonly pricingTableCoverage: number
   readonly minimumPricingWidth: number
   readonly pricingWidthSatisfiesMinimum: boolean
+  readonly guidanceItemCount: number
+  readonly guidanceSingleRow: boolean
+  readonly termItemCount: number
+  readonly termsSingleRow: boolean
+  readonly guidanceOverflowWidth: number
+  readonly termsOverflowWidth: number
   readonly overflowWidth: number
   readonly overflowHeight: number
   readonly documentOverflowHeight: number
-  readonly pricingSupplementIntersectionArea: number
   readonly fits: boolean
 }
 

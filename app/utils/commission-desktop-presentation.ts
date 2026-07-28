@@ -20,57 +20,35 @@ export interface CommissionDesktopPresentationCandidate {
 
 export const COMMISSION_DESKTOP_PRESENTATION_CANDIDATES = Object.freeze([
   Object.freeze({
-    profile: 'balanced-stacked',
+    profile: 'balanced-horizontal',
     widthProfile: 'balanced',
-    detailLayout: 'stacked',
+    detailLayout: 'stacked-horizontal',
     density: 'comfortable',
   }),
   Object.freeze({
-    profile: 'balanced-supplement',
-    widthProfile: 'balanced',
-    detailLayout: 'supplement-rail',
-    density: 'comfortable',
-  }),
-  Object.freeze({
-    profile: 'wide-supplement',
+    profile: 'wide-horizontal-compact',
     widthProfile: 'wide',
-    detailLayout: 'supplement-rail',
-    density: 'comfortable',
-  }),
-  Object.freeze({
-    profile: 'wide-supplement-compact',
-    widthProfile: 'wide',
-    detailLayout: 'supplement-rail',
+    detailLayout: 'compact-horizontal',
     density: 'compact',
   }),
   Object.freeze({
-    profile: 'wide-supplement-tight',
+    profile: 'wide-horizontal-tight',
     widthProfile: 'wide',
-    detailLayout: 'supplement-rail',
+    detailLayout: 'compact-horizontal',
     density: 'tight',
   }),
   Object.freeze({
-    profile: 'max-stage-tight',
+    profile: 'max-horizontal-fitted',
     widthProfile: 'max',
-    detailLayout: 'supplement-rail',
-    density: 'tight',
-  }),
-  Object.freeze({
-    profile: 'max-stage-fitted',
-    widthProfile: 'max',
-    detailLayout: 'supplement-rail',
+    detailLayout: 'compact-horizontal',
     density: 'fitted',
   }),
 ] as const satisfies readonly CommissionDesktopPresentationCandidate[])
 
-
 const COMMISSION_DESKTOP_COMPLEX_MATRIX_CANDIDATES = Object.freeze([
-  COMMISSION_DESKTOP_PRESENTATION_CANDIDATES[5],
-  COMMISSION_DESKTOP_PRESENTATION_CANDIDATES[6],
+  COMMISSION_DESKTOP_PRESENTATION_CANDIDATES[3],
 ] as const)
 
-export const COMMISSION_DESKTOP_MIN_PRICING_INLINE_SHARE = 0.68
-export const COMMISSION_DESKTOP_MAX_SUPPLEMENT_INLINE_SHARE = 0.30
 export const COMMISSION_DESKTOP_MIN_TABLE_COVERAGE = 0.97
 
 export function resolveCommissionDesktopPresentationCandidates(
@@ -96,16 +74,13 @@ export function resolveCommissionDetailWidthProfile(
   profile: CommissionDesktopPresentationProfile,
 ): CommissionDetailWidthProfile {
   switch (profile) {
-    case 'wide-supplement':
-    case 'wide-supplement-compact':
-    case 'wide-supplement-tight':
+    case 'wide-horizontal-compact':
+    case 'wide-horizontal-tight':
       return 'wide'
-    case 'max-stage-tight':
-    case 'max-stage-fitted':
+    case 'max-horizontal-fitted':
       return 'max'
     case 'measuring':
-    case 'balanced-stacked':
-    case 'balanced-supplement':
+    case 'balanced-horizontal':
       return 'balanced'
   }
 }
@@ -114,16 +89,13 @@ export function resolveCommissionDesktopDetailLayout(
   profile: CommissionDesktopPresentationProfile,
 ): CommissionDesktopDetailLayout {
   switch (profile) {
-    case 'balanced-supplement':
-    case 'wide-supplement':
-    case 'wide-supplement-compact':
-    case 'wide-supplement-tight':
-    case 'max-stage-tight':
-    case 'max-stage-fitted':
-      return 'supplement-rail'
+    case 'wide-horizontal-compact':
+    case 'wide-horizontal-tight':
+    case 'max-horizontal-fitted':
+      return 'compact-horizontal'
     case 'measuring':
-    case 'balanced-stacked':
-      return 'stacked'
+    case 'balanced-horizontal':
+      return 'stacked-horizontal'
   }
 }
 
@@ -131,34 +103,16 @@ export function resolveCommissionDesktopDensity(
   profile: CommissionDesktopPresentationProfile,
 ): CommissionDetailDensity {
   switch (profile) {
-    case 'wide-supplement-compact':
+    case 'wide-horizontal-compact':
       return 'compact'
-    case 'wide-supplement-tight':
-    case 'max-stage-tight':
+    case 'wide-horizontal-tight':
       return 'tight'
-    case 'max-stage-fitted':
+    case 'max-horizontal-fitted':
       return 'fitted'
     case 'measuring':
-    case 'balanced-stacked':
-    case 'balanced-supplement':
-    case 'wide-supplement':
+    case 'balanced-horizontal':
       return 'comfortable'
   }
-}
-
-export function intersectionArea(
-  left: DOMRectReadOnly,
-  right: DOMRectReadOnly,
-): number {
-  const width = Math.max(
-    0,
-    Math.min(left.right, right.right) - Math.max(left.left, right.left),
-  )
-  const height = Math.max(
-    0,
-    Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top),
-  )
-  return width * height
 }
 
 export function isCommissionDesktopMeasurementFit(
@@ -168,14 +122,18 @@ export function isCommissionDesktopMeasurementFit(
     measurement.overflowWidth <= 1
     && measurement.overflowHeight <= 1
     && measurement.documentOverflowHeight <= 1
-    && measurement.pricingSupplementIntersectionArea <= 0.5
-    && measurement.pricingBeforeSupplement
-    && measurement.pricingInlineShare
-      >= COMMISSION_DESKTOP_MIN_PRICING_INLINE_SHARE
-    && measurement.supplementInlineShare
-      <= COMMISSION_DESKTOP_MAX_SUPPLEMENT_INLINE_SHARE
+    && measurement.guidanceOverflowWidth <= 1
+    && measurement.termsOverflowWidth <= 1
     && measurement.pricingTableCoverage
       >= COMMISSION_DESKTOP_MIN_TABLE_COVERAGE
     && measurement.pricingWidthSatisfiesMinimum
+    && (
+      measurement.guidanceItemCount === 0
+      || measurement.guidanceSingleRow
+    )
+    && (
+      measurement.termItemCount === 0
+      || measurement.termsSingleRow
+    )
   )
 }

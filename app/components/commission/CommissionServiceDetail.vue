@@ -7,13 +7,12 @@ import {
   watch,
 } from 'vue'
 
-import CommissionDetailSupplementRail from '~/components/commission/CommissionDetailSupplementRail.vue'
+import CommissionDetailGuidanceSections from '~/components/commission/CommissionDetailGuidanceSections.vue'
 import CommissionPricingMatrix from '~/components/commission/CommissionPricingMatrix.vue'
 import CommissionPricingMatrixSet from '~/components/commission/CommissionPricingMatrixSet.vue'
 import CommissionQuotePricing from '~/components/commission/CommissionQuotePricing.vue'
 import CommissionRateRangePricing from '~/components/commission/CommissionRateRangePricing.vue'
 import {
-  intersectionArea,
   isCommissionDesktopMeasurementFit,
   resolveCommissionDesktopDensity,
   resolveCommissionDesktopDetailLayout,
@@ -51,7 +50,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  desktopProfile: 'balanced-stacked',
+  desktopProfile: 'balanced-horizontal',
 })
 
 const emit = defineEmits<{
@@ -65,7 +64,7 @@ const emit = defineEmits<{
 const rootElement = ref<HTMLElement | null>(null)
 const stageElement = ref<HTMLElement | null>(null)
 const pricingHostElement = ref<HTMLElement | null>(null)
-const supplementHostElement = ref<HTMLElement | null>(null)
+const guidanceSectionsHostElement = ref<HTMLElement | null>(null)
 let publishEpoch = 0
 
 const density = computed(() => (
@@ -77,7 +76,7 @@ const density = computed(() => (
 const detailLayout = computed(() => (
   props.mode === 'desktop'
     ? resolveCommissionDesktopDetailLayout(props.desktopProfile)
-    : 'stacked'
+    : 'stacked-horizontal'
 ))
 
 const matrixSetView = computed(() => (
@@ -204,28 +203,36 @@ function setPricingHostElement(
   pricingHostElement.value = element instanceof HTMLElement ? element : null
 }
 
-function setSupplementHostElement(
+function setGuidanceSectionsHostElement(
   element: Element | ComponentPublicInstance | null,
 ): void {
-  supplementHostElement.value = element instanceof HTMLElement ? element : null
+  guidanceSectionsHostElement.value = element instanceof HTMLElement
+    ? element
+    : null
 }
 
 function nextAnimationFrame(): Promise<void> {
   return new Promise(resolve => requestAnimationFrame(() => resolve()))
 }
 
+function isSingleVisualRow(elements: readonly HTMLElement[]): boolean {
+  if (elements.length <= 1) return true
+  const tops = elements.map(element => element.getBoundingClientRect().top)
+  return Math.max(...tops) - Math.min(...tops) <= 1
+}
+
 function measureDesktopLayout(): CommissionDesktopDetailMeasurement | null {
   const root = rootElement.value
   const stage = stageElement.value
   const pricing = pricingHostElement.value
-  const supplement = supplementHostElement.value
+  const guidanceSections = guidanceSectionsHostElement.value
 
   if (
     props.mode !== 'desktop'
     || root === null
     || stage === null
     || pricing === null
-    || supplement === null
+    || guidanceSections === null
   ) {
     return null
   }
@@ -233,7 +240,24 @@ function measureDesktopLayout(): CommissionDesktopDetailMeasurement | null {
   const stageRect = stage.getBoundingClientRect()
   const rootRect = root.getBoundingClientRect()
   const pricingRect = pricing.getBoundingClientRect()
-  const supplementRect = supplement.getBoundingClientRect()
+  const guidance = guidanceSections.querySelector<HTMLElement>(
+    '.mm-commission-detail-guidance-sections__guidance',
+  )
+  const terms = guidanceSections.querySelector<HTMLElement>(
+    '.mm-commission-detail-guidance-sections__terms',
+  )
+  const guidanceRect = guidance?.getBoundingClientRect()
+  const termsRect = terms?.getBoundingClientRect()
+  const guidanceItems = Array.from(
+    guidanceSections.querySelectorAll<HTMLElement>(
+      '.mm-commission-pricing-guidance__item',
+    ),
+  )
+  const termItems = Array.from(
+    guidanceSections.querySelectorAll<HTMLElement>(
+      '.mm-commission-term',
+    ),
+  )
   const overflowWidth = Math.max(0, root.scrollWidth - stage.clientWidth)
   const overflowHeight = Math.max(0, root.scrollHeight - stage.clientHeight)
   const documentOverflowHeight = typeof document === 'undefined'
@@ -242,23 +266,6 @@ function measureDesktopLayout(): CommissionDesktopDetailMeasurement | null {
         0,
         document.documentElement.scrollHeight
           - document.documentElement.clientHeight,
-      )
-  const supplementVisible = supplementRect.width > 0 && supplementRect.height > 0
-  const usesSupplementRail = detailLayout.value === 'supplement-rail'
-  const pricingSupplementIntersectionArea = supplementVisible
-    ? intersectionArea(pricingRect, supplementRect)
-    : 0
-  const pricingInlineShare = rootRect.width > 0
-    ? pricingRect.width / rootRect.width
-    : 0
-  const supplementInlineShare = usesSupplementRail && rootRect.width > 0
-    ? supplementRect.width / rootRect.width
-    : 0
-  const pricingBeforeSupplement = !usesSupplementRail || !supplementVisible
-    ? true
-    : (
-        pricingRect.left < supplementRect.left
-        && pricingRect.right <= supplementRect.left + 1
       )
   const pricingTableFrame = pricing.querySelector<HTMLElement>(
     '.mm-commission-pricing-table-frame',
@@ -281,24 +288,28 @@ function measureDesktopLayout(): CommissionDesktopDetailMeasurement | null {
     stageHeight: stageRect.height,
     rootWidth: rootRect.width,
     rootHeight: rootRect.height,
-    pricingLeft: pricingRect.left,
-    pricingRight: pricingRect.right,
     pricingWidth: pricingRect.width,
     pricingHeight: pricingRect.height,
-    supplementLeft: supplementRect.left,
-    supplementRight: supplementRect.right,
-    supplementWidth: supplementRect.width,
-    supplementHeight: supplementRect.height,
-    pricingInlineShare,
-    supplementInlineShare,
-    pricingBeforeSupplement,
+    guidanceWidth: guidanceRect?.width ?? 0,
+    guidanceHeight: guidanceRect?.height ?? 0,
+    termsWidth: termsRect?.width ?? 0,
+    termsHeight: termsRect?.height ?? 0,
     pricingTableCoverage,
     minimumPricingWidth,
     pricingWidthSatisfiesMinimum,
+    guidanceItemCount: guidanceItems.length,
+    guidanceSingleRow: isSingleVisualRow(guidanceItems),
+    termItemCount: termItems.length,
+    termsSingleRow: isSingleVisualRow(termItems),
+    guidanceOverflowWidth: guidance === null
+      ? 0
+      : Math.max(0, guidance.scrollWidth - guidance.clientWidth),
+    termsOverflowWidth: terms === null
+      ? 0
+      : Math.max(0, terms.scrollWidth - terms.clientWidth),
     overflowWidth,
     overflowHeight,
     documentOverflowHeight,
-    pricingSupplementIntersectionArea,
   }
   const measurement: CommissionDesktopDetailMeasurement = {
     ...base,
@@ -369,7 +380,7 @@ defineExpose({
     :data-mm-commission-pricing-kind="service.pricing.kind"
     :data-mm-desktop-profile="mode === 'desktop' ? desktopProfile : undefined"
     :data-mm-detail-layout="detailLayout"
-    data-mm-detail-grid-contract="pricing-left-supplement-right"
+    data-mm-detail-grid-contract="full-width-horizontal-guidance"
   >
     <header
       v-if="shouldRenderDesktopMatrixTitle"
@@ -461,11 +472,11 @@ defineExpose({
       </template>
     </section>
 
-    <aside
-      :ref="setSupplementHostElement"
-      class="mm-commission-detail__supplement-host"
+    <section
+      :ref="setGuidanceSectionsHostElement"
+      class="mm-commission-detail__guidance-sections-host"
     >
-      <CommissionDetailSupplementRail
+      <CommissionDetailGuidanceSections
         :shared-guidance-heading="sharedGuidanceHeading"
         :shared-guidance-items="sharedGuidanceItems"
         :active-guidance-heading="activeGuidanceHeading"
@@ -477,7 +488,7 @@ defineExpose({
         :terms-projection="termsProjection"
         :mode="mode"
       />
-    </aside>
+    </section>
 
     <NuxtLink
       v-if="shouldRenderDetailInquiry"
