@@ -82,6 +82,7 @@ const mobileMatrixRowProjection = computed<CommissionMobileMatrixRowProjection>(
   switch (props.service.id) {
     case 'choreography':
     case 'project-planning':
+    case 'video-direction':
       return 'single-row-tabs'
     default:
       return 'stacked'
@@ -90,6 +91,7 @@ const mobileMatrixRowProjection = computed<CommissionMobileMatrixRowProjection>(
 
 const mobileMatrixRowTabLayout = computed<CommissionPricingRowTabLayout>(() => (
   props.service.id === 'project-planning'
+  || props.service.id === 'video-direction'
     ? 'scroll'
     : 'equal'
 ))

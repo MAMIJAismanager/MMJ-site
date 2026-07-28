@@ -20,6 +20,7 @@ export function formatCommissionPriceCell(
   cell: CommissionPricingCell,
   pricing: Pick<CommissionMatrixPricing, 'displayUnit'>,
 ): string {
+  if (cell.mode === 'not-listed') return '—'
   if (cell.displayOverride !== null) return cell.displayOverride
   if (cell.mode === 'quote') return '협의'
 
@@ -31,6 +32,7 @@ export function formatCommissionPriceCell(
 
     case 'fixed':
       return `${value} 고정`
+
   }
 }
 
@@ -38,7 +40,7 @@ export function formatCommissionPriceCellAccessible(
   cell: CommissionPricingCell,
   pricing: Pick<CommissionMatrixPricing, 'displayUnit'>,
 ): string {
-  if (cell.displayOverride !== null) return cell.displayOverride
+  if (cell.mode === 'not-listed') return '가격 미기재'
   if (cell.mode === 'quote') return '가격 협의'
   if (cell.amountKrw === null) {
     throw new TypeError('commission-price-amount-required')
@@ -55,5 +57,6 @@ export function formatCommissionPriceCellAccessible(
 
     case 'fixed':
       return `${unit} 고정`
+
   }
 }

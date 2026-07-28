@@ -13,9 +13,9 @@ import {
   formatCommissionPriceCellAccessible,
 } from '~/utils/commission-price-formatter'
 import {
-  formatCommissionRecurringPrice,
-  formatCommissionRecurringPriceAccessible,
-} from '~/utils/commission-recurring-price-formatter'
+  formatCommissionFullSpanPrice,
+  formatCommissionFullSpanPriceAccessible,
+} from '~/utils/commission-full-span-price-formatter'
 import {
   createCommissionPricingCoordinate,
   createCommissionPricingMatrixView,
@@ -23,6 +23,7 @@ import {
 
 import type {
   CommissionMatrixPricing,
+  CommissionPriceCellMode,
   CommissionPricingCell,
   CommissionPricingFullSpanCell,
   CommissionPricingRowId,
@@ -53,6 +54,7 @@ interface CommissionPricingCellView {
   readonly displayPrice: string
   readonly accessiblePrice: string
   readonly note: string | null
+  readonly mode: CommissionPriceCellMode
 }
 
 interface CommissionPricingFullSpanCellView {
@@ -145,6 +147,7 @@ const rowViews = computed<readonly CommissionPricingRowView[]>(() => (
               displayPrice: formatCommissionPriceCell(cell, props.pricing),
               accessiblePrice: formatCommissionPriceCellAccessible(cell, props.pricing),
               note: cell.note,
+              mode: cell.mode,
             }
           })
         : [],
@@ -204,8 +207,8 @@ function createFullSpanCellView(
   cell: CommissionPricingFullSpanCell,
 ): CommissionPricingFullSpanCellView {
   return {
-    displayPrice: formatCommissionRecurringPrice(cell, props.pricing),
-    accessiblePrice: formatCommissionRecurringPriceAccessible(cell),
+    displayPrice: formatCommissionFullSpanPrice(cell, props.pricing),
+    accessiblePrice: formatCommissionFullSpanPriceAccessible(cell, props.pricing),
     note: cell.note,
   }
 }
@@ -353,7 +356,13 @@ function getCell(
                 <td
                   v-for="cell in row.cells"
                   :key="`${row.id}:${cell.columnId}`"
-                  class="mm-commission-pricing-table__price-cell"
+                  :class="[
+                    'mm-commission-pricing-table__price-cell',
+                    {
+                      'mm-commission-pricing-table__price-cell--not-listed':
+                        cell.mode === 'not-listed',
+                    },
+                  ]"
                 >
                   <strong :aria-label="cell.accessiblePrice">{{ cell.displayPrice }}</strong>
                   <small v-if="cell.note">
@@ -415,7 +424,13 @@ function getCell(
           <div
             v-for="cell in row.cells"
             :key="`${row.id}:${cell.columnId}`"
-            class="mm-commission-pricing-card__item"
+            :class="[
+              'mm-commission-pricing-card__item',
+              {
+                'mm-commission-pricing-card__item--not-listed':
+                  cell.mode === 'not-listed',
+              },
+            ]"
           >
             <dt>
               <span>{{ cell.columnLabel }}</span>

@@ -19,6 +19,7 @@ export type CommissionPriceCellMode =
   | 'from'
   | 'fixed'
   | 'quote'
+  | 'not-listed'
 
 export interface CommissionQuotePricing {
   readonly kind: 'quote'
@@ -54,13 +55,25 @@ export interface CommissionPricingCell {
   readonly note: string | null
 }
 
-export interface CommissionPricingFullSpanCell {
+export interface CommissionAmountFullSpanCell {
+  readonly rowId: CommissionPricingRowId
+  readonly mode: 'from' | 'fixed'
+  readonly amountKrw: number
+  readonly displayOverride: string | null
+  readonly note: string | null
+}
+
+export interface CommissionRecurringFullSpanCell {
   readonly rowId: CommissionPricingRowId
   readonly mode: 'recurring-from'
   readonly weeklyAmountKrw: number
   readonly monthlyAmountKrw: number
   readonly note: string | null
 }
+
+export type CommissionPricingFullSpanCell =
+  | CommissionAmountFullSpanCell
+  | CommissionRecurringFullSpanCell
 
 export interface CommissionMatrixPricing {
   readonly kind: 'matrix'
@@ -197,7 +210,7 @@ export interface CommissionTerm {
 }
 
 export interface CommissionGuideContent {
-  readonly schemaVersion: 9
+  readonly schemaVersion: 10
   readonly eyebrow: string
   readonly title: string
   readonly lead: string
@@ -320,15 +333,33 @@ export interface CommissionPricingCellSheetRow {
   readonly note: string | null
 }
 
-export interface CommissionPricingFullSpanCellSheetRow {
+export interface CommissionAmountFullSpanCellSheetRow {
+  readonly service_id: string
+  readonly pricing_group_id: string
+  readonly row_id: string
+  readonly price_mode: 'from' | 'fixed'
+  readonly amount_krw: number
+  readonly display_override: string | null
+  readonly weekly_amount_krw: null
+  readonly monthly_amount_krw: null
+  readonly note: string | null
+}
+
+export interface CommissionRecurringFullSpanCellSheetRow {
   readonly service_id: string
   readonly pricing_group_id: string
   readonly row_id: string
   readonly price_mode: 'recurring-from'
+  readonly amount_krw: null
+  readonly display_override: null
   readonly weekly_amount_krw: number
   readonly monthly_amount_krw: number
   readonly note: string | null
 }
+
+export type CommissionPricingFullSpanCellSheetRow =
+  | CommissionAmountFullSpanCellSheetRow
+  | CommissionRecurringFullSpanCellSheetRow
 
 export interface CommissionTermSheetRow {
   readonly term_id: string

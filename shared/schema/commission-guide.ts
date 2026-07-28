@@ -174,6 +174,7 @@ function validatePricingCell(
     cell.mode !== 'from'
     && cell.mode !== 'fixed'
     && cell.mode !== 'quote'
+    && cell.mode !== 'not-listed'
   ) {
     fail(`${path}.mode is unsupported`)
   }
@@ -192,6 +193,16 @@ function validatePricingCell(
     return
   }
 
+  if (cell.mode === 'not-listed') {
+    if (cell.amountKrw !== null) {
+      fail(`${path} not-listed mode cannot carry amountKrw`)
+    }
+    if (cell.displayOverride !== null) {
+      fail(`${path} not-listed mode cannot carry displayOverride`)
+    }
+    return
+  }
+
   if (cell.amountKrw === null) {
     fail(`${path} ${cell.mode} mode requires amountKrw`)
   }
@@ -202,12 +213,25 @@ function validatePricingFullSpanCell(
   path: string,
 ): void {
   assertNonEmptyText(cell.rowId, `${path}.rowId`)
-  if (cell.mode !== 'recurring-from') {
-    fail(`${path}.mode is unsupported`)
-  }
-  assertAmount(cell.weeklyAmountKrw, `${path}.weeklyAmountKrw`)
-  assertAmount(cell.monthlyAmountKrw, `${path}.monthlyAmountKrw`)
   assertNullableText(cell.note, `${path}.note`)
+
+  switch (cell.mode) {
+    case 'from':
+    case 'fixed':
+      assertAmount(cell.amountKrw, `${path}.amountKrw`)
+      assertNullableText(
+        cell.displayOverride,
+        `${path}.displayOverride`,
+      )
+      return
+
+    case 'recurring-from':
+      assertAmount(cell.weeklyAmountKrw, `${path}.weeklyAmountKrw`)
+      assertAmount(cell.monthlyAmountKrw, `${path}.monthlyAmountKrw`)
+      return
+  }
+
+  fail(`${path}.mode is unsupported`)
 }
 
 function validateMatrixAxes(
@@ -634,8 +658,8 @@ function deepFreeze<T>(value: T): T {
 export function createCommissionGuideSnapshot(
   input: CommissionGuideContent,
 ): CommissionGuideContent {
-  if (input.schemaVersion !== 9) {
-    fail('schemaVersion must equal 9')
+  if (input.schemaVersion !== 10) {
+    fail('schemaVersion must equal 10')
   }
 
   assertNonEmptyText(input.eyebrow, 'eyebrow')

@@ -1847,3 +1847,15 @@
     box-shadow: 0 0.5rem 1.25rem rgb(23 26 30 / 0.06);
   }
 }
+
+
+/* MMJ-UI28-R2-R9: video-planning sparse cells and unified matrix. */
+.mm-commission-pricing-table__price-cell--not-listed strong,
+.mm-commission-pricing-card__item--not-listed dd strong {
+  color: var(--mm-color-text-muted);
+  font-weight: var(--mm-font-weight-regular);
+}
+
+.mm-commission-pricing-table__price-cell--not-listed strong {
+  letter-spacing: 0.08em;
+}

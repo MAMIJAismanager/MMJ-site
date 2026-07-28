@@ -1,6 +1,6 @@
 import type {
   CommissionMatrixPricing,
-  CommissionPricingFullSpanCell,
+  CommissionRecurringFullSpanCell,
 } from '~~/shared/types/commission-guide'
 
 type PricingUnit = Pick<CommissionMatrixPricing, 'displayUnit'>
@@ -23,14 +23,14 @@ function formatAmount(
 }
 
 export function formatCommissionRecurringPrice(
-  cell: CommissionPricingFullSpanCell,
+  cell: CommissionRecurringFullSpanCell,
   pricing: PricingUnit,
 ): string {
   return `주 ${formatAmount(cell.weeklyAmountKrw, pricing)}~ / 월 ${formatAmount(cell.monthlyAmountKrw, pricing)}~`
 }
 
 export function formatCommissionRecurringPriceAccessible(
-  cell: CommissionPricingFullSpanCell,
+  cell: CommissionRecurringFullSpanCell,
 ): string {
   const numberFormat = new Intl.NumberFormat('ko-KR')
   return `주당 ${numberFormat.format(cell.weeklyAmountKrw)}원부터, 월 ${numberFormat.format(cell.monthlyAmountKrw)}원부터`
