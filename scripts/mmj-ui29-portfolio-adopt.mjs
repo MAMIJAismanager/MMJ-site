@@ -76,7 +76,12 @@ async function fetchJson(path, maximum, stage) {
       method: 'GET',
       redirect: 'error',
       signal: controller.signal,
-      headers: { accept: 'application/json' },
+      cache: 'no-store',
+      headers: {
+        accept: 'application/json',
+        'cache-control': 'no-cache',
+        pragma: 'no-cache',
+      },
     })
   } catch (error) {
     if (error?.name === 'AbortError') fail('E_MMJ_UI29_HANDOFF_TIMEOUT', `${stage} request timed out.`, { stage })
@@ -111,14 +116,29 @@ async function transaction() {
   const headA = validateHead(headAResponse.value)
   const receiptResponse = await fetchJson(`/api/v1/public/portfolio-snapshot/receipts/${encodeURIComponent(headA.handoffReceiptId)}`, 2 * 1024 * 1024, 'receipt')
   const receipt = validateReceipt(receiptResponse.value, headA)
-  const snapshotResponse = await fetchJson('/api/v1/public/portfolio-snapshot', 32 * 1024 * 1024, 'snapshot')
+  const snapshotQuery = new URLSearchParams({
+    collectionVersionId: headA.collectionVersionId,
+    handoffReceiptId: headA.handoffReceiptId,
+    snapshotDigest: headA.snapshotDigest,
+  })
+  const snapshotResponse = await fetchJson(`/api/v1/public/portfolio-snapshot?${snapshotQuery}`, 32 * 1024 * 1024, 'snapshot')
   const etag = snapshotResponse.response.headers.get('etag')
   const collectionHeader = snapshotResponse.response.headers.get('x-mmj-portfolio-collection-version')
   const receiptHeader = snapshotResponse.response.headers.get('x-mmj-portfolio-handoff-receipt')
-  if (etag !== `"${headA.snapshotDigest}"` || collectionHeader !== headA.collectionVersionId || receiptHeader !== headA.handoffReceiptId) {
+  if (etag?.replace(/^W\//, '') !== `"${headA.snapshotDigest}"` || collectionHeader !== headA.collectionVersionId || receiptHeader !== headA.handoffReceiptId) {
     fail('E_MMJ_UI29_SNAPSHOT_HEADER_MISMATCH', 'Snapshot response headers do not match the admitted head.', {
-      collectionVersionId: headA.collectionVersionId,
-      handoffReceiptId: headA.handoffReceiptId,
+      expected: {
+        etag: `"${headA.snapshotDigest}"`,
+        collectionVersionId: headA.collectionVersionId,
+        handoffReceiptId: headA.handoffReceiptId,
+      },
+      actual: {
+        etag,
+        collectionVersionId: collectionHeader,
+        handoffReceiptId: receiptHeader,
+        cfCacheStatus: snapshotResponse.response.headers.get('cf-cache-status'),
+        age: snapshotResponse.response.headers.get('age'),
+      },
     })
   }
   const actualSnapshotDigest = sha256(snapshotResponse.bytes)
@@ -217,7 +237,11 @@ for (let attempt = 1; attempt <= 3; attempt += 1) {
     adopted = await adopt(await transaction())
     break
   } catch (error) {
-    if (!(error instanceof Ui29Error) || error.code !== 'E_MMJ_UI29_PORTFOLIO_HEAD_UNSTABLE' || attempt === 3) throw error
+    const retryable = error instanceof Ui29Error && [
+      'E_MMJ_UI29_PORTFOLIO_HEAD_UNSTABLE',
+      'E_MMJ_UI29_SNAPSHOT_HEADER_MISMATCH',
+    ].includes(error.code)
+    if (!retryable || attempt === 3) throw error
     await new Promise(resolveDelay => setTimeout(resolveDelay, attempt * 250))
   }
 }
