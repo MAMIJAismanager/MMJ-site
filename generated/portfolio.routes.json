@@ -1,9 +1,0 @@
-{
-  "routes": [
-    "/works/published-work",
-    "/works/scheduled-due",
-    "/works/voice-synthesis-engine-assistant"
-  ],
-  "schemaVersion": 1,
-  "snapshotDigest": "d8be30579afa9bc0309476fc9bca50dbd83f67419106fe8224fdaac1940d5a65"
-}

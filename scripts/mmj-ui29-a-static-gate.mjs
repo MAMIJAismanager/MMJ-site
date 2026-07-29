@@ -65,7 +65,29 @@ for (const forbidden of ['/api/v1/mutations', '/admin/bootstrap', 'authorization
 }
 
 const rootEntries = await readdir(root)
-if (rootEntries.includes('node_modules') || rootEntries.includes('.output')) fail('baked source contains local build residue.')
+const isGitCheckout = rootEntries.includes('.git')
+
+if (isGitCheckout) {
+  const { execFileSync } = await import('node:child_process')
+  const trackedResidue = execFileSync(
+    'git',
+    ['ls-files', '--', 'node_modules', '.output'],
+    {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  ).trim()
+
+  if (trackedResidue) {
+    fail(`tracked local build residue: ${trackedResidue.split(/\r?\n/).join(', ')}`)
+  }
+} else if (
+  rootEntries.includes('node_modules')
+  || rootEntries.includes('.output')
+) {
+  fail('baked source contains local build residue.')
+}
 
 const fixtureTokens = ['published-work', 'scheduled-due', 'ast_cov00001', 'ast_pos00001', 'ast_vid00001', 'ast_art00001', 'ast_aud00001']
 const scanPaths = ['app', 'shared', 'scripts', 'nuxt.config.ts', 'package.json']
