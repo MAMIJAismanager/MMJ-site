@@ -11,3 +11,11 @@ dist/
 .clasp.json
 .clasprc.json
 *.log
+
+generated/portfolio.snapshot.json
+generated/portfolio.routes.json
+generated/portfolio.handoff.json
+generated/portfolio.build-input-lock.json
+generated/public-release.manifest.json
+generated/.ui29-stage-*/
+generated/.ui29-backup-*/

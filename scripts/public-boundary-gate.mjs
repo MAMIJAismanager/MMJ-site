@@ -28,9 +28,7 @@ const allowedShared = new Set([
   'shared/resolver/responsive-image-plan.ts',
   'shared/resolver/video-player-plan.ts',
   'shared/schema/commission-guide.ts',
-  'shared/schema/commission-guide.ts',
   'shared/schema/domain-identifiers.ts',
-  'shared/types/commission-guide.ts',
   'shared/types/commission-guide.ts',
   'shared/types/domain-identifiers.ts',
   'shared/types/navigation-memory.ts',
@@ -53,6 +51,14 @@ const forbiddenPrefixes = [
 ]
 const forbiddenFiles = new Set(['.clasp.json', '.clasprc.json', '.dev.vars'])
 const textExtensions = new Set(['.ts', '.vue', '.js', '.mjs', '.json', '.md', '.yml', '.yaml', '.toml', '.html', '.css'])
+const requiredUi29BuildFiles = new Set([
+  'scripts/mmj-ui29-portfolio-adopt.mjs',
+  'scripts/mmj-ui29-portfolio-verify.mjs',
+  'scripts/mmj-ui29-static-output-verify.mjs',
+  'scripts/mmj-ui29-a-static-gate.mjs',
+  'scripts/mmj-ui29-public-contract-test.mjs',
+  'scripts/lib/mmj-ui29-public-contract.mjs',
+])
 const forbiddenText = [
   /MMJ_[A-Z0-9_]*(?:SECRET|SALT|ACCOUNT_ID|BUCKET_NAME|SPREADSHEET_ID|SCRIPT_ID|WORKER_ORIGIN)/,
   /CLOUDFLARE_API_TOKEN|AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|GOOGLE_APPLICATION_CREDENTIALS/,
@@ -92,6 +98,9 @@ for (const absolute of files) {
     if (/^(?:~~\/|\.\.\/|\.\/).*(?:apps-script|workers|content\/providers|shared\/(?:build|provider|migration|contracts)|cms-|media-upload|production-authoring|mmj-05i)/.test(specifier)) {
       fail(`forbidden import in ${rel}: ${specifier}`)
     }
+    if ((rel.startsWith('app/') || rel.startsWith('shared/') || rel === 'nuxt.config.ts') && /(?:^|\/)scripts\/mmj-ui29-|portfolio\.(?:handoff|build-input-lock)\.json/.test(specifier)) {
+      fail(`build-time handoff import leaked into runtime source ${rel}: ${specifier}`)
+    }
   }
 }
 
@@ -105,8 +114,34 @@ for (const required of allowedShared) {
   try { await stat(resolve(root, required)) } catch { fail(`required public dependency missing: ${required}`) }
 }
 
+for (const required of requiredUi29BuildFiles) {
+  try { await stat(resolve(root, required)) } catch { fail(`required UI29 build dependency missing: ${required}`) }
+}
+
+const adoptSource = await readFile(resolve(root, 'scripts/mmj-ui29-portfolio-adopt.mjs'), 'utf8')
+for (const forbiddenEndpoint of ['/api/v1/mutations', '/admin/bootstrap', '/api/v1/portfolio-collection/rebuild', '/api/v1/commission-guide/']) {
+  if (adoptSource.includes(forbiddenEndpoint)) fail(`UI29 adoption script contains forbidden endpoint: ${forbiddenEndpoint}`)
+}
+for (const requiredEndpoint of ['/api/v1/public/portfolio-snapshot/head', '/api/v1/public/portfolio-snapshot/receipts/', '/api/v1/public/portfolio-snapshot']) {
+  if (!adoptSource.includes(requiredEndpoint)) fail(`UI29 adoption script is missing public endpoint: ${requiredEndpoint}`)
+}
+
+const runtimeFiles = files.filter(absolute => {
+  const rel = normalize(relative(root, absolute))
+  return rel.startsWith('app/') || rel.startsWith('shared/') || rel === 'nuxt.config.ts'
+})
+for (const absolute of runtimeFiles) {
+  if (!textExtensions.has(extname(absolute))) continue
+  const rel = normalize(relative(root, absolute))
+  const text = await readFile(absolute, 'utf8')
+  if (text.includes('MMJ_PORTFOLIO_HANDOFF_ORIGIN') || text.includes('portfolio-snapshot/head') || text.includes('portfolio-snapshot/receipts')) {
+    fail(`build-time portfolio handoff signature leaked into runtime source: ${rel}`)
+  }
+}
+
 console.log(JSON.stringify({
   event: 'PASS_MMJ_05N_A_PUBLIC_BOUNDARY',
   scannedFileCount: files.length,
   sharedAllowlistCount: allowedShared.size,
+  ui29BuildFileCount: requiredUi29BuildFiles.size,
 }))

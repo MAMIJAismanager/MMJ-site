@@ -1,5 +1,6 @@
 import type { PortfolioAsset } from './portfolio-asset'
 import type { PortfolioProject } from './project'
+import type { WorkMediaPost } from './work-media-post'
 
 export interface PortfolioCollectionSource {
   readonly schemaVersion: 1
@@ -12,8 +13,9 @@ export interface PortfolioSnapshotBuildOptions {
   readonly sourceDigest: string
 }
 
-export type PublicPortfolioProject = Omit<PortfolioProject, 'publishState' | 'timing'> & {
+export type PublicPortfolioProject = Omit<PortfolioProject, 'publishState' | 'timing' | 'post'> & {
   readonly timing: Omit<PortfolioProject['timing'], 'publishAt'>
+  readonly post: WorkMediaPost
 }
 
 export type PublicPortfolioAsset = PortfolioAsset extends infer Asset

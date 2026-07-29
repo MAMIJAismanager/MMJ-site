@@ -26,6 +26,7 @@ jobs:
       SOURCE_DATE_EPOCH: '1784378700'
       MMJ_BUILD_ID: mmj-github-pages-production
       MMJ_BUILD_ENVIRONMENT_CLASS: production
+      MMJ_PORTFOLIO_HANDOFF_ORIGIN: https://cms.mamajing.work
       NUXT_APP_BASE_URL: /
       NUXT_PUBLIC_MMJ_MEDIA_BASE_URL: https://media.mamajing.work
 
@@ -45,14 +46,26 @@ jobs:
           node-version: '22.16.0'
           cache: npm
 
-      - name: Install dependencies
+      - name: Install dependencies without lifecycle scripts
         run: npm ci --ignore-scripts
+
+      - name: Verify MMJ-UI29-A source closure
+        run: npm run verify:mmj-ui29-static
+
+      - name: Run MMJ-UI29-A contract tests
+        run: npm run test:mmj-ui29
+
+      - name: Adopt sealed CMS portfolio collection
+        run: npm run sync:portfolio
 
       - name: Run approved lifecycle scripts
         run: npm rebuild
 
-      - name: Generate static site
-        run: npm run generate
+      - name: Generate static site without a second network fetch
+        run: npm run generate:local
+
+      - name: Verify generated static artifact
+        run: npm run verify:static-output
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b

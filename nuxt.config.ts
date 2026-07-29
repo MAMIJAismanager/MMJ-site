@@ -23,6 +23,42 @@ const runtimeEnv = runtimeProcess?.env ?? {}
 const environmentClass = runtimeEnv.MMJ_BUILD_ENVIRONMENT_CLASS === 'production' ? 'production' : runtimeEnv.MMJ_BUILD_ENVIRONMENT_CLASS === 'test' ? 'test' : 'development'
 const mediaDeliveryConfig = resolvePortfolioMediaDeliveryConfig(runtimeEnv.NUXT_PUBLIC_MMJ_MEDIA_BASE_URL, environmentClass)
 const snapshotValue: unknown = JSON.parse(snapshotBytes.toString())
+const snapshotProjectRoutes = (() => {
+  if (
+    typeof snapshotValue !== 'object'
+    || snapshotValue === null
+    || Array.isArray(snapshotValue)
+  ) {
+    throw new Error(
+      'FAIL_MMJ_UI29_SNAPSHOT_INVALID: generated snapshot root is invalid.',
+    )
+  }
+
+  const projects = (snapshotValue as { projects?: unknown }).projects
+  if (!Array.isArray(projects)) {
+    throw new Error(
+      'FAIL_MMJ_UI29_SNAPSHOT_INVALID: generated project list is invalid.',
+    )
+  }
+
+  return projects.map((project, index) => {
+    if (
+      typeof project !== 'object'
+      || project === null
+      || Array.isArray(project)
+      || typeof (project as { slug?: unknown }).slug !== 'string'
+      || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(
+        (project as { slug: string }).slug,
+      )
+    ) {
+      throw new Error(
+        `FAIL_MMJ_UI29_SNAPSHOT_INVALID: invalid project slug at index ${index}.`,
+      )
+    }
+
+    return `/works/${(project as { slug: string }).slug}`
+  })
+})()
 const routeManifestValue: unknown = JSON.parse(
   readFileSync(routeManifestPath, 'utf8'),
 )
@@ -67,6 +103,17 @@ const actualSnapshotDigest = createHash('sha256')
 if (routeManifestValue.snapshotDigest !== actualSnapshotDigest) {
   throw new Error(
     'FAIL_MMJ_01E_ROUTE_MANIFEST_DRIFT: snapshot digest mismatch.',
+  )
+}
+
+if (
+  routeManifestValue.routes.length !== snapshotProjectRoutes.length
+  || routeManifestValue.routes.some((route, index) => (
+    route !== snapshotProjectRoutes[index]
+  ))
+) {
+  throw new Error(
+    'FAIL_MMJ_UI29_ROUTE_PARITY_MISMATCH: route manifest differs from snapshot projects.',
   )
 }
 

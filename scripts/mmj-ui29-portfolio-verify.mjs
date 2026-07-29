@@ -8,12 +8,11 @@ const root = process.cwd()
 const result = await verifyGeneratedArtifactSet(resolve(root, 'generated'), root)
 
 console.log(JSON.stringify({
-  event: 'PASS_MMJ_UI29_A_PUBLIC_RELEASE',
+  event: 'PASS_MMJ_UI29_A_PORTFOLIO_HANDOFF_VERIFIED',
   releaseId: result.releaseId,
   snapshotDigest: result.snapshotDigest,
-  routesDigest: result.routesFileDigest,
   handoffReceiptDigest: result.handoffReceiptDigest,
-  producerRevision: result.producerRevision,
   projectCount: result.projectCount,
   assetCount: result.assetCount,
+  routeCount: result.routeCount,
 }))

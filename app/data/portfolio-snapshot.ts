@@ -1,3 +1,4 @@
+// Generated only by the sealed MMJ-UI29-A build-time handoff transaction.
 import snapshotData from '../../generated/portfolio.snapshot.json'
 
 import {

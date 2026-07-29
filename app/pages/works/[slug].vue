@@ -37,6 +37,24 @@ if (project === null) {
 }
 
 const returnTarget = useWorkReturnTarget(project.id)
+const runtimeConfig = useRuntimeConfig()
+const mediaBaseUrl = String(runtimeConfig.public.mmjMediaBaseUrl ?? '').replace(/\/+$/, '')
+const ogObjectKey = project.seo.ogAsset?.defaultRendition.objectKey ?? null
+const ogImageUrl = mediaBaseUrl && ogObjectKey
+  ? `${mediaBaseUrl}/${ogObjectKey}`
+  : undefined
+
+useSeoMeta({
+  title: project.seo.title,
+  description: project.seo.description,
+  robots: project.seo.indexable
+    ? 'index,follow'
+    : 'noindex,nofollow',
+  ogTitle: project.seo.title,
+  ogDescription: project.seo.description,
+  ogImage: ogImageUrl,
+  twitterCard: ogImageUrl ? 'summary_large_image' : 'summary',
+})
 </script>
 
 <template>

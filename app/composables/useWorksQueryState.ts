@@ -37,6 +37,7 @@ import {
 } from '~~/shared/constants/portfolio-gateway-categories'
 
 import {
+  DEPRECATED_WORKS_QUERY_KEYS,
   WORKS_QUERY_KEYS,
 } from '~~/shared/query/works-query-state'
 
@@ -72,6 +73,10 @@ export interface UseWorksQueryStateResult {
 
 function isOfficialKey(key: string): boolean {
   return (WORKS_QUERY_KEYS as readonly string[]).includes(key)
+}
+
+function isDeprecatedKey(key: string): boolean {
+  return (DEPRECATED_WORKS_QUERY_KEYS as readonly string[]).includes(key)
 }
 
 function toWorksRawQuery(query: LocationQuery): WorksRawQuery {
@@ -113,6 +118,25 @@ function completeQuerySignature(
   )
 }
 
+function routeRepairSignature(
+  query: Readonly<Record<string, unknown>>,
+): string {
+  return JSON.stringify([
+    officialQuerySignature(query),
+    DEPRECATED_WORKS_QUERY_KEYS.map(key => (
+      [key, rawValueSignature(query[key])]
+    )),
+  ])
+}
+
+function hasDeprecatedQueryKey(
+  query: Readonly<Record<string, unknown>>,
+): boolean {
+  return DEPRECATED_WORKS_QUERY_KEYS.some(
+    key => query[key] !== undefined,
+  )
+}
+
 function mergeCanonicalOfficialQuery(
   current: LocationQuery,
   canonical: Readonly<Record<string, string>>,
@@ -120,7 +144,7 @@ function mergeCanonicalOfficialQuery(
   const output: LocationQueryRaw = {}
 
   for (const [key, value] of Object.entries(current)) {
-    if (isOfficialKey(key)) continue
+    if (isOfficialKey(key) || isDeprecatedKey(key)) continue
     output[key] = Array.isArray(value) ? [...value] : value
   }
 
@@ -141,7 +165,6 @@ function patchState(
     category: Object.hasOwn(patch, 'category')
       ? patch.category ?? null
       : current.category,
-    role: Object.hasOwn(patch, 'role') ? patch.role ?? null : current.role,
     tag: Object.hasOwn(patch, 'tag') ? patch.tag ?? null : current.tag,
     year: Object.hasOwn(patch, 'year') ? patch.year ?? null : current.year,
     sort: Object.hasOwn(patch, 'sort') ? patch.sort ?? 'order' : current.sort,
@@ -228,7 +251,10 @@ export function useWorksQueryState(): UseWorksQueryStateResult {
     )
 
     if (
-      currentOfficialSignature !== canonicalOfficialSignature
+      (
+        currentOfficialSignature !== canonicalOfficialSignature
+        || hasDeprecatedQueryKey(route.query)
+      )
       && !repairInFlight
     ) {
       repairInFlight = true
@@ -253,7 +279,7 @@ export function useWorksQueryState(): UseWorksQueryStateResult {
   })
 
   watch(
-    () => officialQuerySignature(route.query),
+    () => routeRepairSignature(route.query),
     () => {
       if (!mounted || repairInFlight) return
       void syncFromRoute()

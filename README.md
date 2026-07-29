@@ -37,3 +37,22 @@ MMJ_BUILD_ENVIRONMENT_CLASS
 ```
 
 Google, Apps Script, Cloudflare Worker, R2 write credential 및 CMS 제어면 환경변수는 이 저장소에서 금지됩니다.
+
+## MMJ-UI29-A CMS portfolio handoff
+
+Portfolio content is no longer committed as a repository fixture. Before any Nuxt lifecycle command, adopt the current sealed public collection from the CMS Worker.
+
+```powershell
+$env:MMJ_PORTFOLIO_HANDOFF_ORIGIN = "https://cms.mamajing.work"
+$env:NUXT_PUBLIC_MMJ_MEDIA_BASE_URL = "https://media.mamajing.work"
+
+npm ci --ignore-scripts
+npm run sync:portfolio
+npm rebuild
+npm run generate:local
+npm run verify:static-output
+```
+
+The adoption transaction reads only the anonymous public portfolio head, immutable handoff receipt, and public snapshot endpoints. It does not send a session cookie or credential and does not call an authoring or mutation endpoint.
+
+Generated portfolio files are build artifacts and are intentionally ignored by Git. A failed fetch, receipt mismatch, snapshot mismatch, route mismatch, typecheck, prerender, or static-output verification must fail the current build. The previous successful GitHub Pages deployment remains the only last-known-good fallback.

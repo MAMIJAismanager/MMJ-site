@@ -9,13 +9,56 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    env:
+      TZ: UTC
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      MMJ_PORTFOLIO_HANDOFF_ORIGIN: https://cms.mamajing.work
+      MMJ_BUILD_ENVIRONMENT_CLASS: test
+      NUXT_APP_BASE_URL: /
+      NUXT_PUBLIC_MMJ_MEDIA_BASE_URL: https://media.mamajing.work
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22.16.0'
           cache: npm
-      - run: node --version && npm --version
-      - run: npm ci
-      - run: npm run gate:mmj-05n-a
+
+      - name: Install dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+
+      - name: Verify MMJ-UI29-A source closure
+        run: npm run verify:mmj-ui29-static
+
+      - name: Run MMJ-UI29-A contract tests
+        run: npm run test:mmj-ui29
+
+      - name: Adopt sealed CMS portfolio collection
+        run: npm run sync:portfolio
+
+      - name: Run approved dependency lifecycle scripts
+        run: npm rebuild
+
+      - name: Verify public boundary
+        run: npm run verify:boundary
+
+      - name: Verify portfolio handoff
+        run: npm run verify:portfolio-handoff
+
+      - name: Verify public release manifest
+        run: npm run verify:public-release
+
+      - name: Typecheck Nuxt application
+        run: npm run typecheck:local
+
+      - name: Generate static site without a second network fetch
+        run: npm run generate:local
+
+      - name: Verify generated static artifact
+        run: npm run verify:static-output

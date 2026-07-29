@@ -1,21 +1,29 @@
 {
   "name": "mamija-site",
-  "version": "0.0.0",
+  "version": "0.29.0-mmj-ui29-a",
   "private": true,
   "type": "module",
   "engines": {
     "node": ">=22.0.0"
   },
   "scripts": {
-    "dev": "npm run verify:public-release && nuxt dev",
-    "build": "npm run verify:boundary && npm run verify:public-release && nuxt build --preset=static",
-    "generate": "npm run verify:boundary && npm run verify:public-release && nuxt generate",
-    "preview": "nuxt preview",
-    "typecheck": "npm run verify:boundary && nuxt typecheck",
-    "prepare": "nuxt prepare",
+    "sync:portfolio": "node scripts/mmj-ui29-portfolio-adopt.mjs",
+    "verify:portfolio-handoff": "node scripts/mmj-ui29-portfolio-verify.mjs",
+    "verify:static-output": "node scripts/mmj-ui29-static-output-verify.mjs",
+    "verify:mmj-ui29-static": "node scripts/mmj-ui29-a-static-gate.mjs",
+    "test:mmj-ui29": "node scripts/mmj-ui29-public-contract-test.mjs",
     "verify:boundary": "node scripts/public-boundary-gate.mjs",
     "verify:public-release": "node scripts/public-release-verify.mjs",
-    "gate:mmj-05n-a": "npm run verify:boundary && npm run verify:public-release && npm run typecheck && npm run generate"
+    "typecheck:local": "nuxt typecheck",
+    "build:local": "npm run verify:boundary && npm run verify:portfolio-handoff && npm run verify:public-release && nuxt build --preset=static",
+    "generate:local": "npm run verify:boundary && npm run verify:portfolio-handoff && npm run verify:public-release && nuxt generate",
+    "dev": "npm run sync:portfolio && npm run verify:portfolio-handoff && nuxt dev",
+    "build": "npm run sync:portfolio && npm run build:local",
+    "generate": "npm run sync:portfolio && npm run generate:local",
+    "preview": "nuxt preview",
+    "typecheck": "npm run verify:boundary && npm run verify:portfolio-handoff && nuxt typecheck",
+    "prepare": "nuxt prepare",
+    "gate:mmj-ui29-a": "npm run verify:mmj-ui29-static && npm run test:mmj-ui29 && npm run sync:portfolio && npm run verify:boundary && npm run verify:portfolio-handoff && npm run verify:public-release && npm run typecheck:local && npm run generate:local && npm run verify:static-output"
   },
   "dependencies": {
     "@pinia/nuxt": "0.11.2",
