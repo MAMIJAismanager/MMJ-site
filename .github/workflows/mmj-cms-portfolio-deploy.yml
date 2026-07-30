@@ -1,0 +1,129 @@
+name: MMJ CMS Portfolio Deploy
+
+on:
+  repository_dispatch:
+    types:
+      - mmj_portfolio_promoted
+  workflow_dispatch:
+    inputs:
+      delivery_key:
+        description: Deterministic CMS delivery key
+        required: true
+        type: string
+      collection_version_id:
+        description: Portfolio collection version ID
+        required: true
+        type: string
+      snapshot_digest:
+        description: Expected canonical snapshot SHA-256
+        required: true
+        type: string
+      handoff_receipt_id:
+        description: Portfolio handoff receipt ID
+        required: true
+        type: string
+      project_count:
+        description: Expected project count
+        required: true
+        type: number
+      asset_count:
+        description: Expected asset count
+        required: true
+        type: number
+      source_workbook_revision:
+        description: Source workbook revision
+        required: true
+        type: number
+      collection_head_revision:
+        description: Collection head revision
+        required: true
+        type: number
+      issued_at:
+        description: Canonical ISO-8601 dispatch time
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mmj-public-portfolio-deploy
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      MMJ_DELIVERY_KEY: ${{ github.event.client_payload.deliveryKey || inputs.delivery_key }}
+      MMJ_COLLECTION_VERSION_ID: ${{ github.event.client_payload.collectionVersionId || inputs.collection_version_id }}
+      MMJ_EXPECTED_SNAPSHOT_DIGEST: ${{ github.event.client_payload.snapshotDigest || inputs.snapshot_digest }}
+      MMJ_HANDOFF_RECEIPT_ID: ${{ github.event.client_payload.handoffReceiptId || inputs.handoff_receipt_id }}
+      MMJ_PROJECT_COUNT: ${{ github.event_name == 'repository_dispatch' && format('{0}', github.event.client_payload.projectCount) || format('{0}', inputs.project_count) }}
+      MMJ_ASSET_COUNT: ${{ github.event_name == 'repository_dispatch' && format('{0}', github.event.client_payload.assetCount) || format('{0}', inputs.asset_count) }}
+      MMJ_SOURCE_WORKBOOK_REVISION: ${{ github.event_name == 'repository_dispatch' && format('{0}', github.event.client_payload.sourceWorkbookRevision) || format('{0}', inputs.source_workbook_revision) }}
+      MMJ_COLLECTION_HEAD_REVISION: ${{ github.event_name == 'repository_dispatch' && format('{0}', github.event.client_payload.collectionHeadRevision) || format('{0}', inputs.collection_head_revision) }}
+      MMJ_ISSUED_AT: ${{ github.event.client_payload.issuedAt || inputs.issued_at }}
+      MMJ_PORTFOLIO_HANDOFF_ORIGIN: ${{ vars.MMJ_PORTFOLIO_HANDOFF_ORIGIN }}
+      MMJ_CANONICAL_PUBLIC_URL: ${{ vars.MMJ_CANONICAL_PUBLIC_URL }}
+      MMJ_CMS_BUILD_RECEIPT_ENDPOINT: ${{ vars.MMJ_CMS_BUILD_RECEIPT_ENDPOINT }}
+      MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET: ${{ secrets.MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Verify dispatch against current CMS head
+        run: node scripts/mmj-ui29-dispatch-input-verify.mjs preflight
+
+      - name: Report build started
+        run: node scripts/mmj-ui29-build-receipt.mjs started
+
+      - name: Adopt canonical portfolio snapshot
+        run: npm run sync:portfolio
+
+      - name: Verify adopted snapshot identity
+        run: node scripts/mmj-ui29-dispatch-input-verify.mjs post-adopt
+
+      - name: Emit public deployment receipt
+        run: node scripts/mmj-ui29-publish-release-receipt.mjs
+
+      - name: Generate static site
+        run: npm run generate:local
+
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy .output/public --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+
+      - name: Probe canonical deployment digest
+        id: probe
+        run: node scripts/mmj-ui29-public-deployment-probe.mjs
+
+      - name: Report build succeeded
+        env:
+          MMJ_DEPLOYMENT_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
+          MMJ_DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url || vars.MMJ_CANONICAL_PUBLIC_URL }}
+          MMJ_PROBE_STATUS: ${{ steps.probe.outputs.probe_status }}
+          MMJ_PROBED_AT: ${{ steps.probe.outputs.probed_at }}
+        run: node scripts/mmj-ui29-build-receipt.mjs succeeded
+
+      - name: Report build failed
+        if: ${{ failure() }}
+        env:
+          MMJ_BUILD_ERROR_CODE: E_PUBLIC_BUILD_FAILED
+          MMJ_BUILD_ERROR_MESSAGE: MMJ CMS portfolio build or deployment failed.
+          MMJ_BUILD_ERROR_PHASE: github-actions
+        run: node scripts/mmj-ui29-build-receipt.mjs failed
