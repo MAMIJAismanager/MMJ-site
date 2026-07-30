@@ -1,6 +1,6 @@
-import type {
-  ShowcaseProjectView,
-} from '~~/shared/view/portfolio-project-view'
+export interface ShowcaseNavigationEntry {
+  readonly id: string
+}
 
 export type ShowcaseNavigationDirection =
   | 'previous'
@@ -15,7 +15,7 @@ export const SHOWCASE_DRAG_COMMIT_THRESHOLD_PX = 56
 export const SHOWCASE_DRAG_HORIZONTAL_RATIO = 1.15
 
 export function reconcileShowcaseActiveId(
-  projects: readonly ShowcaseProjectView[],
+  projects: readonly ShowcaseNavigationEntry[],
   currentId: string | null,
 ): string | null {
   if (projects.length === 0) return null
@@ -31,7 +31,7 @@ export function reconcileShowcaseActiveId(
 }
 
 export function findAdjacentShowcaseId(
-  projects: readonly ShowcaseProjectView[],
+  projects: readonly ShowcaseNavigationEntry[],
   currentId: string | null,
   direction: ShowcaseNavigationDirection,
 ): string | null {
@@ -50,7 +50,7 @@ export function findAdjacentShowcaseId(
 }
 
 export function resolveShowcaseDirection(
-  projects: readonly ShowcaseProjectView[],
+  projects: readonly ShowcaseNavigationEntry[],
   currentId: string | null,
   targetId: string,
 ): ShowcaseNavigationDirection | null {

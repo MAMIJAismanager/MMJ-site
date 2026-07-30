@@ -30,8 +30,50 @@ const generatedFixtureNames = [
   'generated/portfolio.build-input-lock.json',
   'generated/public-release.manifest.json',
 ]
-for (const path of generatedFixtureNames) {
-  if (await exists(path)) fail(`generated portfolio artifact must not be committed: ${path}`)
+let generatedGitCheckout = false
+
+try {
+  const { execFileSync } = await import('node:child_process')
+
+  generatedGitCheckout = execFileSync(
+    'git',
+    ['rev-parse', '--is-inside-work-tree'],
+    {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  ).trim() === 'true'
+} catch {
+  generatedGitCheckout = false
+}
+
+if (generatedGitCheckout) {
+  const { execFileSync } = await import('node:child_process')
+
+  const trackedGeneratedArtifacts = execFileSync(
+    'git',
+    ['ls-files', '--', ...generatedFixtureNames],
+    {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  ).trim()
+
+  if (trackedGeneratedArtifacts) {
+    fail(
+      `generated portfolio artifact must not be committed: ${
+        trackedGeneratedArtifacts.split(/\r?\n/).join(', ')
+      }`,
+    )
+  }
+} else {
+  for (const path of generatedFixtureNames) {
+    if (await exists(path)) {
+      fail(`baked source contains generated portfolio artifact: ${path}`)
+    }
+  }
 }
 
 for (const workflowPath of ['.github/workflows/ci.yml', '.github/workflows/pages.yml']) {
@@ -63,22 +105,49 @@ for (const endpoint of [
 for (const forbidden of ['/api/v1/mutations', '/admin/bootstrap', 'authorization', 'session cookie']) {
   if (adopt.toLowerCase().includes(forbidden)) fail(`forbidden adoption signature: ${forbidden}`)
 }
+for (const required of [
+  "cache: 'no-store'",
+  "'cache-control': 'no-cache'",
+  'collectionVersionId: headA.collectionVersionId',
+  'snapshotDigest: headA.snapshotDigest',
+]) {
+  if (!adopt.includes(required)) fail(`cache-stable handoff signature missing: ${required}`)
+}
 
 const rootEntries = await readdir(root)
-const isGitCheckout = rootEntries.includes('.git')
 
-if (isGitCheckout) {
+let gitInsideWorkTree = false
+let trackedResidue = ''
+
+try {
   const { execFileSync } = await import('node:child_process')
-  const trackedResidue = execFileSync(
+
+  gitInsideWorkTree = execFileSync(
     'git',
-    ['ls-files', '--', 'node_modules', '.output'],
+    ['rev-parse', '--is-inside-work-tree'],
     {
       cwd: root,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     },
-  ).trim()
+  ).trim() === 'true'
 
+  if (gitInsideWorkTree) {
+    trackedResidue = execFileSync(
+      'git',
+      ['ls-files', '--', 'node_modules', '.output'],
+      {
+        cwd: root,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      },
+    ).trim()
+  }
+} catch {
+  gitInsideWorkTree = false
+}
+
+if (gitInsideWorkTree) {
   if (trackedResidue) {
     fail(`tracked local build residue: ${trackedResidue.split(/\r?\n/).join(', ')}`)
   }
@@ -88,7 +157,6 @@ if (isGitCheckout) {
 ) {
   fail('baked source contains local build residue.')
 }
-
 const fixtureTokens = ['published-work', 'scheduled-due', 'ast_cov00001', 'ast_pos00001', 'ast_vid00001', 'ast_art00001', 'ast_aud00001']
 const scanPaths = ['app', 'shared', 'scripts', 'nuxt.config.ts', 'package.json']
 async function walk(path) {

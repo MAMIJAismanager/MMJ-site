@@ -88,8 +88,12 @@ type PointerAxis =
   | 'horizontal'
   | 'vertical'
 
+type ShowcaseRailEntry =
+  | ShowcaseProjectView
+  | HomeGatewayShowcaseView
+
 interface Props {
-  readonly projects: readonly ShowcaseProjectView[]
+  readonly projects: readonly ShowcaseRailEntry[]
   readonly previewOnly?: boolean
 }
 
@@ -213,7 +217,7 @@ const incomingProjectId = computed(() => {
 })
 
 function isGatewayProject(
-  project: ShowcaseProjectView | null,
+  project: ShowcaseRailEntry | null,
 ): project is HomeGatewayShowcaseView {
   return project !== null && 'gatewayCategoryId' in project
 }

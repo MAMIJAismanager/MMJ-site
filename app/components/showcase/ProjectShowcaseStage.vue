@@ -87,10 +87,17 @@ function twoDigits(value: number): string {
   return String(value).padStart(2, '0')
 }
 
-const stageAsset = computed(() => props.project.backdrop ?? props.project.cover)
-const imagePlan = computed(() => (
-  resolvePortfolioImagePresentation(
-    stageAsset.value,
+const stageAsset = computed(() => (
+  isGatewayProject.value
+    ? null
+    : props.project.backdrop ?? props.project.cover
+))
+const imagePlan = computed(() => {
+  const asset = stageAsset.value
+  if (asset === null) return null
+
+  return resolvePortfolioImagePresentation(
+    asset,
     'primary',
     {
       sizes: MM_SHOWCASE_STAGE_IMAGE_SIZES,
@@ -100,7 +107,7 @@ const imagePlan = computed(() => (
       fit: 'cover',
     },
   )
-))
+})
 </script>
 
 <template>
@@ -122,7 +129,7 @@ const imagePlan = computed(() => (
       :image-plan="imagePlan"
       :frame-ratio="{ width: 4, height: 5 }"
       state-label=""
-      :data-mm-cover-asset-id="stageAsset.id"
+      :data-mm-cover-asset-id="stageAsset?.id"
     />
 
     <div class="mm-showcase-stage__shade" aria-hidden="true" />

@@ -9,13 +9,8 @@ import ProjectShowcaseRail from '~/components/showcase/ProjectShowcaseRail.vue'
 import {
   createHomeShowcasePreview,
 } from '~/data/home-showcase-preview'
-import {
-  featuredShowcaseViews,
-} from '~/data/portfolio-project-views'
 
-const showcasePreviewProjects = createHomeShowcasePreview(
-  featuredShowcaseViews,
-)
+const showcasePreviewProjects = createHomeShowcasePreview()
 </script>
 
 <template>

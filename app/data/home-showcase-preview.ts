@@ -7,16 +7,19 @@ import type {
   HomeGatewayShowcaseView,
 } from '~/types/home-gateway'
 
-import type {
-  ShowcaseProjectView,
-} from '~~/shared/view/portfolio-project-view'
+const GATEWAY_CATEGORY_VIEW = Object.freeze({
+  token: 'producing' as const,
+  label: '포트폴리오',
+  order: 0,
+})
 
-export function createHomeShowcasePreview(
-  source: readonly ShowcaseProjectView[],
-): readonly HomeGatewayShowcaseView[] {
-  const base = source[0]
-  if (!base) return []
-
+/**
+ * Home gateway navigation is a local structural surface.
+ * It must remain available even when the CMS collection is empty, contains no
+ * featured project, or is temporarily unavailable during a build handoff.
+ */
+export function createHomeShowcasePreview():
+readonly HomeGatewayShowcaseView[] {
   return Object.freeze(
     PUBLIC_PORTFOLIO_GATEWAY_CATEGORIES.map(category => {
       const suffix = String(category.order).padStart(2, '0')
@@ -31,7 +34,6 @@ export function createHomeShowcasePreview(
       }
 
       return Object.freeze({
-        ...base,
         id: `prj_gateway${suffix}`,
         slug: `gateway-${category.id}`,
         href: `/works?category=${encodeURIComponent(category.id)}`,
@@ -39,7 +41,9 @@ export function createHomeShowcasePreview(
         gatewayTitleLines: category.titleLines,
         gatewayCategoryId: category.id,
         gatewayIconAsset,
+        category: GATEWAY_CATEGORY_VIEW,
         gatewayCategoryIds: Object.freeze([category.id]),
+        roles: Object.freeze([]),
         tags: Object.freeze([
           Object.freeze({
             token: 'category-gateway',
@@ -57,9 +61,6 @@ export function createHomeShowcasePreview(
         summary: category.description,
         featured: true,
         order: category.order * 10,
-        cover: base.cover,
-        backdrop: base.backdrop ?? base.cover,
-        primary: null,
       })
     }),
   )
