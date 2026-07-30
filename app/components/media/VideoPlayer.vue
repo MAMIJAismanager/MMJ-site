@@ -43,7 +43,9 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 const arbitration = useCrossMediaArbitration()
+const playerElement = ref<HTMLElement | null>(null)
 const videoElement = ref<HTMLVideoElement | null>(null)
+const muted = ref(false)
 const runtimeState = ref<VideoPlayerRuntimeState>(
   createInitialVideoPlayerState(props.presentation.posterPlan !== null),
 )
@@ -71,9 +73,26 @@ const activationVisible = computed(() => (
 const activationPending = computed(() => (
   runtimeState.value.activation === 'pending'
 ))
+const isPlaying = computed(() => runtimeState.value.playback === 'playing')
+const seekMaximum = computed(() => runtimeState.value.durationSeconds ?? 0)
 const frameStyle = computed(() => ({
   '--mm-video-player-ratio': `${props.presentation.intrinsicSize.width} / ${props.presentation.intrinsicSize.height}`,
 }))
+
+function formatTime(value: number | null): string {
+  if (value === null || !Number.isFinite(value) || value < 0) return '--:--'
+  const totalSeconds = Math.floor(value)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  }
+  return `${minutes}:${String(seconds).padStart(2, '0')}`
+}
+
+const currentTimeLabel = computed(() => formatTime(runtimeState.value.currentTimeSeconds))
+const durationLabel = computed(() => formatTime(runtimeState.value.durationSeconds))
 
 function dispatch(event: VideoPlayerRuntimeEvent): void {
   runtimeState.value = reduceVideoPlayerState(runtimeState.value, event)
@@ -102,10 +121,18 @@ function onPosterStateChange(state: ResponsiveImageLoadState): void {
   dispatch({ type: 'poster-state', state })
 }
 
-async function requestPlayback(): Promise<void> {
+async function startPlayback(): Promise<void> {
   const video = videoElement.value
-  if (video === null || runtimeState.value.activation !== 'required') return
-  dispatch({ type: 'play-requested' })
+  if (video === null || runtimeState.value.activation === 'pending') return
+
+  if (runtimeState.value.activation === 'required') {
+    dispatch({ type: 'play-requested' })
+  }
+  if (runtimeState.value.playback === 'ended') {
+    video.currentTime = 0
+    dispatch({ type: 'time-update', currentTimeSeconds: 0 })
+  }
+
   try {
     await video.play()
   } catch {
@@ -114,6 +141,64 @@ async function requestPlayback(): Promise<void> {
       code: 'play-rejected',
       message: mediaErrorMessage('play-rejected'),
     })
+  }
+}
+
+async function requestPlayback(): Promise<void> {
+  if (runtimeState.value.activation !== 'required') return
+  await startPlayback()
+}
+
+function togglePlayback(): void {
+  const video = videoElement.value
+  if (video === null) return
+  if (runtimeState.value.playback === 'playing') {
+    video.pause()
+    return
+  }
+  void startPlayback()
+}
+
+function onSeekInput(event: Event): void {
+  const video = videoElement.value
+  const input = event.currentTarget
+  if (video === null || !(input instanceof HTMLInputElement)) return
+  const nextTime = Number(input.value)
+  const duration = runtimeState.value.durationSeconds
+  if (
+    duration === null
+    || !Number.isFinite(nextTime)
+    || nextTime < 0
+    || nextTime > duration
+  ) return
+  video.currentTime = nextTime
+  dispatch({ type: 'time-update', currentTimeSeconds: nextTime })
+}
+
+function toggleMute(): void {
+  const video = videoElement.value
+  if (video === null) return
+  video.muted = !video.muted
+  muted.value = video.muted || video.volume === 0
+}
+
+function onVolumeChange(): void {
+  const video = videoElement.value
+  if (video === null) return
+  muted.value = video.muted || video.volume === 0
+}
+
+async function toggleFullscreen(): Promise<void> {
+  const player = playerElement.value
+  if (player === null) return
+  try {
+    if (document.fullscreenElement === player) {
+      await document.exitFullscreen()
+    } else if (player.requestFullscreen) {
+      await player.requestFullscreen()
+    }
+  } catch {
+    // Fullscreen is optional; playback remains authoritative when denied.
   }
 }
 
@@ -186,16 +271,8 @@ function onMediaError(): void {
 function onFullscreenChange(): void {
   dispatch({
     type: 'fullscreen-change',
-    fullscreen: document.fullscreenElement === videoElement.value,
+    fullscreen: document.fullscreenElement === playerElement.value,
   })
-}
-
-function onEnterPictureInPicture(): void {
-  dispatch({ type: 'picture-in-picture-change', active: true })
-}
-
-function onLeavePictureInPicture(): void {
-  dispatch({ type: 'picture-in-picture-change', active: false })
 }
 
 function releaseVideoSources(): void {
@@ -214,6 +291,7 @@ watch(
   presentation => {
     arbitrationRegistration?.playbackPaused()
     releaseVideoSources()
+    muted.value = false
     dispatch({
       type: 'source-reset',
       hasPoster: presentation.posterPlan !== null,
@@ -239,28 +317,36 @@ onBeforeUnmount(() => {
 
 <template>
   <div
+    ref="playerElement"
     class="mm-video-player"
     :style="frameStyle"
     :data-mm-video-player-state="runtimeState.playback"
     :data-mm-video-player-activation="runtimeState.activation"
     :data-mm-video-player-readiness="runtimeState.readiness"
+    data-mm-video-download-ui="denied"
+    @contextmenu.prevent
   >
     <video
       ref="videoElement"
       class="mm-video-player__video"
       :aria-label="presentation.label"
-      :controls="controlsVisible"
+      :controls="false"
+      controlslist="nodownload noplaybackrate noremoteplayback"
+      disablepictureinpicture
+      disableremoteplayback
       :playsinline="presentation.playsInline"
       preload="none"
+      @click="togglePlayback"
+      @contextmenu.prevent
+      @dragstart.prevent
       @loadedmetadata="onMetadataObservation"
       @durationchange="onMetadataObservation"
       @timeupdate="onTimeUpdate"
+      @volumechange="onVolumeChange"
       @play="onPlay"
       @pause="onPause"
       @ended="onEnded"
       @error="onMediaError"
-      @enterpictureinpicture="onEnterPictureInPicture"
-      @leavepictureinpicture="onLeavePictureInPicture"
     >
       <source
         v-for="source in presentation.sources"
@@ -275,6 +361,7 @@ onBeforeUnmount(() => {
       v-if="activationVisible"
       class="mm-video-player__activation"
       data-mm-video-player-activation-overlay
+      @contextmenu.prevent
     >
       <ResponsiveImage
         v-if="presentation.posterPlan !== null"
@@ -294,6 +381,62 @@ onBeforeUnmount(() => {
         @click="requestPlayback"
       >
         {{ presentation.label }} 재생
+      </button>
+    </div>
+
+    <div
+      v-if="controlsVisible"
+      class="mm-video-player__controls"
+      data-mm-video-custom-controls
+      @click.stop
+      @contextmenu.prevent
+    >
+      <button
+        class="mm-video-player__control-button"
+        type="button"
+        :aria-label="isPlaying ? '일시정지' : '재생'"
+        :title="isPlaying ? '일시정지' : '재생'"
+        @click="togglePlayback"
+      >
+        <span aria-hidden="true">{{ isPlaying ? 'Ⅱ' : '▶' }}</span>
+      </button>
+
+      <label class="mm-video-player__timeline">
+        <span class="mm-video-player__sr-only">재생 위치</span>
+        <input
+          class="mm-video-player__range"
+          type="range"
+          min="0"
+          :max="seekMaximum"
+          step="0.05"
+          :value="runtimeState.currentTimeSeconds"
+          :disabled="runtimeState.durationSeconds === null"
+          @input="onSeekInput"
+        >
+      </label>
+
+      <output class="mm-video-player__time" aria-live="off">
+        {{ currentTimeLabel }} / {{ durationLabel }}
+      </output>
+
+      <button
+        class="mm-video-player__control-button mm-video-player__control-button--text"
+        type="button"
+        :aria-label="muted ? '음소거 해제' : '음소거'"
+        :title="muted ? '음소거 해제' : '음소거'"
+        @click="toggleMute"
+      >
+        {{ muted ? '소리 켜기' : '음소거' }}
+      </button>
+
+      <button
+        class="mm-video-player__control-button mm-video-player__control-button--text"
+        type="button"
+        :aria-label="runtimeState.fullscreen ? '전체화면 종료' : '전체화면'"
+        :title="runtimeState.fullscreen ? '전체화면 종료' : '전체화면'"
+        @click="toggleFullscreen"
+      >
+        {{ runtimeState.fullscreen ? '화면 복귀' : '전체화면' }}
       </button>
     </div>
 
