@@ -20,9 +20,9 @@ function fail(code, message, details = undefined) {
   process.exit(1)
 }
 
-function positiveOrZeroInteger(value, field) {
+function positiveInteger(value, field) {
   const parsed = Number(value)
-  if (!Number.isSafeInteger(parsed) || parsed < 0) fail('E_MMJ_UI29_DISPATCH_INPUT_INVALID', `${field} is invalid.`)
+  if (!Number.isSafeInteger(parsed) || parsed < 1) fail('E_MMJ_UI29_DISPATCH_INPUT_INVALID', `${field} is invalid.`)
   return parsed
 }
 
@@ -43,10 +43,10 @@ function validateInput() {
     collectionVersionId: required.collectionVersionId,
     snapshotDigest: required.snapshotDigest,
     handoffReceiptId: required.handoffReceiptId,
-    projectCount: positiveOrZeroInteger(required.projectCount, 'projectCount'),
-    assetCount: positiveOrZeroInteger(required.assetCount, 'assetCount'),
-    sourceWorkbookRevision: positiveOrZeroInteger(required.sourceWorkbookRevision, 'sourceWorkbookRevision'),
-    collectionHeadRevision: positiveOrZeroInteger(required.collectionHeadRevision, 'collectionHeadRevision'),
+    projectCount: positiveInteger(required.projectCount, 'projectCount'),
+    assetCount: positiveInteger(required.assetCount, 'assetCount'),
+    sourceWorkbookRevision: positiveInteger(required.sourceWorkbookRevision, 'sourceWorkbookRevision'),
+    collectionHeadRevision: positiveInteger(required.collectionHeadRevision, 'collectionHeadRevision'),
     issuedAt: canonicalIso(required.issuedAt, 'issuedAt'),
   }
 }
@@ -64,15 +64,16 @@ function resolveOrigin() {
 
 async function preflight(input) {
   const origin = resolveOrigin()
-  const response = await fetch(`${origin}/api/v1/public/portfolio-snapshot/head`, {
+  const response = await fetch(`${origin}/api/v1/public/portfolio-snapshot/dispatch-authority`, {
     headers: { accept: 'application/json', 'cache-control': 'no-cache' },
     redirect: 'error',
   })
   if (!response.ok) fail('E_MMJ_UI29_DISPATCH_HEAD_FETCH_FAILED', 'Portfolio head request failed.', { status: response.status })
-  const head = await response.json()
+  const authority = await response.json()
+  if (authority.contract !== 'mmj-portfolio-dispatch-authority-v1') fail('E_MMJ_UI29_DISPATCH_AUTHORITY_INVALID', 'Portfolio dispatch authority contract is invalid.')
   const mismatches = []
-  for (const field of ['collectionVersionId', 'snapshotDigest', 'handoffReceiptId', 'projectCount', 'assetCount']) {
-    if (String(head[field]) !== String(input[field])) mismatches.push({ field, expected: input[field], actual: head[field] })
+  for (const field of ['deliveryKey', 'collectionVersionId', 'snapshotDigest', 'handoffReceiptId', 'projectCount', 'assetCount', 'sourceWorkbookRevision', 'collectionHeadRevision']) {
+    if (String(authority[field]) !== String(input[field])) mismatches.push({ field, expected: input[field], actual: authority[field] })
   }
   if (mismatches.length) fail('E_MMJ_UI29_DISPATCH_HEAD_MISMATCH', 'Current portfolio head does not match dispatch payload.', { mismatches })
   console.log(JSON.stringify({ event: 'PASS_MMJ_UI29_B_DISPATCH_PREFLIGHT', ...input }))

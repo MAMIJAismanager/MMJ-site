@@ -251,6 +251,9 @@ for (const required of requiredUi29BuildFiles) {
   try { await stat(resolve(root, required)) } catch { fail(`required UI29 build dependency missing: ${required}`) }
 }
 
+const dispatchVerifySource = await readFile(resolve(root, 'scripts/mmj-ui29-dispatch-input-verify.mjs'), 'utf8')
+if (!dispatchVerifySource.includes('/api/v1/public/portfolio-snapshot/dispatch-authority')) fail('UI29 dispatch verifier is missing current authority endpoint.')
+
 const adoptSource = await readFile(resolve(root, 'scripts/mmj-ui29-portfolio-adopt.mjs'), 'utf8')
 for (const forbiddenEndpoint of ['/api/v1/mutations', '/admin/bootstrap', '/api/v1/portfolio-collection/rebuild', '/api/v1/commission-guide/']) {
   if (adoptSource.includes(forbiddenEndpoint)) fail(`UI29 adoption script contains forbidden endpoint: ${forbiddenEndpoint}`)

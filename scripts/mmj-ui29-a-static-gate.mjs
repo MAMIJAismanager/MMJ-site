@@ -94,6 +94,12 @@ const publicTypes = await read('shared/types/portfolio-snapshot.ts')
 if (!publicTypes.includes("Omit<PortfolioProject, 'publishState' | 'timing' | 'post'>")) fail('public project post omission boundary missing.')
 if (!publicTypes.includes('readonly post: WorkMediaPost')) fail('public project post must be required.')
 
+const dispatchVerify = await read('scripts/mmj-ui29-dispatch-input-verify.mjs')
+if (!dispatchVerify.includes('/api/v1/public/portfolio-snapshot/dispatch-authority')) fail('current dispatch authority endpoint missing.')
+for (const field of ['deliveryKey', 'sourceWorkbookRevision', 'collectionHeadRevision']) {
+  if (!dispatchVerify.includes(field)) fail(`dispatch authority parity field missing: ${field}`)
+}
+
 const adopt = await read('scripts/mmj-ui29-portfolio-adopt.mjs')
 for (const endpoint of [
   '/api/v1/public/portfolio-snapshot/head',
@@ -184,5 +190,5 @@ console.log(JSON.stringify({
   packageVersion: pkg.version,
   generatedFixtureCount: 0,
   workflowCount: 2,
-  publicEndpointCount: 3,
+  publicEndpointCount: 4,
 }))
