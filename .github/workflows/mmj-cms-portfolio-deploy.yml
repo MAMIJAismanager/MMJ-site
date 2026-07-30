@@ -64,9 +64,9 @@ jobs:
       MMJ_SOURCE_WORKBOOK_REVISION: ${{ github.event_name == 'repository_dispatch' && format('{0}', github.event.client_payload.sourceWorkbookRevision) || format('{0}', inputs.source_workbook_revision) }}
       MMJ_COLLECTION_HEAD_REVISION: ${{ github.event_name == 'repository_dispatch' && format('{0}', github.event.client_payload.collectionHeadRevision) || format('{0}', inputs.collection_head_revision) }}
       MMJ_ISSUED_AT: ${{ github.event.client_payload.issuedAt || inputs.issued_at }}
-      MMJ_PORTFOLIO_HANDOFF_ORIGIN: ${{ vars.MMJ_PORTFOLIO_HANDOFF_ORIGIN }}
-      MMJ_CANONICAL_PUBLIC_URL: ${{ vars.MMJ_CANONICAL_PUBLIC_URL }}
-      MMJ_CMS_BUILD_RECEIPT_ENDPOINT: ${{ vars.MMJ_CMS_BUILD_RECEIPT_ENDPOINT }}
+      MMJ_PORTFOLIO_HANDOFF_ORIGIN: https://cms.mamajing.work
+      MMJ_CANONICAL_PUBLIC_URL: https://mamajing.work
+      MMJ_CMS_BUILD_RECEIPT_ENDPOINT: https://cms.mamajing.work/api/v1/internal/portfolio-build-receipts
       MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET: ${{ secrets.MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET }}
 
     steps:
@@ -79,8 +79,8 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install locked dependencies
-        run: npm ci
+      - name: Install dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
 
       - name: Verify dispatch against current CMS head
         run: node scripts/mmj-ui29-dispatch-input-verify.mjs preflight
@@ -93,6 +93,9 @@ jobs:
 
       - name: Verify adopted snapshot identity
         run: node scripts/mmj-ui29-dispatch-input-verify.mjs post-adopt
+
+      - name: Run approved lifecycle scripts after snapshot adoption
+        run: npm rebuild
 
       - name: Emit public deployment receipt
         run: node scripts/mmj-ui29-publish-release-receipt.mjs
@@ -115,7 +118,7 @@ jobs:
       - name: Report build succeeded
         env:
           MMJ_DEPLOYMENT_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
-          MMJ_DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url || vars.MMJ_CANONICAL_PUBLIC_URL }}
+          MMJ_DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url || env.MMJ_CANONICAL_PUBLIC_URL }}
           MMJ_PROBE_STATUS: ${{ steps.probe.outputs.probe_status }}
           MMJ_PROBED_AT: ${{ steps.probe.outputs.probed_at }}
         run: node scripts/mmj-ui29-build-receipt.mjs succeeded
