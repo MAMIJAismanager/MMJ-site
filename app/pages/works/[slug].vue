@@ -67,17 +67,6 @@ useSeoMeta({
     <WorkDetailHeader :project="project" />
 
     <section
-      class="mm-work-detail__cover"
-      data-mm-work-cover
-      aria-label="대표 이미지"
-    >
-      <WorkAssetFrame
-        :asset="project.assets.cover"
-        context-label="대표 이미지"
-      />
-    </section>
-
-    <section
       class="mm-work-section mm-work-description"
       data-mm-work-description
     >
