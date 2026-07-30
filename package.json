@@ -23,7 +23,8 @@
     "preview": "nuxt preview",
     "typecheck": "npm run verify:boundary && npm run verify:portfolio-handoff && nuxt typecheck",
     "prepare": "nuxt prepare",
-    "gate:mmj-ui29-a": "npm run verify:mmj-ui29-static && npm run verify:work-detail-cover-boundary && npm run test:mmj-ui29 && npm run sync:portfolio && npm run verify:boundary && npm run verify:portfolio-handoff && npm run verify:public-release && npm run typecheck:local && npm run generate:local && npm run verify:static-output",
+    "gate:mmj-ui29-a": "npm run verify:mmj-ui29-static && npm run verify:work-detail-cover-boundary && npm run test:mmj-ui29 && npm run test:mmj-ui29-dispatch-authority && npm run sync:portfolio && npm run verify:boundary && npm run verify:portfolio-handoff && npm run verify:public-release && npm run typecheck:local && npm run generate:local && npm run verify:static-output",
+    "test:mmj-ui29-dispatch-authority": "node scripts/mmj-ui29-dispatch-authority-test.mjs",
     "verify:work-detail-cover-boundary": "node scripts/mmj-ui29-work-detail-cover-boundary-gate.mjs"
   },
   "dependencies": {
@@ -34,5 +35,6 @@
   "devDependencies": {
     "typescript": "5.8.3",
     "vue-tsc": "3.0.6"
-  }
+  },
+  "mmjDispatchAuthorityRelease": "MMJ-PUBLIC-BUILD-HANDOFF-R1"
 }

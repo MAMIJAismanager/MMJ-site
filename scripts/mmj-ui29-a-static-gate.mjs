@@ -91,6 +91,7 @@ const slugPage = await read('app/pages/works/[slug].vue')
 for (const binding of ['useSeoMeta', 'project.seo.title', 'project.seo.description', 'project.seo.indexable', 'ogImage']) {
   if (!slugPage.includes(binding)) fail(`work detail SEO binding missing: ${binding}`)
 }
+
 for (const forbidden of [
   'data-mm-work-cover',
   'context-label="대표 이미지"',
@@ -98,8 +99,11 @@ for (const forbidden of [
   'aria-label="대표 이미지"',
   'mm-work-detail__cover',
 ]) {
-  if (slugPage.includes(forbidden)) fail(`work detail cover body projection remains: ${forbidden}`)
+  if (slugPage.includes(forbidden)) {
+    fail(`work detail cover body projection remains: ${forbidden}`)
+  }
 }
+
 for (const required of [
   'v-if="project.assets.primary !== null"',
   'data-mm-work-primary',
@@ -107,13 +111,27 @@ for (const required of [
   'video-runtime="primary-detail"',
   'audio-runtime="primary-detail"',
 ]) {
-  if (!slugPage.includes(required)) fail(`work detail primary authority missing: ${required}`)
+  if (!slugPage.includes(required)) {
+    fail(`work detail primary authority missing: ${required}`)
+  }
 }
-const workDetailCss = await read('app/assets/css/work-detail.css')
-if (workDetailCss.includes('.mm-work-detail__cover')) fail('work detail cover CSS residue remains.')
+
+const workDetailCss =
+  await read('app/assets/css/work-detail.css')
+
+if (workDetailCss.includes('.mm-work-detail__cover')) {
+  fail('work detail cover CSS residue remains.')
+}
+
 const publicTypes = await read('shared/types/portfolio-snapshot.ts')
 if (!publicTypes.includes("Omit<PortfolioProject, 'publishState' | 'timing' | 'post'>")) fail('public project post omission boundary missing.')
 if (!publicTypes.includes('readonly post: WorkMediaPost')) fail('public project post must be required.')
+
+const dispatchVerify = await read('scripts/mmj-ui29-dispatch-input-verify.mjs')
+if (!dispatchVerify.includes('/api/v1/public/portfolio-snapshot/dispatch-authority')) fail('current dispatch authority endpoint missing.')
+for (const field of ['deliveryKey', 'sourceWorkbookRevision', 'collectionHeadRevision']) {
+  if (!dispatchVerify.includes(field)) fail(`dispatch authority parity field missing: ${field}`)
+}
 
 const adopt = await read('scripts/mmj-ui29-portfolio-adopt.mjs')
 for (const endpoint of [
@@ -205,5 +223,5 @@ console.log(JSON.stringify({
   packageVersion: pkg.version,
   generatedFixtureCount: 0,
   workflowCount: 2,
-  publicEndpointCount: 3,
+  publicEndpointCount: 4,
 }))
