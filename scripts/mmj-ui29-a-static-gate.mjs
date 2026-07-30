@@ -16,6 +16,7 @@ const requiredScripts = {
   'verify:commission-guide-handoff': 'node scripts/mmj-ui29-commission-guide-verify.mjs',
   'verify:static-output': 'node scripts/mmj-ui29-static-output-verify.mjs',
   'verify:work-detail-cover-boundary': 'node scripts/mmj-ui29-work-detail-cover-boundary-gate.mjs',
+  'verify:work-detail-auxiliary-retirement': 'node scripts/mmj-ui29-work-detail-auxiliary-retirement-gate.mjs',
   'test:mmj-ui29-dispatch-authority': 'node scripts/mmj-ui29-dispatch-authority-test.mjs',
 }
 for (const [name, command] of Object.entries(requiredScripts)) {
@@ -23,6 +24,9 @@ for (const [name, command] of Object.entries(requiredScripts)) {
 }
 if (pkg.mmjDispatchAuthorityRelease !== 'MMJ-PUBLIC-BUILD-HANDOFF-R1') fail('portfolio dispatch release identity missing')
 if (pkg.mmjCommissionGuideHandoffRelease !== 'MMJ-PUBLIC-COMMISSION-GUIDE-HANDOFF-R1') fail('commission handoff release identity missing')
+if (pkg.mmjWorkDetailAuxiliaryRetirementRelease !== 'MMJ-PUBLIC-WORK-DETAIL-AUXILIARY-SURFACE-RETIREMENT-R1') fail('work-detail auxiliary retirement release identity missing')
+if (!String(pkg.scripts?.['gate:mmj-ui29-a'] ?? '').includes('verify:work-detail-auxiliary-retirement')) fail('work-detail auxiliary retirement gate missing from aggregate gate')
+if (!await exists('scripts/mmj-ui29-work-detail-auxiliary-retirement-gate.mjs')) fail('work-detail auxiliary retirement gate file missing')
 for (const name of ['build', 'generate', 'dev', 'gate:mmj-ui29-a']) {
   if (!String(pkg.scripts?.[name] ?? '').includes('sync:public-content')) fail(`unified network adoption missing from ${name}`)
 }
@@ -85,8 +89,26 @@ const slugPage = await read('app/pages/works/[slug].vue')
 for (const binding of ['useSeoMeta', 'project.seo.title', 'project.seo.description', 'project.seo.indexable', 'ogImage']) if (!slugPage.includes(binding)) fail(`work detail SEO binding missing: ${binding}`)
 for (const forbidden of ['data-mm-work-cover', 'context-label="대표 이미지"', ':asset="project.assets.cover"', 'aria-label="대표 이미지"', 'mm-work-detail__cover']) if (slugPage.includes(forbidden)) fail(`work detail cover body projection remains: ${forbidden}`)
 for (const required of ['v-if="project.assets.primary !== null"', 'data-mm-work-primary', ':asset="project.assets.primary"', 'video-runtime="primary-detail"', 'audio-runtime="primary-detail"']) if (!slugPage.includes(required)) fail(`work detail primary authority missing: ${required}`)
+for (const required of ['definePageMeta', 'hideSiteFooter: true']) if (!slugPage.includes(required)) fail(`work detail global footer suppression missing: ${required}`)
+for (const required of ['mm-work-detail__footer', 'mm-work-detail__all-works', 'data-mm-work-return-link', 'returnTarget.href', 'returnTarget.label']) if (!slugPage.includes(required)) fail(`work detail return link authority missing: ${required}`)
+
+const workDetailHeader = await read('app/components/work/WorkDetailHeader.vue')
+for (const forbidden of [
+  'data-mm-work-meta-line',
+  'data-mm-work-roles',
+  'data-mm-work-release-date',
+  'project.displayMeta.metaLine',
+  'project.displayMeta.timing.releaseDate',
+  'v-for="role in project.roles"',
+  'aria-label="담당 역할"',
+]) if (workDetailHeader.includes(forbidden)) fail(`work detail auxiliary header projection remains: ${forbidden}`)
+for (const required of ['data-mm-work-detail-header', 'project.category.label', 'project.title', 'project.summary', 'project.tags', 'data-mm-work-tags']) if (!workDetailHeader.includes(required)) fail(`work detail primary header projection missing: ${required}`)
+
 const workDetailCss = await read('app/assets/css/work-detail.css')
 if (workDetailCss.includes('.mm-work-detail__cover')) fail('work detail cover CSS residue remains.')
+for (const forbidden of ['.mm-work-detail-header__meta', '.mm-work-detail-header__roles', '.mm-work-detail-header__release', 'minmax(16rem, 0.4fr)']) if (workDetailCss.includes(forbidden)) fail(`work detail auxiliary CSS residue remains: ${forbidden}`)
+const desktopHeaderBlock = workDetailCss.match(/@media\s*\(min-width:\s*80rem\)\s*\{[\s\S]*?\.mm-work-detail-header\s*\{([\s\S]*?)\}[\s\S]*?\}/)?.[1] ?? null
+if (desktopHeaderBlock === null || !desktopHeaderBlock.includes('grid-template-columns: minmax(0, 1fr)') || !desktopHeaderBlock.includes('max-width: var(--mm-copy-max)')) fail('work detail desktop header single-column reflow missing')
 
 const commissionData = await read('app/data/commission-guide.ts')
 if (!commissionData.includes("../../generated/commission-guide.snapshot.json")) fail('generated commission snapshot projection missing')
@@ -159,4 +181,6 @@ console.log(JSON.stringify({
   portfolioPublicEndpointCount: 4,
   commissionPublicEndpointCount: 4,
   commissionMockAuthority: 'retired',
+  workDetailAuxiliaryProjection: 'absent',
+  workDetailGlobalFooter: 'absent',
 }))

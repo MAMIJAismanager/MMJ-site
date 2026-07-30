@@ -69,6 +69,35 @@ for (const project of generated.snapshot.projects) {
   if (actualDescription !== project.seo.description) fail('E_MMJ_UI29_SEO_PARITY_MISMATCH', 'Prerender description differs from snapshot.', { slug: project.slug })
   if (actualRobots !== expectedRobots) fail('E_MMJ_UI29_SEO_PARITY_MISMATCH', 'Prerender robots policy differs from snapshot.', { slug: project.slug })
   if (actualOgImage !== expectedOgImage) fail('E_MMJ_UI29_SEO_PARITY_MISMATCH', 'Prerender Open Graph image differs from snapshot.', { slug: project.slug })
+
+  for (const signature of [
+    'data-mm-work-meta-line',
+    'data-mm-work-roles',
+    'data-mm-work-release-date',
+    'data-mm-site-footer',
+    'class="mm-site-footer',
+  ]) {
+    if (html.includes(signature)) {
+      fail(
+        'E_MMJ_WORK_DETAIL_AUXILIARY_PRERENDER_RESIDUE',
+        'Retired work-detail auxiliary surface remains in prerender.',
+        { slug: project.slug, signature },
+      )
+    }
+  }
+
+  for (const signature of [
+    'data-mm-work-detail-header',
+    'data-mm-work-return-link',
+  ]) {
+    if (!html.includes(signature)) {
+      fail(
+        'E_MMJ_WORK_DETAIL_PRIMARY_PRERENDER_MISSING',
+        'Required work-detail structure is missing from prerender.',
+        { slug: project.slug, signature },
+      )
+    }
+  }
 }
 
 const commissionFile = resolve(outputRoot, 'about', 'index.html')
@@ -163,5 +192,8 @@ console.log(JSON.stringify({
   seoParity: 'pass',
   commissionGuidePublicationVersionId: commissionGenerated.receipt.publicationVersionId,
   commissionGuideContentParity: 'pass',
+  workDetailAuxiliaryProjection: 'absent',
+  workDetailGlobalFooter: 'absent',
+  workDetailReturnLink: 'preserved',
   cmsRuntimeFetch: 'absent',
 }))

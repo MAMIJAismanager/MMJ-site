@@ -23,27 +23,6 @@ defineProps<Props>()
       {{ project.title }}
     </h1>
 
-    <p
-      v-if="project.displayMeta.metaLine !== null"
-      class="mm-work-detail-header__meta"
-      data-mm-work-meta-line
-    >
-      {{ project.displayMeta.metaLine }}
-    </p>
-
-    <ul
-      class="mm-work-detail-header__roles"
-      aria-label="담당 역할"
-      data-mm-work-roles
-    >
-      <li
-        v-for="role in project.roles"
-        :key="role.token"
-      >
-        {{ role.label }}
-      </li>
-    </ul>
-
     <p class="mm-work-detail-header__summary">
       {{ project.summary }}
     </p>
@@ -61,16 +40,5 @@ defineProps<Props>()
         {{ tag.label }}
       </li>
     </ul>
-
-    <p
-      v-if="project.displayMeta.timing.releaseDate !== null"
-      class="mm-work-detail-header__release"
-      data-mm-work-release-date
-    >
-      <span>발표일</span>
-      <time :datetime="project.displayMeta.timing.releaseDate">
-        {{ project.displayMeta.timing.releaseDate }}
-      </time>
-    </p>
   </header>
 </template>

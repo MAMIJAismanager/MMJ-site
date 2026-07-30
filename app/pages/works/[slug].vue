@@ -1,4 +1,8 @@
 <script setup lang="ts">
+definePageMeta({
+  hideSiteFooter: true,
+})
+
 import {
   findWorkDetailViewBySlug,
 } from '~/data/portfolio-project-views'

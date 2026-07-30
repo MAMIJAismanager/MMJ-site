@@ -31,9 +31,7 @@
 
 .mm-work-detail-header__eyebrow,
 .mm-work-detail-header__title,
-.mm-work-detail-header__meta,
 .mm-work-detail-header__summary,
-.mm-work-detail-header__release,
 .mm-work-asset-frame__context,
 .mm-work-asset-frame__label,
 .mm-work-asset-frame__editorial,
@@ -44,8 +42,6 @@
   margin: 0;
 }
 
-.mm-work-detail-header__meta,
-.mm-work-detail-header__release,
 .mm-work-asset-frame__context,
 .mm-work-asset-frame__credit,
 .mm-work-related__meta {
@@ -60,7 +56,6 @@
   line-height: var(--mm-line-height-body);
 }
 
-.mm-work-detail-header__roles,
 .mm-work-detail-header__tags,
 .mm-work-credits__groups,
 .mm-work-credits__entries,
@@ -71,27 +66,12 @@
   list-style: none;
 }
 
-.mm-work-detail-header__roles,
 .mm-work-detail-header__tags {
   display: flex;
   flex-wrap: wrap;
   gap: var(--mm-space-2) var(--mm-space-4);
-}
-
-.mm-work-detail-header__roles {
-  font-size: var(--mm-font-size-small);
-  font-weight: var(--mm-font-weight-semibold);
-}
-
-.mm-work-detail-header__tags {
   color: var(--mm-color-text-muted);
   font-size: var(--mm-font-size-small);
-}
-
-.mm-work-detail-header__release {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--mm-space-2) var(--mm-space-4);
 }
 
 .mm-work-section {
@@ -131,7 +111,6 @@
   background: var(--mm-color-surface);
   color: var(--mm-color-on-surface-muted);
 }
-
 
 .mm-work-asset-frame__caption {
   display: grid;
@@ -317,33 +296,8 @@
 
 @media (min-width: 80rem) {
   .mm-work-detail-header {
-    grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.4fr);
-    max-width: none;
-  }
-
-  .mm-work-detail-header__eyebrow,
-  .mm-work-detail-header__title,
-  .mm-work-detail-header__summary,
-  .mm-work-detail-header__tags {
-    grid-column: 1;
-  }
-
-  .mm-work-detail-header__meta,
-  .mm-work-detail-header__roles,
-  .mm-work-detail-header__release {
-    grid-column: 2;
-  }
-
-  .mm-work-detail-header__meta {
-    grid-row: 2;
-  }
-
-  .mm-work-detail-header__roles {
-    grid-row: 3;
-  }
-
-  .mm-work-detail-header__release {
-    grid-row: 4;
+    grid-template-columns: minmax(0, 1fr);
+    max-width: var(--mm-copy-max);
   }
 
   .mm-work-related__list {
