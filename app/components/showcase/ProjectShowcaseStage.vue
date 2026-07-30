@@ -87,11 +87,15 @@ function twoDigits(value: number): string {
   return String(value).padStart(2, '0')
 }
 
-const stageAsset = computed(() => (
-  isGatewayProject.value
-    ? null
-    : props.project.backdrop ?? props.project.cover
-))
+const stageAsset = computed(() => {
+  const project = props.project
+
+  if ('gatewayCategoryId' in project) {
+    return null
+  }
+
+  return project.backdrop ?? project.cover
+})
 const imagePlan = computed(() => {
   const asset = stageAsset.value
   if (asset === null) return null

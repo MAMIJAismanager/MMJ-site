@@ -35,9 +35,6 @@ import type {
   Ref,
 } from 'vue'
 
-import type {
-  ShowcaseProjectView,
-} from '~~/shared/view/portfolio-project-view'
 
 import type { ProjectId } from '~~/shared/types/domain-identifiers'
 import type {
@@ -45,8 +42,12 @@ import type {
   NavigationRouteKey,
 } from '~~/shared/types/navigation-memory'
 
+interface HomeNavigationProjectIdentity {
+  readonly id: ProjectId
+}
+
 interface UseHomeNavigationMemoryOptions {
-  readonly projects: () => readonly ShowcaseProjectView[]
+  readonly projects: () => readonly HomeNavigationProjectIdentity[]
   readonly activeProjectId: Ref<ProjectId | null>
   readonly trackViewport: Ref<HTMLElement | null>
   readonly selectorElements: ReadonlyMap<ProjectId, HTMLButtonElement>
