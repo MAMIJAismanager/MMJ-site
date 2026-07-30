@@ -65,6 +65,128 @@ const forbiddenText = [
   /apps-script\/media-cms|workers\/media-cms|content\/providers/i,
 ]
 
+const allowedWorkflowSecretNames = new Set([
+  'MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET',
+  'CLOUDFLARE_API_TOKEN',
+  'CLOUDFLARE_ACCOUNT_ID',
+])
+
+const allowedBuildScriptSecretReferences = new Map([
+  [
+    'scripts/mmj-ui29-build-receipt.mjs',
+    new Set([
+      'MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET',
+    ]),
+  ],
+])
+
+const workflowPathPattern =
+  /^\.github\/workflows\/[^/]+\.ya?ml$/
+
+function redactAllowedWorkflowSecretReferences(rel, text) {
+  if (!workflowPathPattern.test(rel)) return text
+
+  return text
+    .split(/\r?\n/)
+    .map((line, index) => {
+      const directBinding = line.match(
+        /^(\s*)([A-Z][A-Z0-9_]*):\s*\$\{\{\s*secrets\.([A-Z][A-Z0-9_]*)\s*\}\}\s*$/,
+      )
+
+      if (directBinding) {
+        const [, indentation, environmentName, secretName] =
+          directBinding
+
+        if (environmentName !== secretName) {
+          fail(
+            `workflow secret binding name mismatch in ${rel}:${index + 1}: ` +
+            `${environmentName} != ${secretName}`,
+          )
+        }
+
+        if (!allowedWorkflowSecretNames.has(secretName)) {
+          fail(
+            `workflow secret reference is not allowlisted in ` +
+            `${rel}:${index + 1}: ${secretName}`,
+          )
+        }
+
+        return (
+          indentation +
+          'REDACTED_WORKFLOW_SECRET: ' +
+          '${{ secrets.REDACTED }}'
+        )
+      }
+
+      return line.replace(
+        /\$\{\{\s*secrets\.([A-Z][A-Z0-9_]*)\s*\}\}/g,
+        (_reference, secretName) => {
+          if (!allowedWorkflowSecretNames.has(secretName)) {
+            fail(
+              `workflow secret reference is not allowlisted in ` +
+              `${rel}:${index + 1}: ${secretName}`,
+            )
+          }
+
+          return '${{ secrets.REDACTED }}'
+        },
+      )
+    })
+    .join('\n')
+}
+function redactAllowedBuildScriptSecretReferences(rel, text) {
+  const allowedNames =
+    allowedBuildScriptSecretReferences.get(rel)
+
+  if (!allowedNames) return text
+
+  let redacted = text
+
+  for (const secretName of allowedNames) {
+    const escapedName =
+      secretName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+    const approvedAccessPatterns = [
+      new RegExp(
+        `required\\((['"])${escapedName}\\1\\)`,
+        'g',
+      ),
+      new RegExp(
+        `process\\.env\\.${escapedName}\\b`,
+        'g',
+      ),
+      new RegExp(
+        `process\\.env\\[(['"])${escapedName}\\1\\]`,
+        'g',
+      ),
+    ]
+
+    let matchCount = 0
+
+    for (const pattern of approvedAccessPatterns) {
+      redacted = redacted.replace(
+        pattern,
+        matched => {
+          matchCount += 1
+          return matched.replace(
+            secretName,
+            'REDACTED_BUILD_SECRET',
+          )
+        },
+      )
+    }
+
+    if (matchCount === 0) {
+      fail(
+        `allowlisted build secret reference is missing from ` +
+        `${rel}: ${secretName}`,
+      )
+    }
+  }
+
+  return redacted
+}
+
 async function walk(dir) {
   const files = []
   for (const entry of await readdir(dir, { withFileTypes: true })) {
@@ -89,8 +211,19 @@ for (const absolute of files) {
   if (rel.startsWith('shared/') && !allowedShared.has(rel)) fail(`shared file is not allowlisted: ${rel}`)
   if (!textExtensions.has(extname(rel)) || rel === 'scripts/public-boundary-gate.mjs') continue
   const text = await readFile(absolute, 'utf8')
+  const workflowRedactedText =
+    redactAllowedWorkflowSecretReferences(rel, text)
+
+  const controlPlaneScanText =
+    redactAllowedBuildScriptSecretReferences(
+      rel,
+      workflowRedactedText,
+    )
+
   for (const pattern of forbiddenText) {
-    if (pattern.test(text)) fail(`forbidden control-plane signature in ${rel}: ${pattern}`)
+    if (pattern.test(controlPlaneScanText)) {
+      fail(`forbidden control-plane signature in ${rel}: ${pattern}`)
+    }
   }
   const imports = text.matchAll(/(?:from\s*|import\s*\()(['"])([^'"]+)\1/g)
   for (const match of imports) {
