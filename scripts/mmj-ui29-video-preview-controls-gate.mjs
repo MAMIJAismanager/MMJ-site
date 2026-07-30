@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 
 const root = process.cwd()
 const read = path => readFile(resolve(root, path), 'utf8')
-const fail = message => { throw new Error(`E_MMJ_UI29_VIDEO_STAGE_R2: ${message}`) }
+const fail = message => { throw new Error(`E_MMJ_UI29_VIDEO_PREVIEW_FLUID_R3: ${message}`) }
 
 const player = await read('app/components/media/VideoPlayer.vue')
 const playerCss = await read('app/assets/css/video-player.css')
@@ -24,8 +24,9 @@ if (player.includes(':controls="controlsVisible"')) fail('native controls must r
 if (!playerCss.includes('.mm-video-player__controls')) fail('custom control surface CSS missing')
 
 for (const token of [
-  'width: min(100%, 120rem)',
-  'max-width: 120rem',
+  'width: min(100%, clamp(40rem, 50vw, 60rem))',
+  'max-width: 60rem',
+  '@media (max-width: 48rem)',
   'aspect-ratio: 16 / 9',
   'object-fit: contain',
   'object-position: center',
@@ -41,16 +42,21 @@ for (const retired of [
   'width: min(100%, 45rem)',
   'aspect-ratio: 3 / 2',
   '720 x 480',
+  'width: min(100%, 120rem)',
+  'max-width: 120rem',
 ]) {
   if (playerCss.includes(retired)) fail(`retired bounded preview contract remains: ${retired}`)
 }
 
 console.log(JSON.stringify({
-  event: 'PASS_MMJ_UI29_VIDEO_STAGE_R2',
+  event: 'PASS_MMJ_UI29_VIDEO_PREVIEW_FLUID_R3',
   nativeControls: false,
   downloadUi: 'denied',
   designWidthPx: 1920,
   designHeightPx: 1080,
+  previewWidthAt1920Px: 960,
+  previewWidthAt1440Px: 720,
+  mobileWidth: 'content-100%',
   stageAspectRatio: '16:9',
   sourceFit: 'contain',
   fullscreenFit: 'contain',

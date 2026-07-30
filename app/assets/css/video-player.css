@@ -192,17 +192,26 @@
 }
 
 /*
- * Work-detail primary video stage.
- * 1920 x 1080 is the design coordinate system, not a forced source size.
- * Any source aspect ratio is preserved by object-fit: contain, producing
- * letterbox or pillarbox bars inside the 16:9 stage when required.
+ * Work-detail primary video preview.
+ * The 1920 x 1080 coordinate system remains 16:9, while the embedded preview
+ * occupies about half of a 1920-wide viewport and contracts fluidly below it.
+ * Source pixels are never cropped or stretched; contain produces letterbox or
+ * pillarbox bars on the unused axis.
  */
 .mm-work-asset-frame[data-mm-video-runtime="primary-detail"][data-mm-work-asset-kind="video"] > .mm-video-player {
   justify-self: center;
-  width: min(100%, 120rem);
-  max-width: 120rem;
+  width: min(100%, clamp(40rem, 50vw, 60rem));
+  max-width: 60rem;
+  min-width: 0;
   aspect-ratio: 16 / 9;
   background: #11151a;
+}
+
+@media (max-width: 48rem) {
+  .mm-work-asset-frame[data-mm-video-runtime="primary-detail"][data-mm-work-asset-kind="video"] > .mm-video-player {
+    width: 100%;
+    max-width: none;
+  }
 }
 
 /*
