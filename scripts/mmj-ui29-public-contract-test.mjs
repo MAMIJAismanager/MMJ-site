@@ -11,7 +11,7 @@ const sourceDigest = '1'.repeat(64)
 const snapshotDigest = '2'.repeat(64)
 const collectionVersionId = `pcol_${snapshotDigest.slice(0, 26)}`
 const receiptId = `phnd_${'3'.repeat(26)}`
-const routeSlugs = ['/works/contract-sample']
+const routeSlugs = ['contract-sample']
 
 const asset = {
   schemaVersion: 1,
@@ -142,6 +142,19 @@ pass('valid sealed contract', () => {
   validateSnapshot(snapshot, receipt)
   validateHeadStability(head, clone(head))
 })
+pass('numeric route slug admitted while manifest route stays canonical', () => {
+  const numericProject = { ...clone(project), slug: '231312' }
+  const numericSnapshot = { ...clone(snapshot), projects: [numericProject] }
+  const numericRouteSlugs = ['231312']
+  const numericReceipt = {
+    ...clone(receipt),
+    routesDigest: canonicalDigest(numericRouteSlugs),
+    routeSlugs: numericRouteSlugs,
+  }
+  validateReceipt(numericReceipt, head)
+  const result = validateSnapshot(numericSnapshot, numericReceipt)
+  if (result.routes[0] !== '/works/231312') throw new Error('numeric slug route manifest projection drifted')
+})
 reject('approval state leak', 'E_MMJ_UI29_SNAPSHOT_INVALID', () => {
   const value = clone(snapshot)
   value.assets[0].approvalState = 'approved'
@@ -161,7 +174,7 @@ reject('unreachable asset denied', 'E_MMJ_UI29_SNAPSHOT_INVALID', () => {
   validateSnapshot(value, { ...receipt, assetCount: 2 })
 })
 reject('route parity denied', 'E_MMJ_UI29_ROUTE_PARITY_MISMATCH', () => {
-  validateSnapshot(snapshot, { ...receipt, routeSlugs: ['/works/different'] })
+  validateSnapshot(snapshot, { ...receipt, routeSlugs: ['different'] })
 })
 reject('head drift denied', 'E_MMJ_UI29_PORTFOLIO_HEAD_UNSTABLE', () => {
   validateHeadStability(head, { ...head, generation: 2 })

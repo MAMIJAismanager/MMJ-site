@@ -223,11 +223,11 @@ export function validateReceipt(value, expectedHead = null) {
   integer(value.assetCount, '$receipt.assetCount', code, 0)
   integer(value.routeCount, '$receipt.routeCount', code, 0)
   string(value.routesDigest, '$receipt.routesDigest', code, { pattern: SHA256 })
-  const routes = array(value.routeSlugs, '$receipt.routeSlugs', code)
-  routes.forEach((route, index) => string(route, `$receipt.routeSlugs[${index}]`, code, { pattern: ROUTE }))
-  assertUnique(routes, '$receipt.routeSlugs', code)
-  if (routes.length !== value.routeCount) fail(code, 'Receipt route count mismatch.')
-  if (canonicalDigest(routes) !== value.routesDigest) fail('E_MMJ_UI29_ROUTE_DIGEST_MISMATCH', 'Receipt route array digest mismatch.')
+  const routeSlugs = array(value.routeSlugs, '$receipt.routeSlugs', code)
+  routeSlugs.forEach((slug, index) => string(slug, `$receipt.routeSlugs[${index}]`, code, { pattern: SLUG }))
+  assertUnique(routeSlugs, '$receipt.routeSlugs', code)
+  if (routeSlugs.length !== value.routeCount) fail(code, 'Receipt route count mismatch.')
+  if (canonicalDigest(routeSlugs) !== value.routesDigest) fail('E_MMJ_UI29_ROUTE_DIGEST_MISMATCH', 'Receipt route slug array digest mismatch.')
   const evidence = array(value.activePublicationEvidence, '$receipt.activePublicationEvidence', code)
   evidence.forEach((entry, index) => {
     exactKeys(entry, ['projectId', 'publicationVersionId', 'versionSnapshotDigest', 'publicationDigest'], `$receipt.activePublicationEvidence[${index}]`, code)
@@ -450,13 +450,14 @@ export function validateSnapshot(value, expected = null) {
     const unreachable = assets.map(asset => asset.id).filter(id => !reachable.has(id))
     fail(code, 'Snapshot contains unreachable assets.', { unreachable })
   }
-  const routes = projects.map(project => `/works/${project.slug}`)
+  const routeSlugs = projects.map(project => project.slug)
+  const routes = routeSlugs.map(slug => `/works/${slug}`)
   if (expected) {
     if (value.sourceDigest !== expected.sourceDigest) fail('E_MMJ_UI29_RECEIPT_SNAPSHOT_MISMATCH', 'Snapshot source digest mismatch.')
     if (value.publicationCutoff !== expected.publicationCutoff) fail('E_MMJ_UI29_RECEIPT_SNAPSHOT_MISMATCH', 'Snapshot publication cutoff mismatch.')
     if (projects.length !== expected.projectCount) fail('E_MMJ_UI29_RECEIPT_SNAPSHOT_MISMATCH', 'Snapshot project count mismatch.')
     if (assets.length !== expected.assetCount) fail('E_MMJ_UI29_RECEIPT_SNAPSHOT_MISMATCH', 'Snapshot asset count mismatch.')
-    if (!equalJson(routes, expected.routeSlugs)) fail('E_MMJ_UI29_ROUTE_PARITY_MISMATCH', 'Snapshot routes and receipt routes differ.', { routes, receiptRoutes: expected.routeSlugs })
+    if (!equalJson(routeSlugs, expected.routeSlugs)) fail('E_MMJ_UI29_ROUTE_PARITY_MISMATCH', 'Snapshot route slugs and receipt route slugs differ.', { routeSlugs, receiptRouteSlugs: expected.routeSlugs })
   }
   publicBoundaryInspect(value, '$snapshot', code)
   return { snapshot: value, routes }
