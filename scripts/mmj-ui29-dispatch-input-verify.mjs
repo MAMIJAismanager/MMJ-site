@@ -87,13 +87,20 @@ async function postAdopt(input) {
   ])
   const manifest = JSON.parse(manifestBytes.toString('utf8'))
   const handoff = JSON.parse(handoffBytes.toString('utf8'))
+  const portfolioManifest = manifest.schemaVersion === 2 ? manifest.portfolio : {
+    snapshotDigest: manifest.snapshotDigest,
+    collectionVersionId: manifest.portfolioCollectionVersionId,
+    handoffReceiptId: manifest.portfolioHandoffReceiptId,
+    projectCount: manifest.projectCount,
+    assetCount: manifest.assetCount,
+  }
   const mismatches = []
   const checks = [
-    ['snapshotDigest', manifest.snapshotDigest, input.snapshotDigest],
-    ['collectionVersionId', manifest.portfolioCollectionVersionId, input.collectionVersionId],
-    ['handoffReceiptId', manifest.portfolioHandoffReceiptId, input.handoffReceiptId],
-    ['projectCount', manifest.projectCount, input.projectCount],
-    ['assetCount', manifest.assetCount, input.assetCount],
+    ['snapshotDigest', portfolioManifest.snapshotDigest, input.snapshotDigest],
+    ['collectionVersionId', portfolioManifest.collectionVersionId, input.collectionVersionId],
+    ['handoffReceiptId', portfolioManifest.handoffReceiptId, input.handoffReceiptId],
+    ['projectCount', portfolioManifest.projectCount, input.projectCount],
+    ['assetCount', portfolioManifest.assetCount, input.assetCount],
     ['handoff.snapshotDigest', handoff.snapshotDigest, input.snapshotDigest],
   ]
   for (const [field, actual, expected] of checks) if (String(actual) !== String(expected)) mismatches.push({ field, expected, actual })

@@ -6,18 +6,25 @@ const source = resolve(root, 'generated/public-release.manifest.json')
 const targetDirectory = resolve(root, 'public/.well-known')
 const target = resolve(targetDirectory, 'mmj-public-release.json')
 const manifest = JSON.parse(await readFile(source, 'utf8'))
-const expected = process.env.MMJ_EXPECTED_SNAPSHOT_DIGEST || ''
-if (!/^[0-9a-f]{64}$/.test(expected) || manifest.snapshotDigest !== expected) {
-  throw new Error('E_MMJ_UI29_PUBLIC_RELEASE_RECEIPT_DIGEST_MISMATCH')
-}
-const receipt = {
-  schemaVersion: 1,
-  releaseId: manifest.releaseId,
+const portfolioManifest = manifest.schemaVersion === 2 ? manifest.portfolio : {
   snapshotDigest: manifest.snapshotDigest,
   collectionVersionId: manifest.portfolioCollectionVersionId,
   handoffReceiptId: manifest.portfolioHandoffReceiptId,
   projectCount: manifest.projectCount,
   assetCount: manifest.assetCount,
+}
+const expected = process.env.MMJ_EXPECTED_SNAPSHOT_DIGEST || ''
+if (!/^[0-9a-f]{64}$/.test(expected) || portfolioManifest.snapshotDigest !== expected) {
+  throw new Error('E_MMJ_UI29_PUBLIC_RELEASE_RECEIPT_DIGEST_MISMATCH')
+}
+const receipt = {
+  schemaVersion: 1,
+  releaseId: manifest.releaseId,
+  snapshotDigest: portfolioManifest.snapshotDigest,
+  collectionVersionId: portfolioManifest.collectionVersionId,
+  handoffReceiptId: portfolioManifest.handoffReceiptId,
+  projectCount: portfolioManifest.projectCount,
+  assetCount: portfolioManifest.assetCount,
   generatedAt: manifest.generatedAt,
 }
 await mkdir(targetDirectory, { recursive: true })

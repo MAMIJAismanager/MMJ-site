@@ -19,3 +19,8 @@ generated/portfolio.build-input-lock.json
 generated/public-release.manifest.json
 generated/.ui29-stage-*/
 generated/.ui29-backup-*/
+generated/commission-guide.snapshot.json
+generated/commission-guide.handoff.json
+generated/commission-guide.build-input-lock.json
+generated/.commission-stage-*/
+generated/.commission-backup-*/

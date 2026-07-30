@@ -54,10 +54,15 @@ const textExtensions = new Set(['.ts', '.vue', '.js', '.mjs', '.json', '.md', '.
 const requiredUi29BuildFiles = new Set([
   'scripts/mmj-ui29-portfolio-adopt.mjs',
   'scripts/mmj-ui29-portfolio-verify.mjs',
+  'scripts/mmj-ui29-commission-guide-adopt.mjs',
+  'scripts/mmj-ui29-commission-guide-verify.mjs',
+  'scripts/mmj-ui29-public-content-adopt.mjs',
+  'scripts/mmj-ui29-commission-dispatch-input-verify.mjs',
   'scripts/mmj-ui29-static-output-verify.mjs',
   'scripts/mmj-ui29-a-static-gate.mjs',
   'scripts/mmj-ui29-public-contract-test.mjs',
   'scripts/lib/mmj-ui29-public-contract.mjs',
+  'scripts/lib/mmj-ui29-commission-contract.mjs',
 ])
 const forbiddenText = [
   /MMJ_[A-Z0-9_]*(?:SECRET|SALT|ACCOUNT_ID|BUCKET_NAME|SPREADSHEET_ID|SCRIPT_ID|WORKER_ORIGIN)/,
@@ -250,9 +255,6 @@ for (const required of allowedShared) {
 for (const required of requiredUi29BuildFiles) {
   try { await stat(resolve(root, required)) } catch { fail(`required UI29 build dependency missing: ${required}`) }
 }
-
-const dispatchVerifySource = await readFile(resolve(root, 'scripts/mmj-ui29-dispatch-input-verify.mjs'), 'utf8')
-if (!dispatchVerifySource.includes('/api/v1/public/portfolio-snapshot/dispatch-authority')) fail('UI29 dispatch verifier is missing current authority endpoint.')
 
 const adoptSource = await readFile(resolve(root, 'scripts/mmj-ui29-portfolio-adopt.mjs'), 'utf8')
 for (const forbiddenEndpoint of ['/api/v1/mutations', '/admin/bootstrap', '/api/v1/portfolio-collection/rebuild', '/api/v1/commission-guide/']) {

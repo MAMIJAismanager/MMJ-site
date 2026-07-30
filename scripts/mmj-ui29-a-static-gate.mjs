@@ -10,18 +10,26 @@ const pkg = JSON.parse(await read('package.json'))
 if (pkg.version !== '0.29.0-mmj-ui29-a') fail(`package version drift: ${pkg.version}`)
 const requiredScripts = {
   'sync:portfolio': 'node scripts/mmj-ui29-portfolio-adopt.mjs',
+  'sync:commission-guide': 'node scripts/mmj-ui29-commission-guide-adopt.mjs',
+  'sync:public-content': 'node scripts/mmj-ui29-public-content-adopt.mjs',
   'verify:portfolio-handoff': 'node scripts/mmj-ui29-portfolio-verify.mjs',
+  'verify:commission-guide-handoff': 'node scripts/mmj-ui29-commission-guide-verify.mjs',
   'verify:static-output': 'node scripts/mmj-ui29-static-output-verify.mjs',
   'verify:work-detail-cover-boundary': 'node scripts/mmj-ui29-work-detail-cover-boundary-gate.mjs',
+  'test:mmj-ui29-dispatch-authority': 'node scripts/mmj-ui29-dispatch-authority-test.mjs',
 }
 for (const [name, command] of Object.entries(requiredScripts)) {
   if (pkg.scripts?.[name] !== command) fail(`package script drift: ${name}`)
 }
+if (pkg.mmjDispatchAuthorityRelease !== 'MMJ-PUBLIC-BUILD-HANDOFF-R1') fail('portfolio dispatch release identity missing')
+if (pkg.mmjCommissionGuideHandoffRelease !== 'MMJ-PUBLIC-COMMISSION-GUIDE-HANDOFF-R1') fail('commission handoff release identity missing')
 for (const name of ['build', 'generate', 'dev', 'gate:mmj-ui29-a']) {
-  if (!String(pkg.scripts?.[name] ?? '').includes('sync:portfolio')) fail(`network adoption missing from ${name}`)
+  if (!String(pkg.scripts?.[name] ?? '').includes('sync:public-content')) fail(`unified network adoption missing from ${name}`)
 }
 for (const name of ['build:local', 'generate:local', 'typecheck']) {
-  if (String(pkg.scripts?.[name] ?? '').includes('sync:portfolio')) fail(`unexpected second network adoption in ${name}`)
+  const command = String(pkg.scripts?.[name] ?? '')
+  if (command.includes('sync:portfolio') || command.includes('sync:commission-guide') || command.includes('sync:public-content')) fail(`unexpected second network adoption in ${name}`)
+  if (!command.includes('verify:commission-guide-handoff')) fail(`commission verification missing from ${name}`)
 }
 
 const generatedFixtureNames = [
@@ -29,173 +37,98 @@ const generatedFixtureNames = [
   'generated/portfolio.routes.json',
   'generated/portfolio.handoff.json',
   'generated/portfolio.build-input-lock.json',
+  'generated/commission-guide.snapshot.json',
+  'generated/commission-guide.handoff.json',
+  'generated/commission-guide.build-input-lock.json',
   'generated/public-release.manifest.json',
 ]
 let generatedGitCheckout = false
-
 try {
   const { execFileSync } = await import('node:child_process')
-
-  generatedGitCheckout = execFileSync(
-    'git',
-    ['rev-parse', '--is-inside-work-tree'],
-    {
-      cwd: root,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    },
-  ).trim() === 'true'
+  generatedGitCheckout = execFileSync('git', ['rev-parse', '--is-inside-work-tree'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim() === 'true'
 } catch {
   generatedGitCheckout = false
 }
-
 if (generatedGitCheckout) {
   const { execFileSync } = await import('node:child_process')
-
-  const trackedGeneratedArtifacts = execFileSync(
-    'git',
-    ['ls-files', '--', ...generatedFixtureNames],
-    {
-      cwd: root,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    },
-  ).trim()
-
-  if (trackedGeneratedArtifacts) {
-    fail(
-      `generated portfolio artifact must not be committed: ${
-        trackedGeneratedArtifacts.split(/\r?\n/).join(', ')
-      }`,
-    )
-  }
+  const tracked = execFileSync('git', ['ls-files', '--', ...generatedFixtureNames], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
+  if (tracked) fail(`generated public-content artifact must not be committed: ${tracked.split(/\r?\n/).join(', ')}`)
 } else {
-  for (const path of generatedFixtureNames) {
-    if (await exists(path)) {
-      fail(`baked source contains generated portfolio artifact: ${path}`)
-    }
-  }
+  for (const path of generatedFixtureNames) if (await exists(path)) fail(`baked source contains generated public-content artifact: ${path}`)
 }
 
 for (const workflowPath of ['.github/workflows/ci.yml', '.github/workflows/pages.yml']) {
   const workflow = await read(workflowPath)
   const install = workflow.indexOf('npm ci --ignore-scripts')
-  const sync = workflow.indexOf('npm run sync:portfolio')
+  const sync = workflow.indexOf('npm run sync:public-content')
   const rebuild = workflow.indexOf('npm rebuild')
   const generate = workflow.indexOf('npm run generate:local')
   if (!(install >= 0 && install < sync && sync < rebuild && rebuild < generate)) fail(`workflow lifecycle order drift: ${workflowPath}`)
-  if (!workflow.includes('MMJ_PORTFOLIO_HANDOFF_ORIGIN: https://cms.mamajing.work')) fail(`production handoff origin missing: ${workflowPath}`)
+  for (const origin of [
+    'MMJ_PORTFOLIO_HANDOFF_ORIGIN: https://cms.mamajing.work',
+    'MMJ_COMMISSION_GUIDE_HANDOFF_ORIGIN: https://cms.mamajing.work',
+  ]) if (!workflow.includes(origin)) fail(`production handoff origin missing: ${workflowPath}: ${origin}`)
+  if (!workflow.includes('npm run verify:commission-guide-handoff')) fail(`commission verification missing: ${workflowPath}`)
 }
+const commissionWorkflow = await read('.github/workflows/mmj-cms-commission-guide-deploy.yml')
+for (const token of [
+  'mmj-public-commission-guide-published',
+  'mmj-ui29-commission-dispatch-input-verify.mjs preflight',
+  'npm run sync:public-content',
+  'mmj-ui29-commission-dispatch-input-verify.mjs post-adopt',
+  'npm run verify:static-output',
+]) if (!commissionWorkflow.includes(token)) fail(`commission dispatch workflow drift: ${token}`)
+const portfolioWorkflow = await read('.github/workflows/mmj-cms-portfolio-deploy.yml')
+if (!portfolioWorkflow.includes('group: mmj-public-site-deploy') || !commissionWorkflow.includes('group: mmj-public-site-deploy')) fail('cross-domain deploy concurrency is not unified')
 
 const slugPage = await read('app/pages/works/[slug].vue')
-for (const binding of ['useSeoMeta', 'project.seo.title', 'project.seo.description', 'project.seo.indexable', 'ogImage']) {
-  if (!slugPage.includes(binding)) fail(`work detail SEO binding missing: ${binding}`)
-}
+for (const binding of ['useSeoMeta', 'project.seo.title', 'project.seo.description', 'project.seo.indexable', 'ogImage']) if (!slugPage.includes(binding)) fail(`work detail SEO binding missing: ${binding}`)
+for (const forbidden of ['data-mm-work-cover', 'context-label="대표 이미지"', ':asset="project.assets.cover"', 'aria-label="대표 이미지"', 'mm-work-detail__cover']) if (slugPage.includes(forbidden)) fail(`work detail cover body projection remains: ${forbidden}`)
+for (const required of ['v-if="project.assets.primary !== null"', 'data-mm-work-primary', ':asset="project.assets.primary"', 'video-runtime="primary-detail"', 'audio-runtime="primary-detail"']) if (!slugPage.includes(required)) fail(`work detail primary authority missing: ${required}`)
+const workDetailCss = await read('app/assets/css/work-detail.css')
+if (workDetailCss.includes('.mm-work-detail__cover')) fail('work detail cover CSS residue remains.')
 
-for (const forbidden of [
-  'data-mm-work-cover',
-  'context-label="대표 이미지"',
-  ':asset="project.assets.cover"',
-  'aria-label="대표 이미지"',
-  'mm-work-detail__cover',
-]) {
-  if (slugPage.includes(forbidden)) {
-    fail(`work detail cover body projection remains: ${forbidden}`)
-  }
-}
+const commissionData = await read('app/data/commission-guide.ts')
+if (!commissionData.includes("../../generated/commission-guide.snapshot.json")) fail('generated commission snapshot projection missing')
+for (const forbidden of ['COMMISSION_GUIDE_MOCK', 'commission-guide.mock']) if (commissionData.includes(forbidden)) fail(`commission mock authority remains: ${forbidden}`)
+const commissionAdopt = await read('scripts/mmj-ui29-commission-guide-adopt.mjs')
+for (const endpoint of [
+  '/api/v1/public/commission-guide/head',
+  '/api/v1/public/commission-guide/receipts/',
+  '/api/v1/public/commission-guide?',
+]) if (!commissionAdopt.includes(endpoint)) fail(`commission public endpoint missing: ${endpoint}`)
+for (const required of ["cache: 'no-store'", "'cache-control': 'no-cache'", 'publicationVersionId: headA.publicationVersionId', 'snapshotDigest: headA.snapshotDigest']) if (!commissionAdopt.includes(required)) fail(`commission cache-stable handoff signature missing: ${required}`)
+for (const forbidden of ['/api/v1/mutations', '/admin/bootstrap', 'authorization', 'session cookie', 'COMMISSION_GUIDE_MOCK']) if (commissionAdopt.toLowerCase().includes(forbidden.toLowerCase())) fail(`forbidden commission adoption signature: ${forbidden}`)
 
-for (const required of [
-  'v-if="project.assets.primary !== null"',
-  'data-mm-work-primary',
-  ':asset="project.assets.primary"',
-  'video-runtime="primary-detail"',
-  'audio-runtime="primary-detail"',
-]) {
-  if (!slugPage.includes(required)) {
-    fail(`work detail primary authority missing: ${required}`)
-  }
-}
-
-const workDetailCss =
-  await read('app/assets/css/work-detail.css')
-
-if (workDetailCss.includes('.mm-work-detail__cover')) {
-  fail('work detail cover CSS residue remains.')
-}
+const dispatchVerify = await read('scripts/mmj-ui29-dispatch-input-verify.mjs')
+if (!dispatchVerify.includes('/api/v1/public/portfolio-snapshot/dispatch-authority')) fail('current portfolio dispatch authority endpoint missing')
+for (const field of ['deliveryKey', 'sourceWorkbookRevision', 'collectionHeadRevision']) if (!dispatchVerify.includes(field)) fail(`portfolio dispatch authority parity field missing: ${field}`)
+const commissionDispatchVerify = await read('scripts/mmj-ui29-commission-dispatch-input-verify.mjs')
+for (const token of ['/api/v1/public/commission-guide/dispatch-authority', 'publicationHeadRevision', 'post-adopt']) if (!commissionDispatchVerify.includes(token)) fail(`commission dispatch verifier drift: ${token}`)
 
 const publicTypes = await read('shared/types/portfolio-snapshot.ts')
 if (!publicTypes.includes("Omit<PortfolioProject, 'publishState' | 'timing' | 'post'>")) fail('public project post omission boundary missing.')
 if (!publicTypes.includes('readonly post: WorkMediaPost')) fail('public project post must be required.')
 
-const dispatchVerify = await read('scripts/mmj-ui29-dispatch-input-verify.mjs')
-if (!dispatchVerify.includes('/api/v1/public/portfolio-snapshot/dispatch-authority')) fail('current dispatch authority endpoint missing.')
-for (const field of ['deliveryKey', 'sourceWorkbookRevision', 'collectionHeadRevision']) {
-  if (!dispatchVerify.includes(field)) fail(`dispatch authority parity field missing: ${field}`)
-}
-
-const adopt = await read('scripts/mmj-ui29-portfolio-adopt.mjs')
-for (const endpoint of [
-  '/api/v1/public/portfolio-snapshot/head',
-  '/api/v1/public/portfolio-snapshot/receipts/',
-  '/api/v1/public/portfolio-snapshot',
-]) {
-  if (!adopt.includes(endpoint)) fail(`public endpoint missing: ${endpoint}`)
-}
-for (const forbidden of ['/api/v1/mutations', '/admin/bootstrap', 'authorization', 'session cookie']) {
-  if (adopt.toLowerCase().includes(forbidden)) fail(`forbidden adoption signature: ${forbidden}`)
-}
-for (const required of [
-  "cache: 'no-store'",
-  "'cache-control': 'no-cache'",
-  'collectionVersionId: headA.collectionVersionId',
-  'snapshotDigest: headA.snapshotDigest',
-]) {
-  if (!adopt.includes(required)) fail(`cache-stable handoff signature missing: ${required}`)
-}
+const portfolioAdopt = await read('scripts/mmj-ui29-portfolio-adopt.mjs')
+for (const endpoint of ['/api/v1/public/portfolio-snapshot/head', '/api/v1/public/portfolio-snapshot/receipts/', '/api/v1/public/portfolio-snapshot']) if (!portfolioAdopt.includes(endpoint)) fail(`portfolio public endpoint missing: ${endpoint}`)
 
 const rootEntries = await readdir(root)
-
 let gitInsideWorkTree = false
 let trackedResidue = ''
-
 try {
   const { execFileSync } = await import('node:child_process')
-
-  gitInsideWorkTree = execFileSync(
-    'git',
-    ['rev-parse', '--is-inside-work-tree'],
-    {
-      cwd: root,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    },
-  ).trim() === 'true'
-
-  if (gitInsideWorkTree) {
-    trackedResidue = execFileSync(
-      'git',
-      ['ls-files', '--', 'node_modules', '.output'],
-      {
-        cwd: root,
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'pipe'],
-      },
-    ).trim()
-  }
+  gitInsideWorkTree = execFileSync('git', ['rev-parse', '--is-inside-work-tree'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim() === 'true'
+  if (gitInsideWorkTree) trackedResidue = execFileSync('git', ['ls-files', '--', 'node_modules', '.output'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
 } catch {
   gitInsideWorkTree = false
 }
-
 if (gitInsideWorkTree) {
-  if (trackedResidue) {
-    fail(`tracked local build residue: ${trackedResidue.split(/\r?\n/).join(', ')}`)
-  }
-} else if (
-  rootEntries.includes('node_modules')
-  || rootEntries.includes('.output')
-) {
+  if (trackedResidue) fail(`tracked local build residue: ${trackedResidue.split(/\r?\n/).join(', ')}`)
+} else if (rootEntries.includes('node_modules') || rootEntries.includes('.output')) {
   fail('baked source contains local build residue.')
 }
+
 const fixtureTokens = ['published-work', 'scheduled-due', 'ast_cov00001', 'ast_pos00001', 'ast_vid00001', 'ast_art00001', 'ast_aud00001']
 const scanPaths = ['app', 'shared', 'scripts', 'nuxt.config.ts', 'package.json']
 async function walk(path) {
@@ -222,6 +155,8 @@ console.log(JSON.stringify({
   event: 'PASS_MMJ_UI29_A_STATIC_GATE',
   packageVersion: pkg.version,
   generatedFixtureCount: 0,
-  workflowCount: 2,
-  publicEndpointCount: 4,
+  workflowCount: 4,
+  portfolioPublicEndpointCount: 4,
+  commissionPublicEndpointCount: 4,
+  commissionMockAuthority: 'retired',
 }))

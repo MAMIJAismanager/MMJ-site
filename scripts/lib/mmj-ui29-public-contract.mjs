@@ -579,6 +579,41 @@ function validateBuildInputLock(value, input) {
 
 function validatePublicReleaseManifest(value, input) {
   const code = 'E_MMJ_UI29_GENERATED_STAGE_INVALID'
+  if (value?.schemaVersion === 2) {
+    exactKeys(value, [
+      'schemaVersion', 'contract', 'releaseId', 'producerRevision',
+      'generatedAt', 'portfolio', 'commissionGuide',
+    ], '$publicReleaseManifest', code)
+    if (value.contract !== 'mmj-ui29-public-release-manifest-v2') fail(code, 'Public release manifest v2 contract mismatch.')
+    string(value.releaseId, '$publicReleaseManifest.releaseId', code, { pattern: RELEASE_ID })
+    if (value.producerRevision !== input.producerRevision) fail(code, 'Public release manifest producer revision mismatch.')
+    exactKeys(value.portfolio, [
+      'snapshotDigest', 'routesDigest', 'handoffReceiptDigest',
+      'buildInputLockDigest', 'collectionVersionId', 'handoffReceiptId',
+      'sourceDigest', 'projectCount', 'assetCount',
+    ], '$publicReleaseManifest.portfolio', code)
+    const expectedPortfolio = {
+      snapshotDigest: input.snapshotDigest,
+      routesDigest: input.routesFileDigest,
+      handoffReceiptDigest: input.handoffReceiptDigest,
+      buildInputLockDigest: input.buildInputLockDigest,
+      collectionVersionId: input.collectionVersionId,
+      handoffReceiptId: input.handoffReceiptId,
+      sourceDigest: input.sourceDigest,
+      projectCount: input.projectCount,
+      assetCount: input.assetCount,
+    }
+    if (!equalJson(value.portfolio, expectedPortfolio)) fail(code, 'Public release manifest portfolio identity mismatch.')
+    exactKeys(value.commissionGuide, [
+      'snapshotDigest', 'contentDigest', 'handoffReceiptDigest',
+      'buildInputLockDigest', 'publicationVersionId', 'handoffReceiptId',
+      'sourceWorkbookRevision', 'publicationHeadRevision',
+    ], '$publicReleaseManifest.commissionGuide', code)
+    for (const field of ['snapshotDigest', 'contentDigest', 'handoffReceiptDigest', 'buildInputLockDigest']) {
+      string(value.commissionGuide[field], `$publicReleaseManifest.commissionGuide.${field}`, code, { pattern: SHA256 })
+    }
+    return
+  }
   exactKeys(value, [
     'schemaVersion', 'releaseId', 'snapshotDigest', 'routesDigest', 'projectCount',
     'assetCount', 'publicationCutoff', 'producerRevision', 'generatedAt',
@@ -586,7 +621,7 @@ function validatePublicReleaseManifest(value, input) {
     'portfolioHandoffReceiptDigest', 'portfolioSourceDigest',
     'portfolioBuildInputLockDigest',
   ], '$publicReleaseManifest', code)
-  if (value.schemaVersion !== 1) fail(code, 'Public release manifest schemaVersion must equal 1.')
+  if (value.schemaVersion !== 1) fail(code, 'Public release manifest schemaVersion must equal 1 or 2.')
   string(value.releaseId, '$publicReleaseManifest.releaseId', code, { pattern: RELEASE_ID })
   const expected = createPublicReleaseManifest(input)
   if (!equalJson(value, expected)) fail(code, 'Public release manifest identity mismatch.')

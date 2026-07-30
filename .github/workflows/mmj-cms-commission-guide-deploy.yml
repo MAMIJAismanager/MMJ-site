@@ -1,0 +1,113 @@
+name: MMJ CMS Commission Guide Deploy
+
+on:
+  repository_dispatch:
+    types:
+      - mmj-public-commission-guide-published
+  workflow_dispatch:
+    inputs:
+      delivery_key:
+        description: Deterministic Commission delivery key
+        required: true
+        type: string
+      publication_version_id:
+        description: Commission publication version ID
+        required: true
+        type: string
+      snapshot_digest:
+        description: Expected canonical snapshot SHA-256
+        required: true
+        type: string
+      handoff_receipt_id:
+        description: Commission handoff receipt ID
+        required: true
+        type: string
+      source_workbook_revision:
+        description: Source workbook revision
+        required: true
+        type: number
+      publication_head_revision:
+        description: Publication head revision
+        required: true
+        type: number
+      issued_at:
+        description: Canonical ISO-8601 dispatch time
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mmj-public-site-deploy
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      MMJ_COMMISSION_SCHEMA_VERSION: '1'
+      MMJ_COMMISSION_CONTENT_KIND: commission-guide
+      MMJ_COMMISSION_DELIVERY_KEY: ${{ github.event.client_payload.deliveryKey || inputs.delivery_key }}
+      MMJ_COMMISSION_GUIDE_ID: ${{ github.event.client_payload.guideId || 'default' }}
+      MMJ_COMMISSION_PUBLICATION_VERSION_ID: ${{ github.event.client_payload.publicationVersionId || inputs.publication_version_id }}
+      MMJ_COMMISSION_EXPECTED_SNAPSHOT_DIGEST: ${{ github.event.client_payload.snapshotDigest || inputs.snapshot_digest }}
+      MMJ_COMMISSION_HANDOFF_RECEIPT_ID: ${{ github.event.client_payload.handoffReceiptId || inputs.handoff_receipt_id }}
+      MMJ_COMMISSION_SOURCE_WORKBOOK_REVISION: ${{ github.event_name == 'repository_dispatch' && format('{0}', github.event.client_payload.sourceWorkbookRevision) || format('{0}', inputs.source_workbook_revision) }}
+      MMJ_COMMISSION_PUBLICATION_HEAD_REVISION: ${{ github.event_name == 'repository_dispatch' && format('{0}', github.event.client_payload.publicationHeadRevision) || format('{0}', inputs.publication_head_revision) }}
+      MMJ_COMMISSION_ISSUED_AT: ${{ github.event.client_payload.issuedAt || inputs.issued_at }}
+      MMJ_PORTFOLIO_HANDOFF_ORIGIN: https://cms.mamajing.work
+      MMJ_COMMISSION_GUIDE_HANDOFF_ORIGIN: https://cms.mamajing.work
+      NUXT_APP_BASE_URL: /
+      NUXT_PUBLIC_MMJ_MEDIA_BASE_URL: https://media.mamajing.work
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+
+      - name: Verify dispatch against current CMS commission head
+        run: node scripts/mmj-ui29-commission-dispatch-input-verify.mjs preflight
+
+      - name: Adopt canonical public content
+        run: npm run sync:public-content
+
+      - name: Verify adopted commission identity
+        run: node scripts/mmj-ui29-commission-dispatch-input-verify.mjs post-adopt
+
+      - name: Run approved lifecycle scripts after content adoption
+        run: npm rebuild
+
+      - name: Verify public boundary
+        run: npm run verify:boundary
+
+      - name: Verify portfolio handoff
+        run: npm run verify:portfolio-handoff
+
+      - name: Verify commission guide handoff
+        run: npm run verify:commission-guide-handoff
+
+      - name: Verify aggregate public release
+        run: npm run verify:public-release
+
+      - name: Generate static site
+        run: npm run generate:local
+
+      - name: Verify generated static artifact
+        run: npm run verify:static-output
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy .output/public --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT }}

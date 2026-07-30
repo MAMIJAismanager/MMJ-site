@@ -15,17 +15,21 @@
     "verify:boundary": "node scripts/public-boundary-gate.mjs",
     "verify:public-release": "node scripts/public-release-verify.mjs",
     "typecheck:local": "nuxt typecheck",
-    "build:local": "npm run verify:boundary && npm run verify:portfolio-handoff && npm run verify:public-release && nuxt build --preset=static",
-    "generate:local": "npm run verify:boundary && npm run verify:portfolio-handoff && npm run verify:public-release && nuxt generate",
-    "dev": "npm run sync:portfolio && npm run verify:portfolio-handoff && nuxt dev",
-    "build": "npm run sync:portfolio && npm run build:local",
-    "generate": "npm run sync:portfolio && npm run generate:local",
+    "build:local": "npm run verify:boundary && npm run verify:portfolio-handoff && npm run verify:commission-guide-handoff && npm run verify:public-release && nuxt build --preset=static",
+    "generate:local": "npm run verify:boundary && npm run verify:portfolio-handoff && npm run verify:commission-guide-handoff && npm run verify:public-release && nuxt generate",
+    "dev": "npm run sync:public-content && npm run verify:portfolio-handoff && npm run verify:commission-guide-handoff && nuxt dev",
+    "build": "npm run sync:public-content && npm run build:local",
+    "generate": "npm run sync:public-content && npm run generate:local",
     "preview": "nuxt preview",
-    "typecheck": "npm run verify:boundary && npm run verify:portfolio-handoff && nuxt typecheck",
+    "typecheck": "npm run verify:boundary && npm run verify:portfolio-handoff && npm run verify:commission-guide-handoff && nuxt typecheck",
     "prepare": "nuxt prepare",
-    "gate:mmj-ui29-a": "npm run verify:mmj-ui29-static && npm run verify:work-detail-cover-boundary && npm run test:mmj-ui29 && npm run test:mmj-ui29-dispatch-authority && npm run sync:portfolio && npm run verify:boundary && npm run verify:portfolio-handoff && npm run verify:public-release && npm run typecheck:local && npm run generate:local && npm run verify:static-output",
+    "gate:mmj-ui29-a": "npm run verify:mmj-ui29-static && npm run verify:work-detail-cover-boundary && npm run test:mmj-ui29 && npm run test:mmj-ui29-dispatch-authority && npm run sync:public-content && npm run verify:boundary && npm run verify:portfolio-handoff && npm run verify:commission-guide-handoff && npm run verify:public-release && npm run typecheck:local && npm run generate:local && npm run verify:static-output",
     "test:mmj-ui29-dispatch-authority": "node scripts/mmj-ui29-dispatch-authority-test.mjs",
-    "verify:work-detail-cover-boundary": "node scripts/mmj-ui29-work-detail-cover-boundary-gate.mjs"
+    "verify:work-detail-cover-boundary": "node scripts/mmj-ui29-work-detail-cover-boundary-gate.mjs",
+    "sync:commission-guide": "node scripts/mmj-ui29-commission-guide-adopt.mjs",
+    "verify:commission-guide-handoff": "node scripts/mmj-ui29-commission-guide-verify.mjs",
+    "sync:public-content": "node scripts/mmj-ui29-public-content-adopt.mjs",
+    "verify:commission-dispatch": "node scripts/mmj-ui29-commission-dispatch-input-verify.mjs"
   },
   "dependencies": {
     "@pinia/nuxt": "0.11.2",
@@ -36,5 +40,6 @@
     "typescript": "5.8.3",
     "vue-tsc": "3.0.6"
   },
-  "mmjDispatchAuthorityRelease": "MMJ-PUBLIC-BUILD-HANDOFF-R1"
+  "mmjDispatchAuthorityRelease": "MMJ-PUBLIC-BUILD-HANDOFF-R1",
+  "mmjCommissionGuideHandoffRelease": "MMJ-PUBLIC-COMMISSION-GUIDE-HANDOFF-R1"
 }

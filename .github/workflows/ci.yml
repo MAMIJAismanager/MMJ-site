@@ -15,6 +15,7 @@ jobs:
       LANG: C.UTF-8
       LC_ALL: C.UTF-8
       MMJ_PORTFOLIO_HANDOFF_ORIGIN: https://cms.mamajing.work
+      MMJ_COMMISSION_GUIDE_HANDOFF_ORIGIN: https://cms.mamajing.work
       MMJ_BUILD_ENVIRONMENT_CLASS: test
       NUXT_APP_BASE_URL: /
       NUXT_PUBLIC_MMJ_MEDIA_BASE_URL: https://media.mamajing.work
@@ -39,8 +40,8 @@ jobs:
       - name: Run MMJ-UI29-A contract tests
         run: npm run test:mmj-ui29
 
-      - name: Adopt sealed CMS portfolio collection
-        run: npm run sync:portfolio
+      - name: Adopt sealed CMS public content
+        run: npm run sync:public-content
 
       - name: Run approved dependency lifecycle scripts
         run: npm rebuild
@@ -50,6 +51,9 @@ jobs:
 
       - name: Verify portfolio handoff
         run: npm run verify:portfolio-handoff
+
+      - name: Verify commission guide handoff
+        run: npm run verify:commission-guide-handoff
 
       - name: Verify public release manifest
         run: npm run verify:public-release

@@ -1,6 +1,5 @@
-import {
-  COMMISSION_GUIDE_MOCK,
-} from '~/content/commission-guide.mock'
+// Generated only by the sealed MMJ public-content handoff transaction.
+import commissionGuideSnapshot from '../../generated/commission-guide.snapshot.json'
 
 import {
   createCommissionGuideSnapshot,
@@ -10,11 +9,15 @@ import {
 } from '~/utils/commission-terms'
 
 import type {
+  CommissionGuideContent,
   CommissionServiceId,
 } from '~~/shared/types/commission-guide'
 
+const publishedCommissionGuide =
+  commissionGuideSnapshot.content as CommissionGuideContent
+
 export const commissionGuide =
-  createCommissionGuideSnapshot(COMMISSION_GUIDE_MOCK)
+  createCommissionGuideSnapshot(publishedCommissionGuide)
 
 export const enabledCommissionServices = Object.freeze(
   commissionGuide.services.filter(service => service.enabled),
