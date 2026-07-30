@@ -49,7 +49,7 @@ useSeoMeta({
     />
 
     <footer
-      v-if="viewportMode === 'desktop'"
+      v-show="viewportMode === 'desktop'"
       class="mm-commission-utility-dock"
       data-mm-commission-utility-dock
     >

@@ -6,10 +6,14 @@ import {
   pathExists,
   verifyGeneratedArtifactSet,
 } from './lib/mmj-ui29-public-contract.mjs'
+import {
+  verifyCommissionGeneratedArtifactSet,
+} from './lib/mmj-ui29-commission-contract.mjs'
 
 const root = process.cwd()
 const outputRoot = resolve(root, '.output', 'public')
 const generated = await verifyGeneratedArtifactSet(resolve(root, 'generated'), root)
+const commissionGenerated = await verifyCommissionGeneratedArtifactSet(resolve(root, 'generated'), root)
 
 if (!await pathExists(outputRoot)) fail('E_MMJ_UI29_PRERENDER_ROUTE_MISSING', 'Nuxt static output directory is missing.')
 
@@ -67,6 +71,50 @@ for (const project of generated.snapshot.projects) {
   if (actualOgImage !== expectedOgImage) fail('E_MMJ_UI29_SEO_PARITY_MISMATCH', 'Prerender Open Graph image differs from snapshot.', { slug: project.slug })
 }
 
+const commissionFile = resolve(outputRoot, 'about', 'index.html')
+if (!await pathExists(commissionFile)) fail('E_MMJ_COMMISSION_PRERENDER_MISSING', 'Commission guide route is missing.', { route: '/about' })
+const commissionHtml = await readFile(commissionFile, 'utf8')
+const commissionContent = commissionGenerated.snapshot.content
+if (titleValue(commissionHtml) !== commissionContent.seoTitle) fail('E_MMJ_COMMISSION_SEO_PARITY_MISMATCH', 'Commission prerender title differs from snapshot.')
+if (headValue(commissionHtml, attrs => attrs.name === 'description') !== commissionContent.seoDescription) fail('E_MMJ_COMMISSION_SEO_PARITY_MISMATCH', 'Commission prerender description differs from snapshot.')
+const commissionText = decodeHtml(commissionHtml.replace(/<script\b[\s\S]*?<\/script>/gi, ' ').replace(/<style\b[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim()
+const requiredCommissionPrerenderText = [
+  commissionContent.eyebrow,
+  commissionContent.title,
+  commissionContent.lead,
+  commissionContent.sectionHeading,
+  commissionContent.worksLinkLabel,
+  commissionContent.contactLinkLabel,
+]
+
+// Initial prerender contains the overview projection.
+// Service detail bodies are mounted or switched by interactive state.
+// Their complete authority is already validated by the sealed
+// commission snapshot, handoff receipt, content digest, and release manifest.
+for (
+  const service of commissionContent.services
+    .filter(item => item.enabled)
+) {
+  requiredCommissionPrerenderText.push(
+    service.label,
+    service.summary,
+  )
+}
+
+for (const value of requiredCommissionPrerenderText) {
+  if (!commissionText.includes(value)) {
+    fail(
+      'E_MMJ_COMMISSION_CONTENT_PARITY_MISMATCH',
+      'Commission prerender is missing overview content.',
+      { value },
+    )
+  }
+}
+
+for (const service of commissionContent.services.filter(item => !item.enabled)) {
+  if (commissionText.includes(service.label)) fail('E_MMJ_COMMISSION_CONTENT_PARITY_MISMATCH', 'Disabled commission service leaked into prerender.', { serviceId: service.id })
+}
+
 const worksRoot = resolve(outputRoot, 'works')
 const actualWorkSlugs = []
 if (await pathExists(worksRoot)) {
@@ -85,6 +133,9 @@ const forbidden = [
   'portfolio-snapshot/head',
   'portfolio-snapshot/receipts',
   'cms.mamajing.work/api/v1/public/portfolio-snapshot',
+  'MMJ_COMMISSION_GUIDE_HANDOFF_ORIGIN',
+  '/api/v1/public/commission-guide',
+  'commission-guide/dispatch-authority',
 ]
 let scanned = 0
 async function walk(dir) {
@@ -110,5 +161,7 @@ console.log(JSON.stringify({
   routeCount: generated.routeCount,
   scannedRuntimeFileCount: scanned,
   seoParity: 'pass',
+  commissionGuidePublicationVersionId: commissionGenerated.receipt.publicationVersionId,
+  commissionGuideContentParity: 'pass',
   cmsRuntimeFetch: 'absent',
 }))
