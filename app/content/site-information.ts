@@ -1,4 +1,6 @@
 export interface ContactSurfaceContent {
+  readonly seoTitle: string
+  readonly seoDescription: string
   readonly eyebrow: string
   readonly title: string
   readonly lead: string
@@ -34,6 +36,9 @@ function deepFreeze<T>(value: T): T {
 
 export const SITE_INFORMATION: SiteInformation = deepFreeze({
   contact: {
+    seoTitle: '프로젝트 문의 | 매미: 著',
+    seoDescription:
+      '협업과 프로젝트 문의를 위한 안내 및 외부 문의 양식을 확인합니다.',
     eyebrow: 'Contact',
     title: '프로젝트 문의',
     lead:

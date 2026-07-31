@@ -49,9 +49,77 @@ function titleValue(html) {
   return match ? decodeHtml(match[1]) : null
 }
 
+function normalizeText(value) {
+  return String(value).replace(/\s+/g, ' ').trim()
+}
+
+function bodyText(html) {
+  return normalizeText(decodeHtml(
+    html
+      .replace(/<script\b[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style\b[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' '),
+  ))
+}
+
+async function verifyStaticSeoRoute(file, route, expected) {
+  if (!await pathExists(file)) {
+    fail(
+      'E_MMJ_UI29_PRERENDER_ROUTE_MISSING',
+      'Static SEO route is missing.',
+      { route },
+    )
+  }
+  const html = await readFile(file, 'utf8')
+  const actual = {
+    title: titleValue(html),
+    description: headValue(html, attrs => attrs.name === 'description'),
+    robots: headValue(html, attrs => attrs.name === 'robots'),
+  }
+  for (const key of ['title', 'description', 'robots']) {
+    if (actual[key] !== expected[key]) {
+      fail(
+        'E_MMJ_PUBLIC_ROUTE_SEO_PARITY_MISMATCH',
+        'Static route SEO differs from source authority.',
+        { route, key, actual: actual[key], expected: expected[key] },
+      )
+    }
+  }
+  return html
+}
+
+function primaryMediaFigure(html) {
+  return html.match(
+    /<figure\b(?=[^>]*data-mm-work-asset-context=(?:"주요 미디어"|'주요 미디어'))[^>]*>[\s\S]*?<\/figure>/i,
+  )?.[0] ?? null
+}
+
+const WORKS_SEO = Object.freeze({
+  title: '작업 | 매미: 著',
+  description: '매미: 著의 공개 작업과 프로젝트를 한곳에서 확인합니다.',
+  robots: 'index,follow',
+})
+
+const CONTACT_SEO = Object.freeze({
+  title: '프로젝트 문의 | 매미: 著',
+  description: '협업과 프로젝트 문의를 위한 안내 및 외부 문의 양식을 확인합니다.',
+  robots: 'index,follow',
+})
+
 const mediaBase = String(process.env.NUXT_PUBLIC_MMJ_MEDIA_BASE_URL ?? '').replace(/\/+$/, '')
 if (generated.projectCount > 0 && !mediaBase) fail('E_MMJ_UI29_SEO_PARITY_MISMATCH', 'NUXT_PUBLIC_MMJ_MEDIA_BASE_URL is required for SEO parity.')
 const assetById = new Map(generated.snapshot.assets.map(asset => [asset.id, asset]))
+
+await verifyStaticSeoRoute(
+  resolve(outputRoot, 'works', 'index.html'),
+  '/works',
+  WORKS_SEO,
+)
+await verifyStaticSeoRoute(
+  resolve(outputRoot, 'contact', 'index.html'),
+  '/contact',
+  CONTACT_SEO,
+)
 
 for (const project of generated.snapshot.projects) {
   const file = resolve(outputRoot, 'works', project.slug, 'index.html')
@@ -69,6 +137,62 @@ for (const project of generated.snapshot.projects) {
   if (actualDescription !== project.seo.description) fail('E_MMJ_UI29_SEO_PARITY_MISMATCH', 'Prerender description differs from snapshot.', { slug: project.slug })
   if (actualRobots !== expectedRobots) fail('E_MMJ_UI29_SEO_PARITY_MISMATCH', 'Prerender robots policy differs from snapshot.', { slug: project.slug })
   if (actualOgImage !== expectedOgImage) fail('E_MMJ_UI29_SEO_PARITY_MISMATCH', 'Prerender Open Graph image differs from snapshot.', { slug: project.slug })
+
+  for (const signature of [
+    'mm-work-detail-header__summary',
+    'mm-work-detail-header__tags',
+    'data-mm-work-tags',
+  ]) {
+    if (html.includes(signature)) {
+      fail(
+        'E_MMJ_WORK_DETAIL_HEADER_PRERENDER_RESIDUE',
+        'Retired work-detail summary or tag remains in prerender.',
+        { slug: project.slug, signature },
+      )
+    }
+  }
+
+  if (!html.includes('data-mm-work-description')) {
+    fail(
+      'E_MMJ_WORK_DESCRIPTION_PROJECTION_REGRESSION',
+      'Work description section is missing from prerender.',
+      { slug: project.slug },
+    )
+  }
+  if (!bodyText(html).includes(normalizeText(project.description))) {
+    fail(
+      'E_MMJ_WORK_DESCRIPTION_PROJECTION_REGRESSION',
+      'Published work description is missing from prerender.',
+      { slug: project.slug },
+    )
+  }
+
+  if (html.includes('data-mm-work-primary')) {
+    const figure = primaryMediaFigure(html)
+    if (figure === null) {
+      fail(
+        'E_MMJ_WORK_PRIMARY_FIGURE_MISSING',
+        'Primary media figure is missing from prerender.',
+        { slug: project.slug },
+      )
+    }
+    for (const signature of [
+      '<figcaption',
+      'mm-work-asset-frame__caption',
+      'mm-work-asset-frame__context',
+      'mm-work-asset-frame__label',
+      'mm-work-asset-frame__editorial',
+      'mm-work-asset-frame__credit',
+    ]) {
+      if (figure.includes(signature)) {
+        fail(
+          'E_MMJ_WORK_PRIMARY_CAPTION_PRERENDER_RESIDUE',
+          'Primary media caption remains in prerender.',
+          { slug: project.slug, signature },
+        )
+      }
+    }
+  }
 
   for (const signature of [
     'data-mm-work-meta-line',
@@ -106,6 +230,7 @@ const commissionHtml = await readFile(commissionFile, 'utf8')
 const commissionContent = commissionGenerated.snapshot.content
 if (titleValue(commissionHtml) !== commissionContent.seoTitle) fail('E_MMJ_COMMISSION_SEO_PARITY_MISMATCH', 'Commission prerender title differs from snapshot.')
 if (headValue(commissionHtml, attrs => attrs.name === 'description') !== commissionContent.seoDescription) fail('E_MMJ_COMMISSION_SEO_PARITY_MISMATCH', 'Commission prerender description differs from snapshot.')
+if (headValue(commissionHtml, attrs => attrs.name === 'robots') !== 'index,follow') fail('E_MMJ_COMMISSION_SEO_PARITY_MISMATCH', 'Commission prerender robots policy differs from public route authority.')
 const commissionText = decodeHtml(commissionHtml.replace(/<script\b[\s\S]*?<\/script>/gi, ' ').replace(/<style\b[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim()
 const requiredCommissionPrerenderText = [
   commissionContent.eyebrow,
@@ -195,5 +320,9 @@ console.log(JSON.stringify({
   workDetailAuxiliaryProjection: 'absent',
   workDetailGlobalFooter: 'absent',
   workDetailReturnLink: 'preserved',
+  threeRouteSeoParity: 'pass',
+  workDetailHeaderAuxiliaryProjection: 'absent',
+  primaryMediaCaptionProjection: 'absent',
+  galleryCaptionAuthority: 'preserved',
   cmsRuntimeFetch: 'absent',
 }))

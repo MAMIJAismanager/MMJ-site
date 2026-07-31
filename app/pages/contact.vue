@@ -11,6 +11,12 @@ import { resolveGoogleFormOutbound } from '~/utils/google-form-url'
 
 const contact = SITE_INFORMATION.contact
 const outbound = resolveGoogleFormOutbound(contact.formUrl)
+
+useSeoMeta({
+  title: contact.seoTitle,
+  description: contact.seoDescription,
+  robots: 'index,follow',
+})
 </script>
 
 <template>

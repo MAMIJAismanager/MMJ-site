@@ -23,14 +23,15 @@
     "preview": "nuxt preview",
     "typecheck": "npm run verify:boundary && npm run verify:portfolio-handoff && npm run verify:commission-guide-handoff && nuxt typecheck",
     "prepare": "nuxt prepare",
-    "gate:mmj-ui29-a": "npm run verify:mmj-ui29-static && npm run verify:work-detail-cover-boundary && npm run verify:work-detail-auxiliary-retirement && npm run test:mmj-ui29 && npm run test:mmj-ui29-dispatch-authority && npm run sync:public-content && npm run verify:boundary && npm run verify:portfolio-handoff && npm run verify:commission-guide-handoff && npm run verify:public-release && npm run typecheck:local && npm run generate:local && npm run verify:static-output",
+    "gate:mmj-ui29-a": "npm run verify:mmj-ui29-static && npm run verify:work-detail-cover-boundary && npm run verify:work-detail-auxiliary-retirement && npm run verify:three-route-seo-lean-work-detail && npm run test:mmj-ui29 && npm run test:mmj-ui29-dispatch-authority && npm run sync:public-content && npm run verify:boundary && npm run verify:portfolio-handoff && npm run verify:commission-guide-handoff && npm run verify:public-release && npm run typecheck:local && npm run generate:local && npm run verify:static-output",
     "test:mmj-ui29-dispatch-authority": "node scripts/mmj-ui29-dispatch-authority-test.mjs",
     "verify:work-detail-cover-boundary": "node scripts/mmj-ui29-work-detail-cover-boundary-gate.mjs",
     "verify:work-detail-auxiliary-retirement": "node scripts/mmj-ui29-work-detail-auxiliary-retirement-gate.mjs",
     "sync:commission-guide": "node scripts/mmj-ui29-commission-guide-adopt.mjs",
     "verify:commission-guide-handoff": "node scripts/mmj-ui29-commission-guide-verify.mjs",
     "sync:public-content": "node scripts/mmj-ui29-public-content-adopt.mjs",
-    "verify:commission-dispatch": "node scripts/mmj-ui29-commission-dispatch-input-verify.mjs"
+    "verify:commission-dispatch": "node scripts/mmj-ui29-commission-dispatch-input-verify.mjs",
+    "verify:three-route-seo-lean-work-detail": "node scripts/mmj-ui29-three-route-seo-lean-work-detail-gate.mjs"
   },
   "dependencies": {
     "@pinia/nuxt": "0.11.2",
@@ -43,5 +44,6 @@
   },
   "mmjDispatchAuthorityRelease": "MMJ-PUBLIC-BUILD-HANDOFF-R1",
   "mmjCommissionGuideHandoffRelease": "MMJ-PUBLIC-COMMISSION-GUIDE-HANDOFF-R1",
-  "mmjWorkDetailAuxiliaryRetirementRelease": "MMJ-PUBLIC-WORK-DETAIL-AUXILIARY-SURFACE-RETIREMENT-R1"
+  "mmjWorkDetailAuxiliaryRetirementRelease": "MMJ-PUBLIC-WORK-DETAIL-AUXILIARY-SURFACE-RETIREMENT-R1",
+  "mmjThreeRouteSeoLeanWorkDetailRelease": "MMJ-PUBLIC-THREE-ROUTE-SEO-LEAN-WORK-DETAIL-R1"
 }

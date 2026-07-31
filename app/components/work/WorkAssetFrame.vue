@@ -24,6 +24,7 @@ interface Props {
   readonly projectId?: ProjectId
   readonly videoRuntime?: 'disabled' | 'primary-detail'
   readonly audioRuntime?: 'disabled' | 'primary-detail'
+  readonly captionMode?: 'full' | 'none'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -31,6 +32,7 @@ const props = withDefaults(defineProps<Props>(), {
   projectId: undefined,
   videoRuntime: 'disabled',
   audioRuntime: 'disabled',
+  captionMode: 'full',
 })
 
 const kindLabel = computed(() => {
@@ -147,7 +149,10 @@ const audioArtworkState = computed(() => {
       :track="audioTrack"
     />
 
-    <figcaption class="mm-work-asset-frame__caption">
+    <figcaption
+      v-if="captionMode === 'full'"
+      class="mm-work-asset-frame__caption"
+    >
       <p class="mm-work-asset-frame__context">
         <span v-if="indexLabel">{{ indexLabel }} · </span>{{ contextLabel }} · {{ kindLabel }}
       </p>

@@ -96,6 +96,7 @@ useSeoMeta({
         context-label="주요 미디어"
         video-runtime="primary-detail"
         audio-runtime="primary-detail"
+        caption-mode="none"
       />
     </section>
 

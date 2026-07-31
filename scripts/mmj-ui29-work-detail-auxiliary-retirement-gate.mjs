@@ -40,9 +40,6 @@ for (const signature of [
   'data-mm-work-detail-header',
   'project.category.label',
   'project.title',
-  'project.summary',
-  'project.tags',
-  'data-mm-work-tags',
 ]) {
   if (!header.includes(signature)) {
     fail(

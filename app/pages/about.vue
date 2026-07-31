@@ -28,6 +28,7 @@ const commissionDetailActive = ref(false)
 useSeoMeta({
   title: commissionGuide.seoTitle,
   description: commissionGuide.seoDescription,
+  robots: 'index,follow',
 })
 </script>
 

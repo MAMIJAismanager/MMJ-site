@@ -48,6 +48,18 @@ import type {
 
 const MOBILE_VIEWPORT_QUERY = '(max-width: 47.999rem)'
 
+const WORKS_SEO = Object.freeze({
+  title: '작업 | 매미: 著',
+  description:
+    '매미: 著의 공개 작업과 프로젝트를 한곳에서 확인합니다.',
+})
+
+useSeoMeta({
+  title: WORKS_SEO.title,
+  description: WORKS_SEO.description,
+  robots: 'index,follow',
+})
+
 const {
   queryReady,
   evaluation,
