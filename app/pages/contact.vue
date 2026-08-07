@@ -19,6 +19,7 @@ useSeoMeta({
 
 <template>
   <InfoPageSurface
+    class="mm-contact-page-surface"
     page="contact"
     :eyebrow="contact.eyebrow"
     :title="contact.title"
@@ -52,3 +53,22 @@ useSeoMeta({
     </nav>
   </InfoPageSurface>
 </template>
+
+<style scoped>
+@media (min-width: 80rem) and (min-height: 45rem) {
+  .mm-contact-page-surface :deep(.mm-info-page__body) {
+    grid-template-rows: auto auto;
+    align-content: start;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    padding-block-end: var(--mm-space-6);
+  }
+
+  .mm-contact-page-surface :deep(.mm-contact-section) {
+    height: auto;
+    min-height: 0;
+  }
+}
+</style>
