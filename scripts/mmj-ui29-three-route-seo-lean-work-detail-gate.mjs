@@ -98,7 +98,7 @@ for (const signature of [
   'readonly seoDescription: string',
   "seoTitle: '프로젝트 문의 | 매미: 著'",
   "seoDescription:",
-  "'협업과 프로젝트 문의를 위한 안내 및 외부 문의 양식을 확인합니다.'",
+  "'협업과 프로젝트 문의를 위한 안내 및 문의 양식을 확인합니다.'",
 ]) {
   if (!siteInformation.includes(signature)) {
     fail(

@@ -4,13 +4,11 @@ definePageMeta({
   viewportComposition: 'info',
 })
 
-import ContactOutboundPanel from '~/components/contact/ContactOutboundPanel.vue'
+import ContactForm from '~/components/contact/ContactForm.vue'
 import InfoPageSurface from '~/components/info/InfoPageSurface.vue'
 import { SITE_INFORMATION } from '~/content/site-information'
-import { resolveGoogleFormOutbound } from '~/utils/google-form-url'
 
 const contact = SITE_INFORMATION.contact
-const outbound = resolveGoogleFormOutbound(contact.formUrl)
 
 useSeoMeta({
   title: contact.seoTitle,
@@ -31,17 +29,13 @@ useSeoMeta({
       data-mm-contact-section
     >
       <h2 class="mm-info-section__title">
-        {{ contact.outboundHeading }}
+        {{ contact.formHeading }}
       </h2>
       <p class="mm-info-section__body">
-        {{ contact.outboundDescription }}
+        {{ contact.formDescription }}
       </p>
 
-      <ContactOutboundPanel
-        :state="outbound"
-        :link-label="contact.formLinkLabel"
-        :unavailable-message="contact.unavailableMessage"
-      />
+      <ContactForm :content="contact" />
     </section>
 
     <nav

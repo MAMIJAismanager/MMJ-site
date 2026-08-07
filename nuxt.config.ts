@@ -22,6 +22,7 @@ const runtimeProcess = (globalThis as unknown as { process?: { env?: Record<stri
 const runtimeEnv = runtimeProcess?.env ?? {}
 const environmentClass = runtimeEnv.MMJ_BUILD_ENVIRONMENT_CLASS === 'production' ? 'production' : runtimeEnv.MMJ_BUILD_ENVIRONMENT_CLASS === 'test' ? 'test' : 'development'
 const mediaDeliveryConfig = resolvePortfolioMediaDeliveryConfig(runtimeEnv.NUXT_PUBLIC_MMJ_MEDIA_BASE_URL, environmentClass)
+const contactFormEndpoint = runtimeEnv.NUXT_PUBLIC_MMJ_CONTACT_FORM_ENDPOINT ?? ''
 const snapshotValue: unknown = JSON.parse(snapshotBytes.toString())
 const snapshotProjectRoutes = (() => {
   if (
@@ -154,6 +155,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       mmjMediaBaseUrl: mediaDeliveryConfig.mediaBaseUrl ?? '',
+      mmjContactFormEndpoint: contactFormEndpoint,
     },
   },
 
@@ -184,6 +186,10 @@ export default defineNuxtConfig({
         {
           name: 'viewport',
           content: 'width=device-width, initial-scale=1',
+        },
+        {
+          name: 'referrer',
+          content: 'strict-origin-when-cross-origin',
         },
       ],
       link: [
