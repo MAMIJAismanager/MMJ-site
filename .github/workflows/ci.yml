@@ -19,6 +19,7 @@ jobs:
       MMJ_BUILD_ENVIRONMENT_CLASS: test
       NUXT_APP_BASE_URL: /
       NUXT_PUBLIC_MMJ_MEDIA_BASE_URL: https://media.mamajing.work
+      NUXT_PUBLIC_MMJ_CONTACT_FORM_ENDPOINT: https://formspree.io/f/mrpzbjbv
     steps:
       - name: Checkout source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
