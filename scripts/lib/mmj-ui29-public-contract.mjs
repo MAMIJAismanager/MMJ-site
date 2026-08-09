@@ -3,7 +3,7 @@ import { readdir, readFile, stat } from 'node:fs/promises'
 import { relative, resolve, sep } from 'node:path'
 
 export const UI29_RELEASE = 'MMJ-UI29-A'
-export const PRODUCER_RELEASE = '0.7.1-mmj-cms-worker-07-b'
+export const PRODUCER_RELEASE = '0.7.9-mmj-portfolio-empty-closure-r1'
 export const SNAPSHOT_CONTRACT = 'mmj-public-portfolio-collection-v1'
 export const HANDOFF_CONTRACT = 'mmj-static-build-handoff-receipt-v1'
 export const BUILD_INPUT_LOCK_CONTRACT = 'mmj-ui29-build-input-lock-v1'

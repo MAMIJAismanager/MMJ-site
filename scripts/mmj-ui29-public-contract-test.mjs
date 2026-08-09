@@ -1,5 +1,7 @@
 import {
   canonicalDigest,
+  createBuildInputLock,
+  PRODUCER_RELEASE,
   validateHead,
   validateHeadStability,
   validateReceipt,
@@ -7,6 +9,8 @@ import {
 } from './lib/mmj-ui29-public-contract.mjs'
 
 const clone = value => structuredClone(value)
+const EXPECTED_PORTFOLIO_PRODUCER_RELEASE = '0.7.9-mmj-portfolio-empty-closure-r1'
+const LEGACY_PORTFOLIO_PRODUCER_RELEASE = '0.7.1-mmj-cms-worker-07-b'
 const sourceDigest = '1'.repeat(64)
 const snapshotDigest = '2'.repeat(64)
 const collectionVersionId = `pcol_${snapshotDigest.slice(0, 26)}`
@@ -94,7 +98,7 @@ const head = {
   previousSnapshotDigest: null,
   handoffReceiptId: receiptId,
   promotedAt: snapshot.publicationCutoff,
-  producerRelease: '0.7.1-mmj-cms-worker-07-b',
+  producerRelease: EXPECTED_PORTFOLIO_PRODUCER_RELEASE,
 }
 
 const receipt = {
@@ -118,7 +122,7 @@ const receipt = {
     versionSnapshotDigest: '5'.repeat(64),
     publicationDigest: '6'.repeat(64),
   }],
-  producerRelease: '0.7.1-mmj-cms-worker-07-b',
+  producerRelease: EXPECTED_PORTFOLIO_PRODUCER_RELEASE,
   createdAt: snapshot.publicationCutoff,
 }
 
@@ -141,6 +145,70 @@ pass('valid sealed contract', () => {
   validateReceipt(receipt, head)
   validateSnapshot(snapshot, receipt)
   validateHeadStability(head, clone(head))
+})
+pass('current portfolio producer release authority', () => {
+  if (PRODUCER_RELEASE !== EXPECTED_PORTFOLIO_PRODUCER_RELEASE) {
+    throw new Error(`portfolio producer release drifted: ${PRODUCER_RELEASE}`)
+  }
+})
+pass('build input lock carries current producer identity', () => {
+  const lock = createBuildInputLock({
+    upstreamOrigin: 'https://cms.mamajing.work',
+    head,
+    receipt,
+    handoffReceiptDigest: '7'.repeat(64),
+  })
+  if (lock.producerRelease !== EXPECTED_PORTFOLIO_PRODUCER_RELEASE) {
+    throw new Error('build input lock producer release drifted')
+  }
+})
+pass('canonical empty collection admitted', () => {
+  const emptySnapshot = {
+    assets: [],
+    projects: [],
+    publicationCutoff: snapshot.publicationCutoff,
+    schemaVersion: 1,
+    sourceDigest,
+  }
+  const emptySnapshotDigest = canonicalDigest(emptySnapshot)
+  const emptyCollectionVersionId = `pcol_${emptySnapshotDigest.slice(0, 26)}`
+  const emptyReceiptId = `phnd_${'8'.repeat(26)}`
+  const emptyHead = {
+    ...clone(head),
+    collectionVersionId: emptyCollectionVersionId,
+    snapshotObjectKey: `portfolio-collections/v1/snapshots/${emptyCollectionVersionId}.json`,
+    snapshotDigest: emptySnapshotDigest,
+    projectCount: 0,
+    assetCount: 0,
+    routeCount: 0,
+    handoffReceiptId: emptyReceiptId,
+  }
+  const emptyReceipt = {
+    ...clone(receipt),
+    receiptId: emptyReceiptId,
+    collectionVersionId: emptyCollectionVersionId,
+    snapshotObjectKey: emptyHead.snapshotObjectKey,
+    snapshotDigest: emptySnapshotDigest,
+    projectCount: 0,
+    assetCount: 0,
+    routeCount: 0,
+    routesDigest: canonicalDigest([]),
+    routeSlugs: [],
+    activePublicationEvidence: [],
+  }
+  validateHead(emptyHead)
+  validateReceipt(emptyReceipt, emptyHead)
+  const result = validateSnapshot(emptySnapshot, emptyReceipt)
+  if (result.routes.length !== 0) throw new Error('empty collection projected unexpected routes')
+})
+reject('legacy 0.7.1 head producer release denied', 'E_MMJ_UI29_HEAD_INVALID', () => {
+  validateHead({ ...clone(head), producerRelease: LEGACY_PORTFOLIO_PRODUCER_RELEASE })
+})
+reject('legacy 0.7.1 receipt producer release denied', 'E_MMJ_UI29_RECEIPT_INVALID', () => {
+  validateReceipt({ ...clone(receipt), producerRelease: LEGACY_PORTFOLIO_PRODUCER_RELEASE }, head)
+})
+reject('unknown future producer release denied', 'E_MMJ_UI29_HEAD_INVALID', () => {
+  validateHead({ ...clone(head), producerRelease: '0.7.10-mmj-portfolio-future' })
 })
 pass('numeric route slug admitted while manifest route stays canonical', () => {
   const numericProject = { ...clone(project), slug: '231312' }
