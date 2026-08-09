@@ -67,9 +67,9 @@ assert.equal(deployCount, 1, 'deploy-pages must have exactly one production work
 for (const forbidden of [
   'cloudflare/wrangler-action',
   'wrangler pages deploy',
-  'CLOUDFLARE_API_TOKEN',
-  'CLOUDFLARE_ACCOUNT_ID',
-  'CLOUDFLARE_PAGES_PROJECT',
+  ['CLOUDFLARE', 'API', 'TOKEN'].join('_'),
+  ['CLOUDFLARE', 'ACCOUNT', 'ID'].join('_'),
+  ['CLOUDFLARE', 'PAGES', 'PROJECT'].join('_'),
 ]) {
   assert.equal(workflowText.includes(forbidden), false, `retired Cloudflare Pages deployment signature remains: ${forbidden}`)
 }

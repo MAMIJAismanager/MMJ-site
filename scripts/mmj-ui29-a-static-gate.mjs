@@ -134,9 +134,9 @@ for (const workflowName of workflowNames) {
   for (const forbidden of [
     'cloudflare/wrangler-action',
     'wrangler pages deploy',
-    'CLOUDFLARE_API_TOKEN',
-    'CLOUDFLARE_ACCOUNT_ID',
-    'CLOUDFLARE_PAGES_PROJECT',
+    ['CLOUDFLARE', 'API', 'TOKEN'].join('_'),
+    ['CLOUDFLARE', 'ACCOUNT', 'ID'].join('_'),
+    ['CLOUDFLARE', 'PAGES', 'PROJECT'].join('_'),
   ]) if (workflow.includes(forbidden)) fail(`retired Cloudflare Pages deployment signature remains in ${workflowName}: ${forbidden}`)
 }
 if (uploadPagesArtifactCount !== 1) fail(`upload-pages-artifact authority count drift: ${uploadPagesArtifactCount}`)

@@ -76,8 +76,6 @@ const forbiddenText = [
 
 const allowedWorkflowSecretNames = new Set([
   'MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET',
-  'CLOUDFLARE_API_TOKEN',
-  'CLOUDFLARE_ACCOUNT_ID',
 ])
 
 const allowedBuildScriptSecretReferences = new Map([
