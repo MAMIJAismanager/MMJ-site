@@ -5,6 +5,10 @@ on:
     branches:
       - main
   workflow_dispatch:
+  repository_dispatch:
+    types:
+      - mmj_portfolio_promoted
+      - mmj-public-commission-guide-published
 
 permissions:
   contents: read
@@ -15,22 +19,45 @@ concurrency:
   group: github-pages
   cancel-in-progress: true
 
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+  SOURCE_DATE_EPOCH: '1784378700'
+  MMJ_BUILD_ID: mmj-github-pages-production
+  MMJ_BUILD_ENVIRONMENT_CLASS: production
+  MMJ_PORTFOLIO_HANDOFF_ORIGIN: https://cms.mamajing.work
+  MMJ_COMMISSION_GUIDE_HANDOFF_ORIGIN: https://cms.mamajing.work
+  NUXT_APP_BASE_URL: /
+  NUXT_PUBLIC_MMJ_MEDIA_BASE_URL: https://media.mamajing.work
+  NUXT_PUBLIC_MMJ_CONTACT_FORM_ENDPOINT: https://formspree.io/f/mrpzbjbv
+  MMJ_CANONICAL_PUBLIC_URL: https://mamajing.work
+  MMJ_CMS_BUILD_RECEIPT_ENDPOINT: https://cms.mamajing.work/api/v1/internal/portfolio-build-receipts
+
+  MMJ_DELIVERY_KEY: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && github.event.client_payload.deliveryKey || '' }}
+  MMJ_COLLECTION_VERSION_ID: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && github.event.client_payload.collectionVersionId || '' }}
+  MMJ_EXPECTED_SNAPSHOT_DIGEST: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && github.event.client_payload.snapshotDigest || '' }}
+  MMJ_HANDOFF_RECEIPT_ID: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && github.event.client_payload.handoffReceiptId || '' }}
+  MMJ_PROJECT_COUNT: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && format('{0}', github.event.client_payload.projectCount) || '' }}
+  MMJ_ASSET_COUNT: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && format('{0}', github.event.client_payload.assetCount) || '' }}
+  MMJ_SOURCE_WORKBOOK_REVISION: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && format('{0}', github.event.client_payload.sourceWorkbookRevision) || '' }}
+  MMJ_COLLECTION_HEAD_REVISION: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && format('{0}', github.event.client_payload.collectionHeadRevision) || '' }}
+  MMJ_ISSUED_AT: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && github.event.client_payload.issuedAt || '' }}
+
+  MMJ_COMMISSION_SCHEMA_VERSION: '1'
+  MMJ_COMMISSION_CONTENT_KIND: commission-guide
+  MMJ_COMMISSION_DELIVERY_KEY: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' && github.event.client_payload.deliveryKey || '' }}
+  MMJ_COMMISSION_GUIDE_ID: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' && github.event.client_payload.guideId || 'default' }}
+  MMJ_COMMISSION_PUBLICATION_VERSION_ID: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' && github.event.client_payload.publicationVersionId || '' }}
+  MMJ_COMMISSION_EXPECTED_SNAPSHOT_DIGEST: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' && github.event.client_payload.snapshotDigest || '' }}
+  MMJ_COMMISSION_HANDOFF_RECEIPT_ID: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' && github.event.client_payload.handoffReceiptId || '' }}
+  MMJ_COMMISSION_SOURCE_WORKBOOK_REVISION: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' && format('{0}', github.event.client_payload.sourceWorkbookRevision) || '' }}
+  MMJ_COMMISSION_PUBLICATION_HEAD_REVISION: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' && format('{0}', github.event.client_payload.publicationHeadRevision) || '' }}
+  MMJ_COMMISSION_ISSUED_AT: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' && github.event.client_payload.issuedAt || '' }}
+
 jobs:
   build:
     runs-on: ubuntu-24.04
-
-    env:
-      TZ: UTC
-      LANG: C.UTF-8
-      LC_ALL: C.UTF-8
-      SOURCE_DATE_EPOCH: '1784378700'
-      MMJ_BUILD_ID: mmj-github-pages-production
-      MMJ_BUILD_ENVIRONMENT_CLASS: production
-      MMJ_PORTFOLIO_HANDOFF_ORIGIN: https://cms.mamajing.work
-      MMJ_COMMISSION_GUIDE_HANDOFF_ORIGIN: https://cms.mamajing.work
-      NUXT_APP_BASE_URL: /
-      NUXT_PUBLIC_MMJ_MEDIA_BASE_URL: https://media.mamajing.work
-      NUXT_PUBLIC_MMJ_CONTACT_FORM_ENDPOINT: https://formspree.io/f/mrpzbjbv
 
     steps:
       - name: Checkout full Git history
@@ -57,24 +84,33 @@ jobs:
       - name: Run MMJ-UI29-A contract tests
         run: npm run test:mmj-ui29
 
+      - name: Verify portfolio dispatch against current CMS head
+        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' }}
+        run: node scripts/mmj-ui29-dispatch-input-verify.mjs preflight
+
+      - name: Verify commission dispatch against current CMS head
+        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' }}
+        run: node scripts/mmj-ui29-commission-dispatch-input-verify.mjs preflight
+
+      - name: Report portfolio build started
+        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' }}
+        env:
+          MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET: ${{ secrets.MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET }}
+        run: node scripts/mmj-ui29-build-receipt.mjs started
+
       - name: Adopt sealed CMS public content
         run: npm run sync:public-content
 
+      - name: Verify adopted portfolio dispatch identity
+        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' }}
+        run: node scripts/mmj-ui29-dispatch-input-verify.mjs post-adopt
+
+      - name: Verify adopted commission dispatch identity
+        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' }}
+        run: node scripts/mmj-ui29-commission-dispatch-input-verify.mjs post-adopt
+
       - name: Run approved lifecycle scripts
         run: npm rebuild
-
-      - name: Diagnose public root after rebuild
-        shell: bash
-        run: |
-          echo "=== AFTER REBUILD ==="
-          echo "GITHUB_PAGES=${GITHUB_PAGES:-unset}"
-          if [ -e public ]; then
-            echo "PUBLIC_EXISTS=true"
-            find public -maxdepth 5 -printf '%y %p %s bytes\n' | sort || true
-          else
-            echo "PUBLIC_EXISTS=false"
-          fi
-          git status --short --untracked-files=all
 
       - name: Verify portfolio handoff
         run: npm run verify:portfolio-handoff
@@ -85,18 +121,9 @@ jobs:
       - name: Verify aggregate public release
         run: npm run verify:public-release
 
-      - name: Diagnose public root before generate
-        shell: bash
-        run: |
-          echo "=== BEFORE GENERATE ==="
-          if [ -e public ]; then
-            echo "PUBLIC_EXISTS=true"
-            stat public || true
-            find public -maxdepth 5 -printf '%y %p %s bytes\n' | sort || true
-          else
-            echo "PUBLIC_EXISTS=false"
-          fi
-          git status --short --untracked-files=all
+      - name: Emit portfolio public deployment receipt
+        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' }}
+        run: node scripts/mmj-ui29-publish-release-receipt.mjs
 
       - name: Generate static site without a second network fetch
         run: npm run generate:local
@@ -112,6 +139,8 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-24.04
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
 
     environment:
       name: github-pages
@@ -121,3 +150,47 @@ jobs:
       - name: Deploy GitHub Pages
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e
+
+  portfolio-finalize:
+    needs:
+      - build
+      - deploy
+    if: ${{ always() && github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' }}
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout receipt scripts
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.16.0'
+
+      - name: Probe canonical deployment digest
+        id: probe
+        if: ${{ needs.build.result == 'success' && needs.deploy.result == 'success' }}
+        continue-on-error: true
+        run: node scripts/mmj-ui29-public-deployment-probe.mjs
+
+      - name: Report portfolio build succeeded
+        if: ${{ needs.build.result == 'success' && needs.deploy.result == 'success' && steps.probe.outcome == 'success' }}
+        env:
+          MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET: ${{ secrets.MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET }}
+          MMJ_DEPLOYMENT_ID: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+          MMJ_DEPLOYMENT_URL: ${{ needs.deploy.outputs.page_url }}
+          MMJ_PROBE_STATUS: ${{ steps.probe.outputs.probe_status }}
+          MMJ_PROBED_AT: ${{ steps.probe.outputs.probed_at }}
+        run: node scripts/mmj-ui29-build-receipt.mjs succeeded
+
+      - name: Report portfolio build failed
+        if: ${{ needs.build.result != 'success' || needs.deploy.result != 'success' || steps.probe.outcome != 'success' }}
+        env:
+          MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET: ${{ secrets.MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET }}
+          MMJ_BUILD_ERROR_CODE: E_PUBLIC_BUILD_FAILED
+          MMJ_BUILD_ERROR_MESSAGE: MMJ GitHub Pages build, deployment, or canonical probe failed.
+          MMJ_BUILD_ERROR_PHASE: github-pages-pipeline
+        run: node scripts/mmj-ui29-build-receipt.mjs failed

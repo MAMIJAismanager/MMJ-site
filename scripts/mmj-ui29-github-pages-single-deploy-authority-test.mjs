@@ -1,0 +1,91 @@
+import assert from 'node:assert/strict'
+import { readdir, readFile, stat } from 'node:fs/promises'
+import { resolve } from 'node:path'
+
+const root = process.cwd()
+const workflowRoot = resolve(root, '.github', 'workflows')
+const pagesPath = resolve(workflowRoot, 'pages.yml')
+const pages = await readFile(pagesPath, 'utf8')
+
+const exists = async path => {
+  try {
+    await stat(resolve(root, path))
+    return true
+  } catch {
+    return false
+  }
+}
+
+for (const retired of [
+  '.github/workflows/mmj-cms-portfolio-deploy.yml',
+  '.github/workflows/mmj-cms-commission-guide-deploy.yml',
+]) {
+  assert.equal(await exists(retired), false, `retired deployment workflow still exists: ${retired}`)
+}
+
+for (const token of [
+  'repository_dispatch:',
+  'mmj_portfolio_promoted',
+  'mmj-public-commission-guide-published',
+  'group: github-pages',
+  'actions/upload-pages-artifact@',
+  'path: .output/public',
+  'actions/deploy-pages@',
+  'environment:',
+  'name: github-pages',
+  'mmj-ui29-dispatch-input-verify.mjs preflight',
+  'mmj-ui29-dispatch-input-verify.mjs post-adopt',
+  'mmj-ui29-commission-dispatch-input-verify.mjs preflight',
+  'mmj-ui29-commission-dispatch-input-verify.mjs post-adopt',
+  'node scripts/mmj-ui29-publish-release-receipt.mjs',
+  'portfolio-finalize:',
+  'needs.deploy.outputs.page_url',
+]) {
+  assert.ok(pages.includes(token), `GitHub Pages authority token missing: ${token}`)
+}
+
+const rebuild = pages.indexOf('npm rebuild')
+const emitReceipt = pages.indexOf('node scripts/mmj-ui29-publish-release-receipt.mjs')
+const generate = pages.indexOf('npm run generate:local')
+const upload = pages.indexOf('actions/upload-pages-artifact@')
+assert.ok(rebuild >= 0 && rebuild < emitReceipt && emitReceipt < generate && generate < upload, 'receipt/build/upload lifecycle order drift')
+
+const workflowNames = (await readdir(workflowRoot)).filter(name => /\.ya?ml$/i.test(name)).sort()
+let workflowText = ''
+let uploadCount = 0
+let deployCount = 0
+for (const name of workflowNames) {
+  const text = await readFile(resolve(workflowRoot, name), 'utf8')
+  workflowText += `\n# ${name}\n${text}`
+  uploadCount += text.split('actions/upload-pages-artifact@').length - 1
+  deployCount += text.split('actions/deploy-pages@').length - 1
+}
+
+assert.equal(uploadCount, 1, 'upload-pages-artifact must have exactly one production workflow authority')
+assert.equal(deployCount, 1, 'deploy-pages must have exactly one production workflow authority')
+
+for (const forbidden of [
+  'cloudflare/wrangler-action',
+  'wrangler pages deploy',
+  'CLOUDFLARE_API_TOKEN',
+  'CLOUDFLARE_ACCOUNT_ID',
+  'CLOUDFLARE_PAGES_PROJECT',
+]) {
+  assert.equal(workflowText.includes(forbidden), false, `retired Cloudflare Pages deployment signature remains: ${forbidden}`)
+}
+
+const buildReceipt = await readFile(resolve(root, 'scripts/mmj-ui29-build-receipt.mjs'), 'utf8')
+assert.ok(buildReceipt.includes("provider: 'github-pages'"), 'build receipt provider must be github-pages')
+assert.equal(buildReceipt.includes("provider: 'cloudflare-pages'"), false, 'Cloudflare Pages provider residue remains in build receipt')
+assert.ok(buildReceipt.includes('github-pages-${process.env.GITHUB_RUN_ID}-${process.env.GITHUB_RUN_ATTEMPT}'), 'GitHub Pages deployment identity missing')
+
+console.log(JSON.stringify({
+  event: 'PASS_MMJ_UI29_GITHUB_PAGES_SINGLE_DEPLOY_AUTHORITY_R1',
+  workflowCount: workflowNames.length,
+  uploadPagesArtifactCount: uploadCount,
+  deployPagesCount: deployCount,
+  cloudflarePagesDeployment: 'retired',
+  githubPagesDeploymentAuthority: 'single',
+  portfolioDispatchBinding: 'present',
+  commissionDispatchBinding: 'present',
+}))
