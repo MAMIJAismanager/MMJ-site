@@ -63,6 +63,19 @@ jobs:
       - name: Run approved lifecycle scripts
         run: npm rebuild
 
+      - name: Diagnose public root after rebuild
+        shell: bash
+        run: |
+          echo "=== AFTER REBUILD ==="
+          echo "GITHUB_PAGES=${GITHUB_PAGES:-unset}"
+          if [ -e public ]; then
+            echo "PUBLIC_EXISTS=true"
+            find public -maxdepth 5 -printf '%y %p %s bytes\n' | sort || true
+          else
+            echo "PUBLIC_EXISTS=false"
+          fi
+          git status --short --untracked-files=all
+
       - name: Verify portfolio handoff
         run: npm run verify:portfolio-handoff
 
@@ -71,6 +84,19 @@ jobs:
 
       - name: Verify aggregate public release
         run: npm run verify:public-release
+
+      - name: Diagnose public root before generate
+        shell: bash
+        run: |
+          echo "=== BEFORE GENERATE ==="
+          if [ -e public ]; then
+            echo "PUBLIC_EXISTS=true"
+            stat public || true
+            find public -maxdepth 5 -printf '%y %p %s bytes\n' | sort || true
+          else
+            echo "PUBLIC_EXISTS=false"
+          fi
+          git status --short --untracked-files=all
 
       - name: Generate static site without a second network fetch
         run: npm run generate:local
