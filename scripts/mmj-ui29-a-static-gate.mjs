@@ -22,6 +22,7 @@ const requiredScripts = {
   'test:public-release-receipt-boundary': 'node scripts/mmj-ui29-public-release-receipt-boundary-test.mjs',
   'test:github-pages-single-deploy-authority': 'node scripts/mmj-ui29-github-pages-single-deploy-authority-test.mjs',
   'test:portfolio-fast-publish-commit': 'node scripts/mmj-ui29-portfolio-fast-publish-commit-test.mjs',
+  'test:started-receipt-nonblocking-r1': 'node scripts/mmj-ui29-started-receipt-nonblocking-r1-test.mjs',
 }
 for (const [name, command] of Object.entries(requiredScripts)) {
   if (pkg.scripts?.[name] !== command) fail(`package script drift: ${name}`)
@@ -35,12 +36,14 @@ if (!String(pkg.scripts?.['gate:mmj-ui29-a'] ?? '').includes('verify:three-route
 if (!String(pkg.scripts?.['gate:mmj-ui29-a'] ?? '').includes('test:public-release-receipt-boundary')) fail('public release receipt boundary regression missing from aggregate gate')
 if (!String(pkg.scripts?.['gate:mmj-ui29-a'] ?? '').includes('test:github-pages-single-deploy-authority')) fail('GitHub Pages single deploy authority regression missing from aggregate gate')
 if (!String(pkg.scripts?.['gate:mmj-ui29-a'] ?? '').includes('test:portfolio-fast-publish-commit')) fail('portfolio fast publish regression missing from aggregate gate')
+if (!String(pkg.scripts?.['gate:mmj-ui29-a'] ?? '').includes('test:started-receipt-nonblocking-r1')) fail('started receipt non-blocking regression missing from aggregate gate')
 if (!await exists('scripts/mmj-ui29-work-detail-auxiliary-retirement-gate.mjs')) fail('work-detail auxiliary retirement gate file missing')
 if (!await exists('scripts/mmj-ui29-three-route-seo-lean-work-detail-gate.mjs')) fail('three-route SEO lean work-detail gate file missing')
 if (!await exists('scripts/lib/mmj-ui29-public-release-receipt-policy.mjs')) fail('public release receipt policy module missing')
 if (!await exists('scripts/mmj-ui29-public-release-receipt-boundary-test.mjs')) fail('public release receipt boundary regression file missing')
 if (!await exists('scripts/mmj-ui29-github-pages-single-deploy-authority-test.mjs')) fail('GitHub Pages single deploy authority regression file missing')
 if (!await exists('scripts/mmj-ui29-portfolio-fast-publish-commit-test.mjs')) fail('portfolio fast publish regression file missing')
+if (!await exists('scripts/mmj-ui29-started-receipt-nonblocking-r1-test.mjs')) fail('started receipt non-blocking regression file missing')
 for (const name of ['build', 'generate', 'dev', 'gate:mmj-ui29-a']) {
   if (!String(pkg.scripts?.[name] ?? '').includes('sync:public-content')) fail(`unified network adoption missing from ${name}`)
 }

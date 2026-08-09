@@ -93,10 +93,16 @@ jobs:
         run: node scripts/mmj-ui29-commission-dispatch-input-verify.mjs preflight
 
       - name: Report portfolio build started
+        id: portfolio-started-receipt
         if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' }}
+        continue-on-error: true
         env:
           MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET: ${{ secrets.MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET }}
         run: node scripts/mmj-ui29-build-receipt.mjs started
+
+      - name: Warn if CMS started receipt delivery is pending
+        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && steps.portfolio-started-receipt.outcome != 'success' }}
+        run: echo "::warning::CMS started receipt callback did not complete. Public build continues."
 
       - name: Adopt sealed CMS public content
         run: npm run sync:public-content
