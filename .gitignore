@@ -24,3 +24,5 @@ generated/commission-guide.handoff.json
 generated/commission-guide.build-input-lock.json
 generated/.commission-stage-*/
 generated/.commission-backup-*/
+
+public/.well-known/mmj-public-release.json

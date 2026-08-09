@@ -1,12 +1,16 @@
-import { readFile, readdir, stat } from 'node:fs/promises'
+import { lstat, readFile, readdir, stat } from 'node:fs/promises'
 import { extname, relative, resolve, sep } from 'node:path'
+
+import {
+  validatePublicReleaseTree,
+} from './lib/mmj-ui29-public-release-receipt-policy.mjs'
 
 const root = process.cwd()
 const fail = message => { throw new Error(`FAIL_MMJ_05N_A_PUBLIC_BOUNDARY: ${message}`) }
 const normalize = path => path.split(sep).join('/')
 
 const allowedRootEntries = new Set([
-  '.github', '.gitignore', '.npmrc', 'README.md', 'app', 'generated',
+  '.github', '.gitignore', '.npmrc', 'README.md', 'app', 'generated', 'public',
   'nuxt.config.ts', 'package-lock.json', 'package.json', 'scripts', 'shared', 'tsconfig.json',
 ])
 
@@ -201,6 +205,44 @@ async function walk(dir) {
     else files.push(absolute)
   }
   return files
+}
+
+async function inspectPublicTree() {
+  const publicRoot = resolve(root, 'public')
+  try {
+    await lstat(publicRoot)
+  } catch (error) {
+    if (error?.code === 'ENOENT') return []
+    throw error
+  }
+
+  const entries = []
+  async function visit(absolute, rel) {
+    const info = await lstat(absolute)
+    const kind = info.isSymbolicLink()
+      ? 'symlink'
+      : info.isDirectory()
+        ? 'directory'
+        : info.isFile()
+          ? 'file'
+          : 'other'
+    entries.push({ path: normalize(rel), kind })
+    if (kind !== 'directory') return
+    const children = await readdir(absolute, { withFileTypes: true })
+    children.sort((a, b) => a.name.localeCompare(b.name, 'en'))
+    for (const child of children) {
+      await visit(resolve(absolute, child.name), `${rel}/${child.name}`)
+    }
+  }
+
+  await visit(publicRoot, 'public')
+  return entries
+}
+
+try {
+  validatePublicReleaseTree(await inspectPublicTree())
+} catch (error) {
+  fail(error?.message ?? 'public release receipt tree validation failed.')
 }
 
 for (const entry of await readdir(root)) {

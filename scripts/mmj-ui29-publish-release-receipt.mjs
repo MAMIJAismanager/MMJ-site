@@ -1,10 +1,14 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
+
+import {
+  PUBLIC_RELEASE_RECEIPT_PATH,
+} from './lib/mmj-ui29-public-release-receipt-policy.mjs'
 
 const root = process.cwd()
 const source = resolve(root, 'generated/public-release.manifest.json')
-const targetDirectory = resolve(root, 'public/.well-known')
-const target = resolve(targetDirectory, 'mmj-public-release.json')
+const target = resolve(root, PUBLIC_RELEASE_RECEIPT_PATH)
+const targetDirectory = dirname(target)
 const manifest = JSON.parse(await readFile(source, 'utf8'))
 const portfolioManifest = manifest.schemaVersion === 2 ? manifest.portfolio : {
   snapshotDigest: manifest.snapshotDigest,
@@ -29,4 +33,4 @@ const receipt = {
 }
 await mkdir(targetDirectory, { recursive: true })
 await writeFile(target, `${JSON.stringify(receipt, null, 2)}\n`, { encoding: 'utf8' })
-console.log(JSON.stringify({ event: 'PASS_MMJ_UI29_B_PUBLIC_RELEASE_RECEIPT_EMITTED', target: 'public/.well-known/mmj-public-release.json', snapshotDigest: expected }))
+console.log(JSON.stringify({ event: 'PASS_MMJ_UI29_B_PUBLIC_RELEASE_RECEIPT_EMITTED', target: PUBLIC_RELEASE_RECEIPT_PATH, snapshotDigest: expected }))
