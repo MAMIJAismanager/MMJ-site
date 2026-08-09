@@ -21,6 +21,7 @@ const requiredScripts = {
   'test:mmj-ui29-dispatch-authority': 'node scripts/mmj-ui29-dispatch-authority-test.mjs',
   'test:public-release-receipt-boundary': 'node scripts/mmj-ui29-public-release-receipt-boundary-test.mjs',
   'test:github-pages-single-deploy-authority': 'node scripts/mmj-ui29-github-pages-single-deploy-authority-test.mjs',
+  'test:portfolio-fast-publish-commit': 'node scripts/mmj-ui29-portfolio-fast-publish-commit-test.mjs',
 }
 for (const [name, command] of Object.entries(requiredScripts)) {
   if (pkg.scripts?.[name] !== command) fail(`package script drift: ${name}`)
@@ -33,11 +34,13 @@ if (!String(pkg.scripts?.['gate:mmj-ui29-a'] ?? '').includes('verify:work-detail
 if (!String(pkg.scripts?.['gate:mmj-ui29-a'] ?? '').includes('verify:three-route-seo-lean-work-detail')) fail('three-route SEO lean work-detail gate missing from aggregate gate')
 if (!String(pkg.scripts?.['gate:mmj-ui29-a'] ?? '').includes('test:public-release-receipt-boundary')) fail('public release receipt boundary regression missing from aggregate gate')
 if (!String(pkg.scripts?.['gate:mmj-ui29-a'] ?? '').includes('test:github-pages-single-deploy-authority')) fail('GitHub Pages single deploy authority regression missing from aggregate gate')
+if (!String(pkg.scripts?.['gate:mmj-ui29-a'] ?? '').includes('test:portfolio-fast-publish-commit')) fail('portfolio fast publish regression missing from aggregate gate')
 if (!await exists('scripts/mmj-ui29-work-detail-auxiliary-retirement-gate.mjs')) fail('work-detail auxiliary retirement gate file missing')
 if (!await exists('scripts/mmj-ui29-three-route-seo-lean-work-detail-gate.mjs')) fail('three-route SEO lean work-detail gate file missing')
 if (!await exists('scripts/lib/mmj-ui29-public-release-receipt-policy.mjs')) fail('public release receipt policy module missing')
 if (!await exists('scripts/mmj-ui29-public-release-receipt-boundary-test.mjs')) fail('public release receipt boundary regression file missing')
 if (!await exists('scripts/mmj-ui29-github-pages-single-deploy-authority-test.mjs')) fail('GitHub Pages single deploy authority regression file missing')
+if (!await exists('scripts/mmj-ui29-portfolio-fast-publish-commit-test.mjs')) fail('portfolio fast publish regression file missing')
 for (const name of ['build', 'generate', 'dev', 'gate:mmj-ui29-a']) {
   if (!String(pkg.scripts?.[name] ?? '').includes('sync:public-content')) fail(`unified network adoption missing from ${name}`)
 }
@@ -117,12 +120,18 @@ for (const token of [
   'actions/upload-pages-artifact@',
   'actions/deploy-pages@',
   'path: .output/public',
-  'portfolio-finalize:',
+  'portfolio-observe:',
+  'portfolio-failure-receipt:',
+  'Report portfolio deployment committed',
 ]) if (!pagesWorkflow.includes(token)) fail(`GitHub Pages single deployment authority drift: ${token}`)
 const portfolioReceiptRebuild = pagesWorkflow.indexOf('npm rebuild')
 const portfolioReceiptEmit = pagesWorkflow.indexOf('node scripts/mmj-ui29-publish-release-receipt.mjs')
 const portfolioReceiptGenerate = pagesWorkflow.indexOf('npm run generate:local')
 if (!(portfolioReceiptRebuild >= 0 && portfolioReceiptRebuild < portfolioReceiptEmit && portfolioReceiptEmit < portfolioReceiptGenerate)) fail('portfolio receipt-before-generate lifecycle drift')
+const pagesDeployCommit = pagesWorkflow.indexOf('actions/deploy-pages@')
+const portfolioSuccessReceipt = pagesWorkflow.indexOf('node scripts/mmj-ui29-build-receipt.mjs succeeded')
+if (!(pagesDeployCommit >= 0 && pagesDeployCommit < portfolioSuccessReceipt)) fail('portfolio success receipt must follow GitHub Pages deployment commit')
+if (pagesWorkflow.includes('portfolio-finalize:')) fail('retired portfolio-finalize success barrier remains')
 
 const workflowNames = (await readdir(resolve(root, '.github/workflows'))).filter(name => /\.ya?ml$/i.test(name)).sort()
 let uploadPagesArtifactCount = 0
@@ -145,6 +154,8 @@ if (deployPagesCount !== 1) fail(`deploy-pages authority count drift: ${deployPa
 const buildReceipt = await read('scripts/mmj-ui29-build-receipt.mjs')
 if (!buildReceipt.includes("provider: 'github-pages'")) fail('GitHub Pages build receipt provider authority missing')
 if (buildReceipt.includes("provider: 'cloudflare-pages'")) fail('retired Cloudflare Pages provider remains in build receipt')
+if (buildReceipt.includes('MMJ_PROBE_STATUS || 200')) fail('fake probe status fallback remains in build receipt')
+if (buildReceipt.includes('MMJ_PROBED_AT || now')) fail('fake probe timestamp fallback remains in build receipt')
 
 const slugPage = await read('app/pages/works/[slug].vue')
 for (const binding of ['useSeoMeta', 'project.seo.title', 'project.seo.description', 'project.seo.indexable', 'ogImage']) if (!slugPage.includes(binding)) fail(`work detail SEO binding missing: ${binding}`)

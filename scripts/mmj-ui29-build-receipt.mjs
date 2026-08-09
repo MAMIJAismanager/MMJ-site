@@ -12,8 +12,21 @@ const integer = name => {
   if (!Number.isSafeInteger(value) || value < 0) throw new Error(`${name} is invalid.`)
   return value
 }
+const optionalProbe = () => {
+  const rawStatus = process.env.MMJ_PROBE_STATUS
+  const rawProbedAt = process.env.MMJ_PROBED_AT
+  if (!rawStatus && !rawProbedAt) return { probeStatus: null, probedAt: null }
+  if (!rawStatus || !rawProbedAt) throw new Error('MMJ probe receipt fields must both be present or both be absent.')
+  const probeStatus = Number(rawStatus)
+  if (!Number.isSafeInteger(probeStatus) || probeStatus < 0) throw new Error('MMJ_PROBE_STATUS is invalid.')
+  const parsedAt = Date.parse(rawProbedAt)
+  if (!Number.isFinite(parsedAt) || new Date(parsedAt).toISOString() !== rawProbedAt) throw new Error('MMJ_PROBED_AT is invalid.')
+  return { probeStatus, probedAt: rawProbedAt }
+}
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 const now = new Date().toISOString()
 const expectedDigest = required('MMJ_EXPECTED_SNAPSHOT_DIGEST')
+const probe = state === 'succeeded' ? optionalProbe() : { probeStatus: null, probedAt: null }
 const body = {
   schemaVersion: 1,
   deliveryKey: required('MMJ_DELIVERY_KEY'),
@@ -37,8 +50,8 @@ const body = {
     deploymentUrl: process.env.MMJ_DEPLOYMENT_URL || required('MMJ_CANONICAL_PUBLIC_URL'),
     canonicalPublicUrl: required('MMJ_CANONICAL_PUBLIC_URL'),
     deployedSnapshotDigest: expectedDigest,
-    probeStatus: Number(process.env.MMJ_PROBE_STATUS || 200),
-    probedAt: process.env.MMJ_PROBED_AT || now,
+    probeStatus: probe.probeStatus,
+    probedAt: probe.probedAt,
   } : null,
   error: state === 'failed' ? {
     code: process.env.MMJ_BUILD_ERROR_CODE || 'E_PUBLIC_BUILD_FAILED',
@@ -48,21 +61,41 @@ const body = {
   occurredAt: now,
 }
 const rawBody = Buffer.from(JSON.stringify(body))
-const timestamp = now
-const nonce = randomUUID().replaceAll('-', '')
-const bodyDigest = createHash('sha256').update(rawBody).digest('hex')
-const material = ['MMJ-PORTFOLIO-BUILD-RECEIPT-V1', timestamp, nonce, bodyDigest].join('\n')
-const signature = createHmac('sha256', required('MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET')).update(material).digest('hex')
-const response = await fetch(required('MMJ_CMS_BUILD_RECEIPT_ENDPOINT'), {
-  method: 'POST',
-  headers: {
-    'content-type': 'application/json',
-    'x-mmj-receipt-timestamp': timestamp,
-    'x-mmj-receipt-nonce': nonce,
-    'x-mmj-receipt-signature': `v1=${signature}`,
-  },
-  body: rawBody,
-})
-const responseText = await response.text()
-if (!response.ok) throw new Error(`Build receipt callback failed: HTTP ${response.status} ${responseText.slice(0, 400)}`)
-console.log(JSON.stringify({ event: 'PASS_MMJ_UI29_B_BUILD_RECEIPT_CALLBACK', state, status: response.status, deliveryKey: body.deliveryKey }))
+const endpoint = required('MMJ_CMS_BUILD_RECEIPT_ENDPOINT')
+const secret = required('MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET')
+const attemptLimit = state === 'succeeded' ? 3 : 1
+let finalFailure = null
+
+for (let attempt = 1; attempt <= attemptLimit; attempt += 1) {
+  const timestamp = new Date().toISOString()
+  const nonce = randomUUID().replaceAll('-', '')
+  const bodyDigest = createHash('sha256').update(rawBody).digest('hex')
+  const material = ['MMJ-PORTFOLIO-BUILD-RECEIPT-V1', timestamp, nonce, bodyDigest].join('\n')
+  const signature = createHmac('sha256', secret).update(material).digest('hex')
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      signal: AbortSignal.timeout(3_000),
+      headers: {
+        'content-type': 'application/json',
+        'x-mmj-receipt-timestamp': timestamp,
+        'x-mmj-receipt-nonce': nonce,
+        'x-mmj-receipt-signature': `v1=${signature}`,
+      },
+      body: rawBody,
+    })
+    const responseText = await response.text()
+    if (response.ok) {
+      console.log(JSON.stringify({ event: 'PASS_MMJ_UI29_B_BUILD_RECEIPT_CALLBACK', state, status: response.status, deliveryKey: body.deliveryKey, attempt }))
+      process.exit(0)
+    }
+    finalFailure = new Error(`Build receipt callback failed: HTTP ${response.status} ${responseText.slice(0, 400)}`)
+  } catch (error) {
+    finalFailure = error
+  }
+
+  if (attempt < attemptLimit) await sleep(attempt * 1_000)
+}
+
+throw new Error(`Build receipt callback failed after ${attemptLimit} attempt(s): ${String(finalFailure?.message || finalFailure || 'unknown error')}`)

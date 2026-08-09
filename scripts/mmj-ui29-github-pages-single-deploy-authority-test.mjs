@@ -38,8 +38,9 @@ for (const token of [
   'mmj-ui29-commission-dispatch-input-verify.mjs preflight',
   'mmj-ui29-commission-dispatch-input-verify.mjs post-adopt',
   'node scripts/mmj-ui29-publish-release-receipt.mjs',
-  'portfolio-finalize:',
-  'needs.deploy.outputs.page_url',
+  'portfolio-observe:',
+  'portfolio-failure-receipt:',
+  'Report portfolio deployment committed',
 ]) {
   assert.ok(pages.includes(token), `GitHub Pages authority token missing: ${token}`)
 }
@@ -49,6 +50,10 @@ const emitReceipt = pages.indexOf('node scripts/mmj-ui29-publish-release-receipt
 const generate = pages.indexOf('npm run generate:local')
 const upload = pages.indexOf('actions/upload-pages-artifact@')
 assert.ok(rebuild >= 0 && rebuild < emitReceipt && emitReceipt < generate && generate < upload, 'receipt/build/upload lifecycle order drift')
+const deploy = pages.indexOf('actions/deploy-pages@')
+const successReceipt = pages.indexOf('node scripts/mmj-ui29-build-receipt.mjs succeeded')
+assert.ok(deploy >= 0 && deploy < successReceipt, 'GitHub Pages deployment must commit before the CMS success receipt')
+assert.equal(pages.includes('portfolio-finalize:'), false, 'retired portfolio-finalize success barrier remains')
 
 const workflowNames = (await readdir(workflowRoot)).filter(name => /\.ya?ml$/i.test(name)).sort()
 let workflowText = ''

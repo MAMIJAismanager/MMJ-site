@@ -151,46 +151,76 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e
 
-  portfolio-finalize:
-    needs:
-      - build
-      - deploy
-    if: ${{ always() && github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' }}
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Checkout receipt scripts
+      - name: Checkout portfolio receipt script after deployment commit
+        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' }}
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Set up Node
+      - name: Set up Node for portfolio success receipt
+        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' }}
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22.16.0'
 
-      - name: Probe canonical deployment digest
-        id: probe
-        if: ${{ needs.build.result == 'success' && needs.deploy.result == 'success' }}
+      - name: Report portfolio deployment committed
+        id: portfolio-success-receipt
+        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' }}
         continue-on-error: true
-        run: node scripts/mmj-ui29-public-deployment-probe.mjs
-
-      - name: Report portfolio build succeeded
-        if: ${{ needs.build.result == 'success' && needs.deploy.result == 'success' && steps.probe.outcome == 'success' }}
         env:
           MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET: ${{ secrets.MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET }}
           MMJ_DEPLOYMENT_ID: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
-          MMJ_DEPLOYMENT_URL: ${{ needs.deploy.outputs.page_url }}
-          MMJ_PROBE_STATUS: ${{ steps.probe.outputs.probe_status }}
-          MMJ_PROBED_AT: ${{ steps.probe.outputs.probed_at }}
+          MMJ_DEPLOYMENT_URL: ${{ steps.deployment.outputs.page_url }}
         run: node scripts/mmj-ui29-build-receipt.mjs succeeded
 
-      - name: Report portfolio build failed
-        if: ${{ needs.build.result != 'success' || needs.deploy.result != 'success' || steps.probe.outcome != 'success' }}
+      - name: Warn if CMS success receipt delivery is pending
+        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && steps.portfolio-success-receipt.outcome != 'success' }}
+        run: echo "::warning::GitHub Pages deployment committed, but CMS success receipt delivery did not complete. Public deployment remains successful."
+
+  portfolio-observe:
+    needs: deploy
+    if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && needs.deploy.result == 'success' }}
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout propagation observer
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Node for propagation observation
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.16.0'
+
+      - name: Observe canonical deployment propagation
+        run: node scripts/mmj-ui29-public-deployment-probe.mjs --observe
+
+  portfolio-failure-receipt:
+    needs:
+      - build
+      - deploy
+    if: ${{ always() && github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && (needs.build.result != 'success' || needs.deploy.result != 'success') }}
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout failure receipt script
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Node for failure receipt
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.16.0'
+
+      - name: Report portfolio build or deployment failed
         env:
           MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET: ${{ secrets.MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET }}
           MMJ_BUILD_ERROR_CODE: E_PUBLIC_BUILD_FAILED
-          MMJ_BUILD_ERROR_MESSAGE: MMJ GitHub Pages build, deployment, or canonical probe failed.
-          MMJ_BUILD_ERROR_PHASE: github-pages-pipeline
+          MMJ_BUILD_ERROR_MESSAGE: MMJ GitHub Pages build or deployment failed.
+          MMJ_BUILD_ERROR_PHASE: github-pages-build-or-deploy
         run: node scripts/mmj-ui29-build-receipt.mjs failed
