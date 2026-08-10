@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "release": "MMJ-PUBLIC-GITHUB-PAGES-DISPATCH-RECONNECTION-R1",
+  "repository": "MAMIJAismanager/MMJ-site",
+  "eventType": "mmj_portfolio_promoted",
+  "workflowPath": ".github/workflows/pages.yml",
+  "deployAuthority": "github-pages",
+  "clientPayloadFields": [
+    "schemaVersion",
+    "deliveryKey",
+    "collectionVersionId",
+    "snapshotDigest",
+    "handoffReceiptId",
+    "projectCount",
+    "assetCount",
+    "sourceWorkbookRevision",
+    "collectionHeadRevision",
+    "issuedAt"
+  ],
+  "countFields": ["projectCount", "assetCount"],
+  "countMinimum": 0,
+  "revisionFields": ["sourceWorkbookRevision", "collectionHeadRevision"],
+  "revisionMinimum": 1,
+  "dispatchAcceptedHttpStatus": 204,
+  "dispatchAcceptedMeans": "transport-accepted",
+  "deploymentCommitMeans": "github-pages-deploy-success"
+}

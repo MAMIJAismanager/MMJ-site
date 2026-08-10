@@ -8,8 +8,8 @@ const identity = {
   collectionVersionId: 'pcol_dispatchauthority01',
   snapshotDigest: '2'.repeat(64),
   handoffReceiptId: 'phnd_dispatchauthority01',
-  projectCount: '1',
-  assetCount: '2',
+  projectCount: '0',
+  assetCount: '0',
   sourceWorkbookRevision: '33',
   collectionHeadRevision: '2',
   issuedAt: '2026-07-30T06:00:00.000Z',
@@ -28,12 +28,12 @@ const baseEnv = {
   MMJ_PORTFOLIO_HANDOFF_ORIGIN: 'https://cms.example.test',
 }
 
-const emptyAttempt = spawnSync(process.execPath, [verifier, 'preflight'], {
-  env: { ...baseEnv, MMJ_PROJECT_COUNT: '0' },
+const negativeAttempt = spawnSync(process.execPath, [verifier, 'preflight'], {
+  env: { ...baseEnv, MMJ_PROJECT_COUNT: '-1' },
   encoding: 'utf8',
 })
-assert.equal(emptyAttempt.status, 1)
-assert.match(emptyAttempt.stderr, /projectCount is invalid/)
+assert.equal(negativeAttempt.status, 1)
+assert.match(negativeAttempt.stderr, /projectCount is invalid/)
 
 Object.assign(process.env, baseEnv)
 let fetchCount = 0

@@ -26,6 +26,12 @@ function positiveInteger(value, field) {
   return parsed
 }
 
+function nonNegativeInteger(value, field) {
+  const parsed = Number(value)
+  if (!Number.isSafeInteger(parsed) || parsed < 0) fail('E_MMJ_UI29_DISPATCH_INPUT_INVALID', `${field} is invalid.`)
+  return parsed
+}
+
 function canonicalIso(value, field) {
   const parsed = Date.parse(String(value || ''))
   if (!Number.isFinite(parsed) || new Date(parsed).toISOString() !== value) fail('E_MMJ_UI29_DISPATCH_INPUT_INVALID', `${field} is invalid.`)
@@ -43,8 +49,8 @@ function validateInput() {
     collectionVersionId: required.collectionVersionId,
     snapshotDigest: required.snapshotDigest,
     handoffReceiptId: required.handoffReceiptId,
-    projectCount: positiveInteger(required.projectCount, 'projectCount'),
-    assetCount: positiveInteger(required.assetCount, 'assetCount'),
+    projectCount: nonNegativeInteger(required.projectCount, 'projectCount'),
+    assetCount: nonNegativeInteger(required.assetCount, 'assetCount'),
     sourceWorkbookRevision: positiveInteger(required.sourceWorkbookRevision, 'sourceWorkbookRevision'),
     collectionHeadRevision: positiveInteger(required.collectionHeadRevision, 'collectionHeadRevision'),
     issuedAt: canonicalIso(required.issuedAt, 'issuedAt'),
