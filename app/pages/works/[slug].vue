@@ -91,6 +91,7 @@ useSeoMeta({
         주요 미디어
       </h2>
       <WorkAssetFrame
+        :project="project"
         :asset="project.assets.primary"
         :project-id="project.id"
         context-label="주요 미디어"
@@ -100,7 +101,10 @@ useSeoMeta({
       />
     </section>
 
-    <WorkGallery :assets="project.assets.gallery" />
+    <WorkGallery
+      :project="project"
+      :assets="project.assets.gallery"
+    />
     <WorkCredits :groups="project.credits" />
     <WorkExternalLinks :links="project.externalLinks" />
     <WorkRelatedProjects :projects="project.relatedProjects" />

@@ -27,8 +27,10 @@ const allowedShared = new Set([
   'shared/query/works-query-state.ts',
   'shared/resolver/media-delivery-config.ts',
   'shared/resolver/media-resolution.ts',
+  'shared/resolver/accessible-description-resolution.ts',
   'shared/resolver/media-renderability.ts',
   'shared/resolver/player-track.ts',
+  'shared/resolver/work-detail-presentation-plan.ts',
   'shared/resolver/portfolio-project-view-resolver.ts',
   'shared/resolver/responsive-image-plan.ts',
   'shared/resolver/video-player-plan.ts',
@@ -67,6 +69,7 @@ const requiredUi29BuildFiles = new Set([
   'scripts/mmj-ui29-a-static-gate.mjs',
   'scripts/mmj-ui29-public-contract-test.mjs',
   'scripts/lib/mmj-ui29-public-contract.mjs',
+  'scripts/lib/mmj-ui29-shared-typescript-loader.mjs',
   'scripts/lib/mmj-ui29-commission-contract.mjs',
 ])
 const forbiddenText = [

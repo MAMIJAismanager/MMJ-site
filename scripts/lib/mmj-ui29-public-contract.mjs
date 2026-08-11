@@ -5,6 +5,9 @@ import { relative, resolve, sep } from 'node:path'
 import {
   hasExactPrimaryRendition,
 } from '../../shared/resolver/media-renderability.ts'
+import {
+  importMmjSharedTypeScriptModule,
+} from './mmj-ui29-shared-typescript-loader.mjs'
 
 export const UI29_RELEASE = 'MMJ-UI29-A'
 export const PRODUCER_RELEASE = '0.7.9-mmj-portfolio-empty-closure-r1'
@@ -675,6 +678,148 @@ function validatePublicReleaseManifest(value, input) {
   if (!equalJson(value, expected)) fail(code, 'Public release manifest identity mismatch.')
 }
 
+export async function validateAccessibleDescriptionResolutionAdmission(snapshot, options = {}) {
+  const sourceRoot = resolve(options.sourceRoot ?? process.cwd())
+  let authority
+  try {
+    authority = await importMmjSharedTypeScriptModule(
+      sourceRoot,
+      'shared/resolver/accessible-description-resolution.ts',
+    )
+  } catch (error) {
+    fail(
+      'E_MMJ_PUBLIC_ACCESSIBLE_DESCRIPTION_AUTHORITY_LOAD_FAILED',
+      'Accessible description resolution authority could not be loaded.',
+      {
+        underlyingErrorName: error instanceof Error ? error.name : typeof error,
+        underlyingErrorMessage: error instanceof Error ? error.message : String(error),
+      },
+    )
+  }
+
+  try {
+    return authority.admitPortfolioAccessibleDescriptions(snapshot)
+  } catch (error) {
+    const detail = key => (
+      plain(error) && typeof error[key] === 'string'
+        ? error[key]
+        : null
+    )
+    const name = error instanceof Error ? error.name : typeof error
+    if (name === 'WorkDetailAccessibleDescriptionAdmissionError') {
+      const underlyingErrorCode = detail('underlyingErrorCode')
+      fail(
+        underlyingErrorCode === 'invalid-explicit-image-alt'
+          ? 'E_MMJ_PUBLIC_EXPLICIT_IMAGE_ALT_TEXT_INVALID'
+          : 'E_MMJ_PUBLIC_INFORMATIVE_IMAGE_DESCRIPTION_UNRESOLVABLE',
+        underlyingErrorCode === 'invalid-explicit-image-alt'
+          ? 'Explicit image alt text is invalid.'
+          : 'Public informative image has no usable accessible description source.',
+        {
+          projectId: detail('projectId'),
+          route: detail('route'),
+          assetId: detail('assetId'),
+          ownerAssetId: detail('ownerAssetId'),
+          context: detail('context'),
+          relationPath: detail('relationPath'),
+          accessibilityMode: detail('accessibilityMode'),
+          reason: detail('reason'),
+          underlyingErrorName: detail('underlyingErrorName'),
+          underlyingErrorCode,
+          underlyingErrorPath: detail('underlyingErrorPath'),
+        },
+      )
+    }
+    fail(
+      'E_MMJ_PUBLIC_ACCESSIBLE_DESCRIPTION_AUTHORITY_FAILED',
+      'Accessible description authority failed outside its admission contract.',
+      {
+        underlyingErrorName: name,
+        underlyingErrorCode: detail('code'),
+        underlyingErrorPath: detail('path'),
+      },
+    )
+  }
+}
+
+export async function validateWorkDetailPresentationAdmission(snapshot, options = {}) {
+  const sourceRoot = resolve(options.sourceRoot ?? process.cwd())
+  const mediaBaseUrl = options.mediaBaseUrl ?? process.env.NUXT_PUBLIC_MMJ_MEDIA_BASE_URL
+  let authority
+  try {
+    authority = await importMmjSharedTypeScriptModule(
+      sourceRoot,
+      'shared/resolver/work-detail-presentation-plan.ts',
+    )
+  } catch (error) {
+    fail(
+      'E_MMJ_PUBLIC_WORK_PRESENTATION_AUTHORITY_LOAD_FAILED',
+      'Work Detail presentation planning authority could not be loaded.',
+      {
+        underlyingErrorName: error instanceof Error ? error.name : typeof error,
+        underlyingErrorMessage: error instanceof Error ? error.message : String(error),
+      },
+    )
+  }
+
+  try {
+    return authority.admitPortfolioWorkDetailPresentations(
+      snapshot,
+      mediaBaseUrl,
+    )
+  } catch (error) {
+    const detail = key => (
+      plain(error) && typeof error[key] === 'string'
+        ? error[key]
+        : null
+    )
+    const name = error instanceof Error ? error.name : typeof error
+    if (name === 'WorkDetailPresentationConfigurationError') {
+      const configurationCode = detail('code')
+      fail(
+        configurationCode === 'media-delivery-config-missing'
+          ? 'E_MMJ_PUBLIC_MEDIA_DELIVERY_CONFIG_MISSING'
+          : 'E_MMJ_PUBLIC_WORK_PRESENTATION_CONFIGURATION_INVALID',
+        'Work Detail presentation planning configuration is not admitted.',
+        {
+          configurationCode,
+          projectId: detail('projectId'),
+          route: detail('route'),
+          underlyingErrorName: detail('underlyingErrorName'),
+          underlyingErrorCode: detail('underlyingErrorCode'),
+        },
+      )
+    }
+    if (name === 'WorkDetailPresentationPlanningError') {
+      fail(
+        'E_MMJ_PUBLIC_WORK_PRESENTATION_PLANNER_FAILED',
+        'Work Detail presentation planner rejected the public snapshot.',
+        {
+          projectId: detail('projectId'),
+          route: detail('route'),
+          assetId: detail('assetId'),
+          ownerAssetId: detail('ownerAssetId'),
+          assetKind: detail('assetKind'),
+          context: detail('context'),
+          planner: detail('planner'),
+          underlyingErrorName: detail('underlyingErrorName'),
+          underlyingErrorCode: detail('underlyingErrorCode'),
+          underlyingErrorPath: detail('underlyingErrorPath'),
+        },
+      )
+    }
+    fail(
+      'E_MMJ_PUBLIC_WORK_PRESENTATION_AUTHORITY_FAILED',
+      'Work Detail presentation planning authority failed outside the admitted planner error contract.',
+      {
+        underlyingErrorName: name,
+        underlyingErrorCode: detail('code'),
+        underlyingErrorPath: detail('path'),
+      },
+    )
+  }
+}
+
 export async function verifyGeneratedArtifactSet(directory, sourceRoot, options = {}) {
   const snapshotBytes = await readFile(resolve(directory, 'portfolio.snapshot.json'))
   const handoffBytes = await readFile(resolve(directory, 'portfolio.handoff.json'))
@@ -696,6 +841,11 @@ export async function verifyGeneratedArtifactSet(directory, sourceRoot, options 
   const receipt = validateReceipt(receiptValue)
   if (receipt.snapshotDigest !== snapshotDigest) fail('E_MMJ_UI29_SNAPSHOT_DIGEST_MISMATCH', 'Generated snapshot bytes do not match handoff receipt.')
   const { routes } = validateSnapshot(snapshotValue, receipt)
+  await validateAccessibleDescriptionResolutionAdmission(snapshotValue, { sourceRoot })
+  await validateWorkDetailPresentationAdmission(snapshotValue, {
+    sourceRoot,
+    mediaBaseUrl: options.mediaBaseUrl ?? process.env.NUXT_PUBLIC_MMJ_MEDIA_BASE_URL,
+  })
   validateRouteManifest(routeValue, snapshotDigest, routes)
   const producerRevision = await computeProducerRevision(sourceRoot)
   const headLike = {

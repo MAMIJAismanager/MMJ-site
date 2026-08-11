@@ -5,19 +5,26 @@ import AudioTrackAction from '~/components/player/AudioTrackAction.vue'
 import MediaFrame from '~/components/media/MediaFrame.vue'
 import VideoPlayer from '~/components/media/VideoPlayer.vue'
 import {
-  MM_WORK_DETAIL_IMAGE_SIZES,
   resolvePortfolioAudioTrack,
   resolvePortfolioImagePresentation,
   resolvePortfolioVideoPresentation,
 } from '~/data/portfolio-media-presentation'
+import {
+  createWorkDetailImageOptions,
+} from '~~/shared/resolver/work-detail-presentation-plan'
+import {
+  classifyWorkDetailFrameImageAccessibilityContext,
+} from '~~/shared/resolver/accessible-description-resolution'
 
 import type { ProjectId } from '~~/shared/types/domain-identifiers'
 import type {
   ResolvedAssetReference,
   ResolvedImageAssetReference,
+  WorkDetailView,
 } from '~~/shared/view/portfolio-project-view'
 
 interface Props {
+  readonly project: WorkDetailView
   readonly asset: ResolvedAssetReference
   readonly contextLabel: string
   readonly indexLabel?: string
@@ -80,16 +87,19 @@ const imagePlan = computed(() => {
   return resolvePortfolioImagePresentation(
     preview,
     'primary',
-    {
-      sizes: MM_WORK_DETAIL_IMAGE_SIZES,
-      accessibility: {
-        mode: 'informative',
-        altText: preview.altText ?? '',
-      },
-      loading: props.contextLabel === '대표 이미지' ? 'eager' : 'lazy',
-      fetchPriority: props.contextLabel === '대표 이미지' ? 'high' : 'auto',
-      fit: 'contain',
-    },
+    createWorkDetailImageOptions(
+      props.project,
+      preview,
+      classifyWorkDetailFrameImageAccessibilityContext(
+        props.asset.kind,
+        props.videoRuntime === 'primary-detail'
+          || props.audioRuntime === 'primary-detail',
+      ),
+      props.videoRuntime === 'primary-detail'
+        || props.audioRuntime === 'primary-detail'
+        ? 'primary'
+        : 'gallery',
+    ),
   )
 })
 

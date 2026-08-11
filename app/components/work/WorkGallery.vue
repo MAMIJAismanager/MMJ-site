@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import type {
   ResolvedAssetReference,
+  WorkDetailView,
 } from '~~/shared/view/portfolio-project-view'
 
 import WorkAssetFrame from './WorkAssetFrame.vue'
 
 interface Props {
+  readonly project: WorkDetailView
   readonly assets: readonly ResolvedAssetReference[]
 }
 
@@ -29,6 +31,7 @@ defineProps<Props>()
         class="mm-work-gallery__item"
       >
         <WorkAssetFrame
+          :project="project"
           :asset="asset"
           context-label="갤러리"
           :index-label="`${index + 1}`"

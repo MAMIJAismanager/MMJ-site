@@ -10,6 +10,10 @@ import {
 import {
   createPlayerTrackPlanningAuthority,
 } from '~~/shared/resolver/player-track'
+import {
+  createWorkDetailVideoPosterOptions,
+  MM_WORK_DETAIL_IMAGE_SIZES,
+} from '~~/shared/resolver/work-detail-presentation-plan'
 
 import type {
   ResolvedAudioAssetReference,
@@ -39,8 +43,7 @@ export const MM_SHOWCASE_STAGE_IMAGE_SIZES =
   '(min-width: 64rem) 64vw, 100vw'
 export const MM_SHOWCASE_SELECTOR_IMAGE_SIZES =
   '(min-width: 80rem) 17rem, (min-width: 48rem) 15rem, 12rem'
-export const MM_WORK_DETAIL_IMAGE_SIZES =
-  '(min-width: 80rem) 80rem, 100vw'
+export { MM_WORK_DETAIL_IMAGE_SIZES }
 export const MM_RELATED_PROJECT_IMAGE_SIZES =
   '(min-width: 48rem) 33vw, 100vw'
 
@@ -124,13 +127,7 @@ export function resolvePortfolioVideoPresentation(
     ? null
     : responsiveImagePlanner.resolve(
         authority.resolveInlinePlan(asset.poster, 'primary'),
-        {
-          sizes: MM_WORK_DETAIL_IMAGE_SIZES,
-          accessibility: { mode: 'decorative' },
-          loading: 'lazy',
-          fetchPriority: 'auto',
-          fit: 'contain',
-        },
+        createWorkDetailVideoPosterOptions(asset.poster),
       )
 
   return videoPlayerPlanner.resolve(videoPlan, posterPlan)
