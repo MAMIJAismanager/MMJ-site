@@ -48,7 +48,8 @@ assert.ok(successBlock.includes('continue-on-error: true'), 'success receipt exi
 const failureJobIndex = pages.indexOf('  portfolio-failure-receipt:')
 assert.ok(failureJobIndex >= 0, 'portfolio failure receipt job missing')
 const failureJob = pages.slice(failureJobIndex)
-assert.ok(failureJob.includes("needs.build.result != 'success' || needs.deploy.result != 'success'"), 'actual build/deploy failure authority drift')
+assert.ok(failureJob.includes("needs.build.result == 'failure' || needs.deploy.result == 'failure'"), 'actual build/deploy failure authority drift')
+assert.equal(failureJob.includes("needs.build.result != 'success' || needs.deploy.result != 'success'"), false, 'cancelled/skipped result must not be treated as deployment failure')
 assert.equal(failureJob.includes('portfolio-started-receipt'), false, 'started callback failure must not emit failed deployment receipt')
 
 assert.ok(receipt.includes('Build receipt callback failed after'), 'receipt transport failure truth must remain non-zero')

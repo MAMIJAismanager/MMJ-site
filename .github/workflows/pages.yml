@@ -208,7 +208,7 @@ jobs:
     needs:
       - build
       - deploy
-    if: ${{ always() && github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && (needs.build.result != 'success' || needs.deploy.result != 'success') }}
+    if: ${{ always() && github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && (needs.build.result == 'failure' || needs.deploy.result == 'failure') }}
     runs-on: ubuntu-24.04
 
     steps:
@@ -226,7 +226,10 @@ jobs:
       - name: Report portfolio build or deployment failed
         env:
           MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET: ${{ secrets.MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET }}
+          MMJ_GITHUB_EVENT_ACTION: ${{ github.event.action }}
+          MMJ_BUILD_JOB_RESULT: ${{ needs.build.result }}
+          MMJ_DEPLOY_JOB_RESULT: ${{ needs.deploy.result }}
           MMJ_BUILD_ERROR_CODE: E_PUBLIC_BUILD_FAILED
           MMJ_BUILD_ERROR_MESSAGE: MMJ GitHub Pages build or deployment failed.
           MMJ_BUILD_ERROR_PHASE: github-pages-build-or-deploy
-        run: node scripts/mmj-ui29-build-receipt.mjs failed
+        run: node scripts/mmj-ui29-failure-receipt.mjs
