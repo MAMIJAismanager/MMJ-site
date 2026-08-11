@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.18.0"
   },
   "scripts": {
     "sync:portfolio": "node scripts/mmj-ui29-portfolio-adopt.mjs",
@@ -23,7 +23,7 @@
     "preview": "nuxt preview",
     "typecheck": "npm run verify:boundary && npm run verify:portfolio-handoff && npm run verify:commission-guide-handoff && nuxt typecheck",
     "prepare": "nuxt prepare",
-    "gate:mmj-ui29-a": "npm run verify:mmj-ui29-static && npm run verify:work-detail-cover-boundary && npm run verify:work-detail-auxiliary-retirement && npm run verify:three-route-seo-lean-work-detail && npm run verify:contact-formspree && npm run test:mmj-ui29 && npm run test:mmj-ui29-dispatch-authority && npm run test:public-release-receipt-boundary && npm run test:github-pages-single-deploy-authority && npm run test:portfolio-fast-publish-commit && npm run test:started-receipt-nonblocking-r1 && npm run sync:public-content && npm run verify:boundary && npm run verify:portfolio-handoff && npm run verify:commission-guide-handoff && npm run verify:public-release && npm run typecheck:local && npm run generate:local && npm run verify:static-output && npm run verify:contact-static-output && node scripts/mmj-ui29-github-pages-dispatch-reconnection-r1-gate.mjs",
+    "gate:mmj-ui29-a": "npm run verify:mmj-ui29-static && npm run verify:work-detail-cover-boundary && npm run verify:work-detail-auxiliary-retirement && npm run verify:three-route-seo-lean-work-detail && npm run verify:contact-formspree && npm run test:mmj-ui29 && npm run test:mmj-ui29-dispatch-authority && npm run test:public-release-receipt-boundary && npm run test:github-pages-single-deploy-authority && npm run test:portfolio-fast-publish-commit && npm run test:started-receipt-nonblocking-r1 && npm run sync:public-content && npm run verify:boundary && npm run verify:portfolio-handoff && npm run verify:commission-guide-handoff && npm run verify:public-release && npm run typecheck:local && npm run generate:local && npm run verify:static-output && npm run verify:contact-static-output && node scripts/mmj-ui29-github-pages-dispatch-reconnection-r1-gate.mjs && npm run gate:public-work-detail-media-renderability-admission-closure-r1-r2",
     "test:mmj-ui29-dispatch-authority": "node scripts/mmj-ui29-dispatch-authority-test.mjs",
     "verify:work-detail-cover-boundary": "node scripts/mmj-ui29-work-detail-cover-boundary-gate.mjs",
     "verify:work-detail-auxiliary-retirement": "node scripts/mmj-ui29-work-detail-auxiliary-retirement-gate.mjs",
@@ -38,7 +38,9 @@
     "test:github-pages-single-deploy-authority": "node scripts/mmj-ui29-github-pages-single-deploy-authority-test.mjs",
     "test:portfolio-fast-publish-commit": "node scripts/mmj-ui29-portfolio-fast-publish-commit-test.mjs",
     "test:started-receipt-nonblocking-r1": "node scripts/mmj-ui29-started-receipt-nonblocking-r1-test.mjs",
-    "gate:github-pages-dispatch-reconnection-r1": "node scripts/mmj-ui29-dispatch-authority-test.mjs && node scripts/mmj-ui29-github-pages-single-deploy-authority-test.mjs && node scripts/mmj-ui29-github-pages-dispatch-reconnection-r1-gate.mjs"
+    "gate:github-pages-dispatch-reconnection-r1": "node scripts/mmj-ui29-dispatch-authority-test.mjs && node scripts/mmj-ui29-github-pages-single-deploy-authority-test.mjs && node scripts/mmj-ui29-github-pages-dispatch-reconnection-r1-gate.mjs",
+    "gate:public-work-detail-media-renderability-admission-closure-r1": "node scripts/mmj-public-work-detail-media-renderability-admission-closure-r1-test.mjs && node scripts/mmj-public-work-detail-media-renderability-admission-closure-r1-gate.mjs",
+    "gate:public-work-detail-media-renderability-admission-closure-r1-r2": "node scripts/mmj-public-work-detail-media-renderability-admission-closure-r1-test.mjs && node scripts/mmj-public-work-detail-media-renderability-admission-closure-r1-gate.mjs && node scripts/mmj-public-work-detail-media-renderability-admission-closure-r1-r2-test.mjs && node scripts/mmj-public-work-detail-media-renderability-admission-closure-r1-r2-gate.mjs"
   },
   "dependencies": {
     "@pinia/nuxt": "0.11.2",
@@ -54,5 +56,7 @@
   "mmjWorkDetailAuxiliaryRetirementRelease": "MMJ-PUBLIC-WORK-DETAIL-AUXILIARY-SURFACE-RETIREMENT-R1",
   "mmjThreeRouteSeoLeanWorkDetailRelease": "MMJ-PUBLIC-THREE-ROUTE-SEO-LEAN-WORK-DETAIL-R1",
   "mmjContactFormspreeRelease": "MMJ-CONTACT-FORMSPREE-R1",
-  "mmjGithubPagesDispatchReconnectionRelease": "MMJ-PUBLIC-GITHUB-PAGES-DISPATCH-RECONNECTION-R1"
+  "mmjGithubPagesDispatchReconnectionRelease": "MMJ-PUBLIC-GITHUB-PAGES-DISPATCH-RECONNECTION-R1",
+  "mmjWorkDetailMediaRenderabilityAdmissionClosureRelease": "MMJ-PUBLIC-WORK-DETAIL-MEDIA-RENDERABILITY-ADMISSION-CLOSURE-R1",
+  "mmjWorkDetailMediaRenderabilityAdmissionClosureR1R2Release": "MMJ-PUBLIC-WORK-DETAIL-MEDIA-RENDERABILITY-ADMISSION-CLOSURE-R1-R2"
 }

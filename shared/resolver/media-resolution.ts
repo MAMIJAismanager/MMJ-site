@@ -1,3 +1,7 @@
+import {
+  hasExactPrimaryRendition,
+} from './media-renderability'
+
 import type {
   ResolvedAssetReference,
   ResolvedAudioAssetReference,
@@ -299,7 +303,7 @@ function assertPrimarySource(
     readonly purpose: string
   }[],
 ): void {
-  if (!sources.some(source => source.purpose === 'primary')) {
+  if (!hasExactPrimaryRendition(sources)) {
     fail(
       'missing-primary-source',
       `asset(${asset.id}).renditions`,

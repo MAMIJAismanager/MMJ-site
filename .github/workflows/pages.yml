@@ -72,7 +72,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: '22.16.0'
+          node-version: '22.18.0'
           cache: npm
 
       - name: Install dependencies without lifecycle scripts
@@ -168,7 +168,7 @@ jobs:
         if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' }}
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: '22.16.0'
+          node-version: '22.18.0'
 
       - name: Report portfolio deployment committed
         id: portfolio-success-receipt
@@ -199,7 +199,7 @@ jobs:
       - name: Set up Node for propagation observation
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: '22.16.0'
+          node-version: '22.18.0'
 
       - name: Observe canonical deployment propagation
         run: node scripts/mmj-ui29-public-deployment-probe.mjs --observe
@@ -221,7 +221,7 @@ jobs:
       - name: Set up Node for failure receipt
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: '22.16.0'
+          node-version: '22.18.0'
 
       - name: Report portfolio build or deployment failed
         env:

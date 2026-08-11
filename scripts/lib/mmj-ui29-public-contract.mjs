@@ -2,6 +2,10 @@ import { createHash } from 'node:crypto'
 import { readdir, readFile, stat } from 'node:fs/promises'
 import { relative, resolve, sep } from 'node:path'
 
+import {
+  hasExactPrimaryRendition,
+} from '../../shared/resolver/media-renderability.ts'
+
 export const UI29_RELEASE = 'MMJ-UI29-A'
 export const PRODUCER_RELEASE = '0.7.9-mmj-portfolio-empty-closure-r1'
 export const SNAPSHOT_CONTRACT = 'mmj-public-portfolio-collection-v1'
@@ -430,21 +434,65 @@ export function validateSnapshot(value, expected = null) {
   assertUnique(assets.map(asset => asset.id), '$snapshot.assets.id', code)
   const assetById = new Map(assets.map(asset => [asset.id, asset]))
   const reachable = new Set()
-  const visit = (assetId, path, expectedKind = null) => {
+  const visit = (assetId, path, expectedKind = null, context = null) => {
     const asset = assetById.get(assetId)
     if (!asset) fail(code, `Referenced asset is missing at ${path}.`, { assetId })
     if (expectedKind && asset.kind !== expectedKind) fail(code, `Referenced asset kind mismatch at ${path}.`, { assetId, expectedKind, actualKind: asset.kind })
+    if (context?.requirePrimary === true && !hasExactPrimaryRendition(asset.renditions)) {
+      fail(
+        'E_MMJ_PUBLIC_WORK_MEDIA_PRIMARY_SOURCE_MISSING',
+        'Work Detail media is not renderable: exact primary rendition is missing.',
+        {
+          projectId: context.projectId,
+          route: context.route,
+          assetId: asset.id,
+          assetKind: asset.kind,
+          intent: context.intent,
+          path,
+          reason: 'missing-primary-source',
+        },
+      )
+    }
     if (reachable.has(assetId)) return
     reachable.add(assetId)
-    if (asset.kind === 'video') visit(asset.posterAssetId, `asset(${assetId}).posterAssetId`, 'image')
-    if (asset.kind === 'audio') visit(asset.artworkAssetId, `asset(${assetId}).artworkAssetId`, 'image')
+    if (asset.kind === 'video') {
+      visit(
+        asset.posterAssetId,
+        `asset(${assetId}).posterAssetId`,
+        'image',
+        context === null ? null : { ...context, intent: 'video-poster', requirePrimary: true },
+      )
+    }
+    if (asset.kind === 'audio') {
+      visit(
+        asset.artworkAssetId,
+        `asset(${assetId}).artworkAssetId`,
+        'image',
+        context === null ? null : { ...context, intent: 'audio-artwork', requirePrimary: true },
+      )
+    }
   }
   projects.forEach((project, projectIndex) => {
-    visit(project.assets.coverAssetId, `$snapshot.projects[${projectIndex}].assets.coverAssetId`, 'image')
-    visit(project.assets.primaryAssetId, `$snapshot.projects[${projectIndex}].assets.primaryAssetId`)
-    project.assets.galleryAssetIds.forEach((assetId, galleryIndex) => visit(assetId, `$snapshot.projects[${projectIndex}].assets.galleryAssetIds[${galleryIndex}]`))
-    visit(project.seo.ogAssetId, `$snapshot.projects[${projectIndex}].seo.ogAssetId`, 'image')
-    project.post.mediaItems.forEach((item, itemIndex) => visit(item.assetId, `$snapshot.projects[${projectIndex}].post.mediaItems[${itemIndex}].assetId`))
+    const route = `/works/${project.slug}`
+    const context = (intent, requirePrimary) => ({ projectId: project.id, route, intent, requirePrimary })
+    visit(project.assets.coverAssetId, `$snapshot.projects[${projectIndex}].assets.coverAssetId`, 'image', context('cover', true))
+    visit(project.assets.primaryAssetId, `$snapshot.projects[${projectIndex}].assets.primaryAssetId`, null, context('primary', true))
+    project.assets.galleryAssetIds.forEach((assetId, galleryIndex) => visit(
+      assetId,
+      `$snapshot.projects[${projectIndex}].assets.galleryAssetIds[${galleryIndex}]`,
+      null,
+      context('gallery', assetById.get(assetId)?.kind === 'image'),
+    ))
+    visit(project.seo.ogAssetId, `$snapshot.projects[${projectIndex}].seo.ogAssetId`, 'image', context('seo-og', false))
+    project.post.mediaItems.forEach((item, itemIndex) => visit(
+      item.assetId,
+      `$snapshot.projects[${projectIndex}].post.mediaItems[${itemIndex}].assetId`,
+      null,
+      context(
+        itemIndex === 0 ? 'post-primary' : 'post-gallery',
+        itemIndex === 0 || assetById.get(item.assetId)?.kind === 'image',
+      ),
+    ))
   })
   if (reachable.size !== assets.length) {
     const unreachable = assets.map(asset => asset.id).filter(id => !reachable.has(id))

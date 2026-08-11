@@ -27,6 +27,7 @@ const allowedShared = new Set([
   'shared/query/works-query-state.ts',
   'shared/resolver/media-delivery-config.ts',
   'shared/resolver/media-resolution.ts',
+  'shared/resolver/media-renderability.ts',
   'shared/resolver/player-track.ts',
   'shared/resolver/portfolio-project-view-resolver.ts',
   'shared/resolver/responsive-image-plan.ts',
@@ -54,7 +55,7 @@ const forbiddenPrefixes = [
   'shared/build/', 'shared/provider/', 'shared/migration/', 'shared/contracts/',
 ]
 const forbiddenFiles = new Set(['.clasp.json', '.clasprc.json', '.dev.vars'])
-const textExtensions = new Set(['.ts', '.vue', '.js', '.mjs', '.json', '.md', '.yml', '.yaml', '.toml', '.html', '.css'])
+const textExtensions = new Set(['.ts', '.mts', '.vue', '.js', '.mjs', '.json', '.md', '.yml', '.yaml', '.toml', '.html', '.css'])
 const requiredUi29BuildFiles = new Set([
   'scripts/mmj-ui29-portfolio-adopt.mjs',
   'scripts/mmj-ui29-portfolio-verify.mjs',
