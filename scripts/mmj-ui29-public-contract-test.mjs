@@ -146,6 +146,26 @@ pass('valid sealed contract', () => {
   validateSnapshot(snapshot, receipt)
   validateHeadStability(head, clone(head))
 })
+// MMJ-PUBLIC-TAG-TOKEN-UNICODE-AUTHORITY-LEGACY-SLUG-RETIREMENT-R1: BEGIN
+pass('unicode tag token admitted', () => {
+  const value = clone(snapshot)
+  value.projects[0].tags = [{ token: '1인', label: '1인' }]
+  value.projects[0].post.tags = [{ token: '1인', label: '1인' }]
+  validateSnapshot(value, receipt)
+})
+reject('empty tag token remains denied', 'E_MMJ_UI29_SNAPSHOT_INVALID', () => {
+  const value = clone(snapshot)
+  value.projects[0].tags = [{ token: '', label: 'Empty' }]
+  value.projects[0].post.tags = [{ token: '', label: 'Empty' }]
+  validateSnapshot(value, receipt)
+})
+reject('unicode project and post tag identity mismatch denied', 'E_MMJ_UI29_SNAPSHOT_INVALID', () => {
+  const value = clone(snapshot)
+  value.projects[0].tags = [{ token: '1인', label: '1인' }]
+  value.projects[0].post.tags = [{ token: '1-in', label: '1인' }]
+  validateSnapshot(value, receipt)
+})
+// MMJ-PUBLIC-TAG-TOKEN-UNICODE-AUTHORITY-LEGACY-SLUG-RETIREMENT-R1: END
 pass('current portfolio producer release authority', () => {
   if (PRODUCER_RELEASE !== EXPECTED_PORTFOLIO_PRODUCER_RELEASE) {
     throw new Error(`portfolio producer release drifted: ${PRODUCER_RELEASE}`)

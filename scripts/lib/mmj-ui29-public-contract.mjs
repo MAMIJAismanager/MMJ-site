@@ -280,7 +280,7 @@ export function validateReceipt(value, expectedHead = null) {
 
 function validateTag(value, pointer, code) {
   exactKeys(value, ['token', 'label'], pointer, code)
-  string(value.token, `${pointer}.token`, code, { pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, max: 80 })
+  string(value.token, `${pointer}.token`, code, { nonEmpty: true, max: 80 })
   string(value.label, `${pointer}.label`, code, { nonEmpty: true, max: 120 })
 }
 
