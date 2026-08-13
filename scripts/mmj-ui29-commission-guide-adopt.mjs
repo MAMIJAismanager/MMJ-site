@@ -18,6 +18,9 @@ import {
   computeProducerRevision,
   verifyGeneratedArtifactSet,
 } from './lib/mmj-ui29-public-contract.mjs'
+import {
+  runCommissionHandoffTransactionWithRetry,
+} from './lib/mmj-ui29-commission-handoff-retry-authority.mjs'
 
 const root = process.cwd()
 const generated = resolve(root, 'generated')
@@ -55,8 +58,23 @@ async function fetchBytes(path, maximum, stage) {
       headers: { accept: 'application/json', 'cache-control': 'no-cache', pragma: 'no-cache' },
     })
   } catch (error) {
-    if (error?.name === 'AbortError') fail('E_MMJ_COMMISSION_HANDOFF_TIMEOUT', `${stage} request timed out.`, { stage })
-    fail('E_MMJ_COMMISSION_HANDOFF_TIMEOUT', `${stage} request failed.`, { stage })
+    const originalErrorName = typeof error?.name === 'string' ? error.name : 'Error'
+    const originalErrorMessage = typeof error?.message === 'string' ? error.message : String(error)
+    const originalCauseCode = typeof error?.cause?.code === 'string' ? error.cause.code : null
+    if (error?.name === 'AbortError') fail('E_MMJ_COMMISSION_HANDOFF_TIMEOUT', `${stage} request timed out.`, {
+      stage,
+      transportKind: 'timeout',
+      originalErrorName,
+      originalErrorMessage,
+      originalCauseCode,
+    })
+    fail('E_MMJ_COMMISSION_HANDOFF_TIMEOUT', `${stage} request failed.`, {
+      stage,
+      transportKind: 'network',
+      originalErrorName,
+      originalErrorMessage,
+      originalCauseCode,
+    })
   } finally {
     clearTimeout(timeout)
   }
@@ -172,14 +190,10 @@ async function adopt(input) {
   return { manifest, commissionIdentity }
 }
 
-let adopted
-for (let attempt = 1; attempt <= 3; attempt += 1) {
-  try { adopted = await adopt(await transaction()); break } catch (error) {
-    const retryable = error instanceof CommissionContractError && ['E_MMJ_COMMISSION_HEAD_UNSTABLE', 'E_MMJ_COMMISSION_SNAPSHOT_HEADER_MISMATCH'].includes(error.code)
-    if (!retryable || attempt === 3) throw error
-    await new Promise(resolveDelay => setTimeout(resolveDelay, attempt * 250))
-  }
-}
+const adopted = await runCommissionHandoffTransactionWithRetry({
+  deadline,
+  transaction: async () => adopt(await transaction()),
+})
 
 console.log(JSON.stringify({
   event: 'PASS_MMJ_UI29_COMMISSION_GUIDE_ADOPTED',

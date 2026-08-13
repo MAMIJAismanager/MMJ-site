@@ -43,7 +43,8 @@
     "gate:public-work-detail-media-renderability-admission-closure-r1-r2": "node scripts/mmj-public-work-detail-media-renderability-admission-closure-r1-test.mjs && node scripts/mmj-public-work-detail-media-renderability-admission-closure-r1-gate.mjs && node scripts/mmj-public-work-detail-media-renderability-admission-closure-r1-r2-test.mjs && node scripts/mmj-public-work-detail-media-renderability-admission-closure-r1-r2-gate.mjs",
     "gate:public-work-detail-presentation-planner-admission-closure-r1": "node scripts/mmj-public-work-detail-presentation-planner-admission-closure-r1-test.mjs && node scripts/mmj-public-work-detail-presentation-planner-admission-closure-r1-gate.mjs",
     "gate:public-informative-image-accessible-description-resolution-r2": "node scripts/mmj-public-informative-image-accessible-description-resolution-r2-test.mjs && node scripts/mmj-public-informative-image-accessible-description-resolution-r2-gate.mjs",
-    "gate:github-pages-superseded-run-failure-receipt-retirement-r1": "node scripts/mmj-github-pages-superseded-run-failure-receipt-retirement-r1-test.mjs && node scripts/mmj-github-pages-superseded-run-failure-receipt-retirement-r1-gate.mjs"
+    "gate:github-pages-superseded-run-failure-receipt-retirement-r1": "node scripts/mmj-github-pages-superseded-run-failure-receipt-retirement-r1-test.mjs && node scripts/mmj-github-pages-superseded-run-failure-receipt-retirement-r1-gate.mjs",
+    "gate:commission-handoff-transient-retry-closure-r1": "node scripts/mmj-ui29-commission-handoff-transient-retry-closure-r1-test.mjs && node scripts/mmj-ui29-commission-handoff-transient-retry-closure-r1-gate.mjs"
   },
   "dependencies": {
     "@pinia/nuxt": "0.11.2",
@@ -64,5 +65,6 @@
   "mmjWorkDetailMediaRenderabilityAdmissionClosureR1R2Release": "MMJ-PUBLIC-WORK-DETAIL-MEDIA-RENDERABILITY-ADMISSION-CLOSURE-R1-R2",
   "mmjWorkDetailPresentationPlannerAdmissionClosureRelease": "MMJ-PUBLIC-WORK-DETAIL-PRESENTATION-PLANNER-ADMISSION-CLOSURE-R1",
   "mmjPublicInformativeImageAccessibleDescriptionResolutionR2Release": "MMJ-PUBLIC-INFORMATIVE-IMAGE-ACCESSIBLE-DESCRIPTION-RESOLUTION-R2",
-  "mmjGithubPagesSupersededRunFailureReceiptRetirementRelease": "MMJ-GITHUB-PAGES-SUPERSEDED-RUN-FAILURE-RECEIPT-RETIREMENT-R1"
+  "mmjGithubPagesSupersededRunFailureReceiptRetirementRelease": "MMJ-GITHUB-PAGES-SUPERSEDED-RUN-FAILURE-RECEIPT-RETIREMENT-R1",
+  "mmjCommissionHandoffTransientRetryClosureRelease": "MMJ-UI29-COMMISSION-HANDOFF-TRANSIENT-RETRY-CLOSURE-R1"
 }
