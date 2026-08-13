@@ -36,6 +36,11 @@ import type {
   WorksRawQueryValue,
 } from './works-query-state'
 
+import {
+  parseWorksPageNumber,
+  resolveWorksPageWindow,
+} from './works-pagination'
+
 export interface WorksCategoryOption {
   readonly token: PortfolioGatewayCategoryId
   readonly label: string
@@ -58,9 +63,16 @@ export interface WorksYearOption {
 export interface WorksQueryEvaluation {
   readonly state: WorksQueryState
   readonly projects: readonly ProjectCardView[]
+  readonly pageProjects: readonly ProjectCardView[]
   readonly activeProject: ProjectCardView | null
   readonly totalCount: number
   readonly resultCount: number
+  readonly pageSize: number
+  readonly currentPage: number
+  readonly pageCount: number
+  readonly pageStartIndex: number
+  readonly pageEndIndexExclusive: number
+  readonly pageResultCount: number
   readonly hasActiveFilters: boolean
   readonly canonicalQuery: Readonly<Record<string, string>>
   readonly issues: readonly WorksQueryIssue[]
@@ -314,6 +326,9 @@ function serializeWorksQueryState(
   if (state.sort !== 'order') {
     output.sort = state.sort
   }
+  if (state.page > 1) {
+    output.page = String(state.page)
+  }
   if (state.project !== null) {
     output.project = state.project
   }
@@ -515,6 +530,7 @@ export function createWorksProjectQueryAuthority(
     const tagScalar = scalars.get('tag')
     const yearScalar = scalars.get('year')
     const sortScalar = scalars.get('sort')
+    const pageScalar = scalars.get('page')
     const projectScalar = scalars.get('project')
 
     if (
@@ -523,6 +539,7 @@ export function createWorksProjectQueryAuthority(
       || tagScalar === undefined
       || yearScalar === undefined
       || sortScalar === undefined
+      || pageScalar === undefined
       || projectScalar === undefined
     ) {
       throw new Error('Works query scalar map is incomplete.')
@@ -660,6 +677,27 @@ export function createWorksProjectQueryAuthority(
       }
     }
 
+    let requestedPage = 1
+    if (
+      pageScalar.issue === null
+      && pageScalar.present
+      && pageScalar.value !== null
+    ) {
+      const parsedPage = parseWorksPageNumber(pageScalar.value)
+      if (parsedPage === null) {
+        issuesByKey.set(
+          'page',
+          issue(
+            'page',
+            'invalid-page',
+            pageScalar.value,
+          ),
+        )
+      } else {
+        requestedPage = parsedPage
+      }
+    }
+
     let requestedProject: ProjectId | null = null
     if (
       projectScalar.issue === null
@@ -785,21 +823,50 @@ export function createWorksProjectQueryAuthority(
       projects = [...projects]
     }
 
+    const frozenProjects = Object.freeze(projects)
+    const pageWindow = resolveWorksPageWindow(
+      frozenProjects.length,
+      requestedPage,
+    )
+
+    if (pageWindow.outOfRange) {
+      issuesByKey.set(
+        'page',
+        issue(
+          'page',
+          'page-out-of-range',
+          requestedPage,
+        ),
+      )
+    }
+
+    const pageProjects = Object.freeze(
+      frozenProjects.slice(
+        pageWindow.startIndex,
+        pageWindow.endIndexExclusive,
+      ),
+    )
+
     let project: ProjectId | null = requestedProject
     let activeProject: ProjectCardView | null = null
 
     if (requestedProject !== null) {
-      activeProject = projects.find(candidate => (
+      activeProject = pageProjects.find(candidate => (
         candidate.id === requestedProject
       )) ?? null
 
       if (activeProject === null) {
         project = null
+        const projectInFilteredResult = frozenProjects.some(candidate => (
+          candidate.id === requestedProject
+        ))
         issuesByKey.set(
           'project',
           issue(
             'project',
-            'project-not-in-result',
+            projectInFilteredResult
+              ? 'project-not-in-page'
+              : 'project-not-in-result',
             requestedProject,
           ),
         )
@@ -812,10 +879,10 @@ export function createWorksProjectQueryAuthority(
       tag,
       year,
       sort,
+      page: pageWindow.currentPage,
       project,
     })
 
-    const frozenProjects = Object.freeze(projects)
     const issues = Object.freeze(
       WORKS_QUERY_KEYS.flatMap(key => {
         const currentIssue = issuesByKey.get(key)
@@ -831,9 +898,16 @@ export function createWorksProjectQueryAuthority(
     return freezeRecord<WorksQueryEvaluation>({
       state,
       projects: frozenProjects,
+      pageProjects,
       activeProject,
       totalCount: allProjects.length,
       resultCount: frozenProjects.length,
+      pageSize: pageWindow.pageSize,
+      currentPage: pageWindow.currentPage,
+      pageCount: pageWindow.pageCount,
+      pageStartIndex: pageWindow.startIndex,
+      pageEndIndexExclusive: pageWindow.endIndexExclusive,
+      pageResultCount: pageWindow.pageResultCount,
       hasActiveFilters: hasAnyActiveQuery(state),
       canonicalQuery,
       issues,

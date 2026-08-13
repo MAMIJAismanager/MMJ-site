@@ -14,6 +14,7 @@ import {
 
 import ProjectGrid from '~/components/project/ProjectGrid.vue'
 import WorksFilterBar from '~/components/works/WorksFilterBar.vue'
+import WorksPagination from '~/components/works/WorksPagination.vue'
 import WorksResultSummary from '~/components/works/WorksResultSummary.vue'
 
 import type {
@@ -63,7 +64,7 @@ useSeoMeta({
 const {
   queryReady,
   evaluation,
-  projects,
+  pageProjects,
   state,
   activeProject,
   hasActiveFilters,
@@ -79,7 +80,7 @@ const {
   handleDetailActivation,
 } = useWorksNavigationMemory({
   queryReady,
-  projects,
+  projects: pageProjects,
   activeProject,
   replaceQuery,
 })
@@ -183,6 +184,13 @@ function changeSort(
   void patchQuery({ sort: value })
 }
 
+function changePage(page: number): void {
+  void patchQuery({
+    page,
+    project: null,
+  })
+}
+
 const activeGatewayCategory = computed(() => (
   state.value.category === null
     ? null
@@ -201,6 +209,10 @@ function resetWorksQuery(): void {
     :data-mm-query-ready="queryReady ? 'true' : 'false'"
     :data-mm-result-count="evaluation.resultCount"
     :data-mm-total-count="evaluation.totalCount"
+    :data-mm-page-size="evaluation.pageSize"
+    :data-mm-current-page="evaluation.currentPage"
+    :data-mm-page-count="evaluation.pageCount"
+    :data-mm-page-result-count="evaluation.pageResultCount"
     :data-mm-active-project-id="activeProject?.id"
     :data-mm-navigation-restoration="restorationResult?.status ?? 'pending'"
     :data-mm-hidden-category-active="hiddenCategoryActive ? 'true' : 'false'"
@@ -257,6 +269,10 @@ function resetWorksQuery(): void {
       :result-count="evaluation.resultCount"
       :has-active-filters="hasActiveFilters"
       :query-ready="queryReady"
+      :current-page="evaluation.currentPage"
+      :page-count="evaluation.pageCount"
+      :page-start-index="evaluation.pageStartIndex"
+      :page-end-index-exclusive="evaluation.pageEndIndexExclusive"
     />
 
     <p
@@ -268,8 +284,8 @@ function resetWorksQuery(): void {
     </p>
 
     <ProjectGrid
-      v-else-if="projects.length > 0"
-      :projects="projects"
+      v-else-if="pageProjects.length > 0"
+      :projects="pageProjects"
       @detail-activate="handleDetailActivation"
     />
 
@@ -298,5 +314,13 @@ function resetWorksQuery(): void {
     >
       현재 공개된 작업이 없습니다.
     </p>
+
+    <WorksPagination
+      v-if="queryReady && evaluation.pageCount > 1"
+      :current-page="evaluation.currentPage"
+      :page-count="evaluation.pageCount"
+      :query-ready="queryReady"
+      @change-page="changePage"
+    />
   </section>
 </template>

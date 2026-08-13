@@ -12,6 +12,7 @@ export const WORKS_QUERY_KEYS = [
   'tag',
   'year',
   'sort',
+  'page',
   'project',
 ] as const
 
@@ -41,6 +42,7 @@ export interface WorksQueryState {
   readonly tag: string | null
   readonly year: number | null
   readonly sort: WorksSort
+  readonly page: number
   readonly project: ProjectId | null
 }
 
@@ -51,6 +53,7 @@ Readonly<WorksQueryState> = Object.freeze({
   tag: null,
   year: null,
   sort: 'order',
+  page: 1,
   project: null,
 })
 
@@ -71,8 +74,11 @@ export type WorksQueryIssueCode =
   | 'unknown-tag'
   | 'invalid-year'
   | 'unknown-sort'
+  | 'invalid-page'
+  | 'page-out-of-range'
   | 'invalid-project-id'
   | 'project-not-in-result'
+  | 'project-not-in-page'
 
 export interface WorksQueryIssue {
   readonly key: WorksQueryKey

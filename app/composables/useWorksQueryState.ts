@@ -60,6 +60,7 @@ export interface UseWorksQueryStateResult {
   readonly queryReady: Readonly<Ref<boolean>>
   readonly evaluation: Readonly<Ref<WorksQueryEvaluation>>
   readonly projects: ComputedRef<readonly ProjectCardView[]>
+  readonly pageProjects: ComputedRef<readonly ProjectCardView[]>
   readonly state: ComputedRef<WorksQueryState>
   readonly activeProject: ComputedRef<ProjectCardView | null>
   readonly hasActiveFilters: ComputedRef<boolean>
@@ -156,10 +157,23 @@ function mergeCanonicalOfficialQuery(
   return output
 }
 
+const WORKS_FILTER_STATE_KEYS = [
+  'q',
+  'category',
+  'tag',
+  'year',
+  'sort',
+] as const satisfies readonly (keyof WorksQueryState)[]
+
 function patchState(
   current: WorksQueryState,
   patch: Partial<WorksQueryState>,
 ): WorksQueryState {
+  const filterChanged = WORKS_FILTER_STATE_KEYS.some(
+    key => Object.hasOwn(patch, key),
+  )
+  const pageChanged = Object.hasOwn(patch, 'page')
+
   return {
     q: Object.hasOwn(patch, 'q') ? patch.q ?? null : current.q,
     category: Object.hasOwn(patch, 'category')
@@ -168,9 +182,16 @@ function patchState(
     tag: Object.hasOwn(patch, 'tag') ? patch.tag ?? null : current.tag,
     year: Object.hasOwn(patch, 'year') ? patch.year ?? null : current.year,
     sort: Object.hasOwn(patch, 'sort') ? patch.sort ?? 'order' : current.sort,
+    page: pageChanged
+      ? patch.page ?? 1
+      : filterChanged
+        ? 1
+        : current.page,
     project: Object.hasOwn(patch, 'project')
       ? patch.project ?? null
-      : current.project,
+      : (filterChanged || pageChanged)
+        ? null
+        : current.project,
   }
 }
 
@@ -331,6 +352,7 @@ export function useWorksQueryState(): UseWorksQueryStateResult {
     queryReady: readonly(queryReady),
     evaluation: readonly(evaluation),
     projects: computed(() => evaluation.value.projects),
+    pageProjects: computed(() => evaluation.value.pageProjects),
     state: computed(() => evaluation.value.state),
     activeProject: computed(() => evaluation.value.activeProject),
     hasActiveFilters: computed(() => evaluation.value.hasActiveFilters),
