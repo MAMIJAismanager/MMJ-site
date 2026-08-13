@@ -17,6 +17,7 @@ export interface ContactSurfaceContent {
   readonly successMessage: string
   readonly unavailableMessage: string
   readonly worksLinkLabel: string
+  readonly worksLinkRoute: '/works'
 }
 
 export interface SiteInformation {
@@ -70,5 +71,6 @@ export const SITE_INFORMATION: SiteInformation = deepFreeze({
     unavailableMessage:
       '문의 전송 경로가 아직 연결되지 않았습니다.',
     worksLinkLabel: '작업 먼저 보기',
+    worksLinkRoute: '/works',
   },
 })

@@ -38,19 +38,6 @@ useSeoMeta({
 
       <ContactForm :content="contact" />
     </section>
-
-    <nav
-      class="mm-info-actions"
-      aria-label="문의 페이지 이동"
-      data-mm-info-actions
-    >
-      <NuxtLink
-        class="mm-info-action mm-info-action--secondary"
-        to="/works"
-      >
-        {{ contact.worksLinkLabel }}
-      </NuxtLink>
-    </nav>
   </InfoPageSurface>
 </template>
 

@@ -191,6 +191,67 @@ for (const forbidden of [
   }
 }
 
+
+const utilityNavMarker = 'data-mm-contact-utility-actions'
+for (const token of [
+  utilityNavMarker,
+  ':to="content.worksLinkRoute"',
+  '{{ content.worksLinkLabel }}',
+]) {
+  if (!form.includes(token)) {
+    fail('E_MMJ_CONTACT_WORKS_NAV_OWNERSHIP_INVALID', 'ContactForm utility navigation ownership is incomplete.', { token })
+  }
+}
+for (const forbidden of [
+  'data-mm-info-actions',
+  'contact.worksLinkLabel',
+  'to="/works"',
+]) {
+  if (contactPage.includes(forbidden)) {
+    fail('E_MMJ_CONTACT_OUTER_INFO_GRID_ACTION_REMAINS', 'Contact route still owns the Works utility navigation.', { forbidden })
+  }
+}
+if (form.includes('to="/works"')) {
+  fail('E_MMJ_CONTACT_WORKS_NAV_CONTENT_AUTHORITY_BYPASS', 'ContactForm hardcodes the Works route instead of using typed content authority.')
+}
+const formCloseIndex = form.lastIndexOf('</form>')
+const utilityNavIndex = form.indexOf(utilityNavMarker)
+const utilityNavStart = form.lastIndexOf('<nav', utilityNavIndex)
+const utilityNavEnd = form.indexOf('</nav>', utilityNavIndex)
+const rootCloseIndex = form.lastIndexOf('</div>\n</template>')
+if (
+  formCloseIndex < 0
+  || utilityNavIndex < 0
+  || utilityNavStart < 0
+  || utilityNavEnd < 0
+  || rootCloseIndex < 0
+  || utilityNavIndex <= formCloseIndex
+  || utilityNavEnd >= rootCloseIndex
+) {
+  fail('E_MMJ_CONTACT_WORKS_NAV_FLOW_INVALID', 'Works utility navigation must be a ContactForm sibling after the form and before the root closes.')
+}
+const utilityNavSource = form.slice(utilityNavStart, utilityNavEnd + '</nav>'.length)
+for (const forbidden of [
+  'submissionState',
+  'endpointState',
+  'activeCategoryId',
+  'draft.',
+  'errors.',
+  'v-if=',
+  'v-show=',
+  'position:',
+  'z-index',
+  'translateY',
+  'ResizeObserver',
+  'getBoundingClientRect',
+  'window.innerWidth',
+  'window.innerHeight',
+]) {
+  if (utilityNavSource.includes(forbidden)) {
+    fail('E_MMJ_CONTACT_WORKS_NAV_FORBIDDEN_COUPLING', 'Works utility navigation is coupled to form state or geometry.', { forbidden })
+  }
+}
+
 for (const token of [
   'NUXT_PUBLIC_MMJ_CONTACT_FORM_ENDPOINT',
   'mmjContactFormEndpoint',
@@ -266,6 +327,8 @@ for (const token of [
   "seoDescription:",
   'submitLabel:',
   'successHeading:',
+  "readonly worksLinkRoute: '/works'",
+  "worksLinkRoute: '/works'",
 ]) {
   if (!siteInformation.includes(token)) {
     fail('E_MMJ_CONTACT_CONTENT_AUTHORITY_INVALID', 'Contact content authority is incomplete.', { token })
@@ -311,6 +374,18 @@ if (!String(pkg.scripts?.['gate:mmj-ui29-a'] ?? '').includes('verify:contact-for
 if (pkg.mmjContactFormspreeRelease !== 'MMJ-CONTACT-FORMSPREE-R1') {
   fail('E_MMJ_CONTACT_RELEASE_IDENTITY_MISSING', 'Contact Formspree release identity is missing.')
 }
+if (
+  pkg.mmjUi29ContactWorksNavInFlowOwnershipClosureRelease
+  !== 'MMJ-UI29-CONTACT-WORKS-NAV-IN-FLOW-OWNERSHIP-CLOSURE-R1'
+) {
+  fail('E_MMJ_CONTACT_WORKS_NAV_RELEASE_IDENTITY_MISSING', 'Contact Works navigation ownership release identity is missing.')
+}
+if (
+  pkg.scripts?.['gate:contact-works-nav-in-flow-ownership-closure-r1']
+  !== 'node scripts/mmj-contact-formspree-r1-gate.mjs'
+) {
+  fail('E_MMJ_CONTACT_WORKS_NAV_GATE_BINDING_MISSING', 'Contact Works navigation ownership gate binding is missing.')
+}
 
 console.log(JSON.stringify({
   event: 'PASS_MMJ_CONTACT_FORMSPREE_R1',
@@ -329,4 +404,13 @@ console.log(JSON.stringify({
   staticSitePreserved: true,
   domainRestriction: 'external-config-required',
   publicSecretResidue: 0,
+}))
+
+console.log(JSON.stringify({
+  event: 'PASS_MMJ_UI29_CONTACT_WORKS_NAV_IN_FLOW_OWNERSHIP_CLOSURE_R1',
+  utilityNavigationOwner: 'ContactForm',
+  routeAuthority: 'typed-content',
+  formStateCoupling: 'absent',
+  geometryMeasurement: 'absent',
+  outerInfoGridAction: 'retired',
 }))

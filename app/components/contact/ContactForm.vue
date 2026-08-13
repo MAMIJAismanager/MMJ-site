@@ -825,6 +825,19 @@ function providerMessage(): string {
         </div>
       </template>
     </form>
+
+    <nav
+      class="mm-info-actions mm-contact-form__utility-actions"
+      aria-label="문의 페이지 이동"
+      data-mm-contact-utility-actions
+    >
+      <NuxtLink
+        class="mm-info-action mm-info-action--secondary"
+        :to="content.worksLinkRoute"
+      >
+        {{ content.worksLinkLabel }}
+      </NuxtLink>
+    </nav>
   </div>
 </template>
 
