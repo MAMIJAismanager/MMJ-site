@@ -15,6 +15,9 @@ interface PortfolioRouteManifest {
 }
 
 const root = dirname(fileURLToPath(import.meta.url))
+const brandMarkSourcePath = join(root, 'app', 'assets', 'brand', 'mmj-logo.svg')
+const brandMarkSvg = readFileSync(brandMarkSourcePath, 'utf8')
+const brandFaviconHref = `data:image/svg+xml,${encodeURIComponent(brandMarkSvg)}`
 const snapshotPath = join(root, 'generated', 'portfolio.snapshot.json')
 const routeManifestPath = join(root, 'generated', 'portfolio.routes.json')
 const snapshotBytes = readFileSync(snapshotPath)
@@ -193,6 +196,11 @@ export default defineNuxtConfig({
         },
       ],
       link: [
+        {
+          rel: 'icon',
+          type: 'image/svg+xml',
+          href: brandFaviconHref,
+        },
         {
           rel: 'preconnect',
           href: 'https://fonts.googleapis.com',

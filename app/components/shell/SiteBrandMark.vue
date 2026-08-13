@@ -1,0 +1,9 @@
+<template>
+  <img
+    class="mm-site-brand-mark"
+    src="~/assets/brand/mmj-logo.svg"
+    alt=""
+    aria-hidden="true"
+    draggable="false"
+  >
+</template>

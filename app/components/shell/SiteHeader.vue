@@ -8,6 +8,7 @@ import {
   watch,
 } from 'vue'
 
+import SiteBrandMark from '~/components/shell/SiteBrandMark.vue'
 import SiteNavList from '~/components/shell/SiteNavList.vue'
 
 import {
@@ -24,14 +25,6 @@ import {
 } from '~/utils/navigation-restoration'
 
 const route = useRoute()
-
-const {
-  pendingSingleClick: brandClickPending,
-  onPointerDown: onBrandPointerDown,
-  onPointerMove: onBrandPointerMove,
-  onPointerUp: onBrandPointerUp,
-  onClick: onBrandClick,
-} = useBrandEntryArbitrator()
 
 const {
   phase: menuPhase,
@@ -159,6 +152,20 @@ function closeMenu(
   closeMenuPhase(immediate)
 }
 
+const {
+  pendingSingleClick: brandClickPending,
+  feedbackSurface: brandFeedbackSurface,
+  onPointerDown: onBrandPointerDown,
+  onPointerMove: onBrandPointerMove,
+  onPointerUp: onBrandPointerUp,
+  onPointerCancel: onBrandPointerCancel,
+  onClick: onBrandClick,
+} = useBrandEntryArbitrator({
+  onBeforeNavigate: surface => {
+    if (surface === 'mobile-menu') closeMenu(false, true)
+  },
+})
+
 function handleMenuSurfaceKeydown(event: KeyboardEvent): void {
   if (!menuActive.value) return
 
@@ -259,16 +266,18 @@ onBeforeUnmount(() => {
       <a
         class="mm-site-header__brand"
         href="/"
-        aria-label="매미: 著 홈. 데스크톱 더블클릭 시 숨은 작업실 진입"
+        aria-label="매미: 著 홈. 빠르게 두 번 누르면 숨은 작업실 진입"
         :data-mm-brand-click-pending="brandClickPending ? 'true' : 'false'"
+        :data-mm-brand-feedback="brandFeedbackSurface === 'header' ? 'active' : 'idle'"
+        data-mm-brand-surface="header"
         data-mm-brand-hidden-entry
-        @pointerdown="onBrandPointerDown"
+        @pointerdown="onBrandPointerDown($event, 'header')"
         @pointermove="onBrandPointerMove"
         @pointerup="onBrandPointerUp"
-        @pointercancel="onBrandPointerUp"
-        @click="onBrandClick"
+        @pointercancel="onBrandPointerCancel"
+        @click="onBrandClick($event, 'header')"
       >
-        매미: 著
+        <SiteBrandMark />
       </a>
 
       <button
@@ -310,13 +319,22 @@ onBeforeUnmount(() => {
       </h2>
 
       <div class="mm-mobile-menu-surface__bar">
-        <NuxtLink
+        <a
           class="mm-site-header__brand"
-          to="/"
-          @click="closeMenu(false)"
+          href="/"
+          aria-label="매미: 著 홈. 빠르게 두 번 누르면 숨은 작업실 진입"
+          :data-mm-brand-click-pending="brandClickPending ? 'true' : 'false'"
+          :data-mm-brand-feedback="brandFeedbackSurface === 'mobile-menu' ? 'active' : 'idle'"
+          data-mm-brand-surface="mobile-menu"
+          data-mm-brand-hidden-entry
+          @pointerdown="onBrandPointerDown($event, 'mobile-menu')"
+          @pointermove="onBrandPointerMove"
+          @pointerup="onBrandPointerUp"
+          @pointercancel="onBrandPointerCancel"
+          @click="onBrandClick($event, 'mobile-menu')"
         >
-          매미: 著
-        </NuxtLink>
+          <SiteBrandMark />
+        </a>
 
         <button
           ref="menuCloseButtonRef"
