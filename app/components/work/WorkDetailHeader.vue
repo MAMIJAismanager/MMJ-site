@@ -19,7 +19,7 @@ defineProps<Props>()
       Work · {{ project.category.label }}
     </p>
 
-    <h1 class="mm-page-title mm-work-detail-header__title">
+    <h1 class="mm-work-detail-header__title">
       {{ project.title }}
     </h1>
   </header>
