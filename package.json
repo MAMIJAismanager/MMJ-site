@@ -46,8 +46,9 @@
     "gate:github-pages-superseded-run-failure-receipt-retirement-r1": "node scripts/mmj-github-pages-superseded-run-failure-receipt-retirement-r1-test.mjs && node scripts/mmj-github-pages-superseded-run-failure-receipt-retirement-r1-gate.mjs",
     "gate:commission-handoff-transient-retry-closure-r1": "node scripts/mmj-ui29-commission-handoff-transient-retry-closure-r1-test.mjs && node scripts/mmj-ui29-commission-handoff-transient-retry-closure-r1-gate.mjs",
     "gate:ui29-failure-receipt-preflight-authority-separation-and-historical-settlement-closure-r1": "node scripts/mmj-ui29-failure-receipt-preflight-authority-separation-and-historical-settlement-closure-r1-test.mjs && node scripts/mmj-ui29-failure-receipt-preflight-authority-separation-and-historical-settlement-closure-r1-gate.mjs && node scripts/mmj-github-pages-superseded-run-failure-receipt-retirement-r1-test.mjs && node scripts/mmj-github-pages-superseded-run-failure-receipt-retirement-r1-gate.mjs",
-    "gate:works-paginated-viewport-8-responsive-composition-r1": "node --experimental-strip-types scripts/mmj-ui29-works-paginated-viewport-8-responsive-composition-r1-test.mjs && node scripts/mmj-ui29-works-paginated-viewport-8-responsive-composition-r1-gate.mjs",
-    "gate:portfolio-handoff-transient-retry-closure-r1": "node --experimental-strip-types scripts/mmj-ui29-portfolio-handoff-transient-retry-closure-r1-test.mjs && node scripts/mmj-ui29-portfolio-handoff-transient-retry-closure-r1-gate.mjs"
+    "gate:works-paginated-viewport-8-responsive-composition-r1": "node --experimental-strip-types scripts/mmj-ui29-works-paginated-viewport-8-responsive-composition-r1-test.mjs && node scripts/mmj-ui29-works-paginated-viewport-8-responsive-composition-r1-gate.mjs && node scripts/public-boundary-gate.mjs",
+    "gate:portfolio-handoff-transient-retry-closure-r1": "node --experimental-strip-types scripts/mmj-ui29-portfolio-handoff-transient-retry-closure-r1-test.mjs && node scripts/mmj-ui29-portfolio-handoff-transient-retry-closure-r1-gate.mjs",
+    "gate:works-pagination-public-boundary-allowlist-closure-r1": "npm run gate:works-paginated-viewport-8-responsive-composition-r1"
   },
   "dependencies": {
     "@pinia/nuxt": "0.11.2",
@@ -72,5 +73,6 @@
   "mmjCommissionHandoffTransientRetryClosureRelease": "MMJ-UI29-COMMISSION-HANDOFF-TRANSIENT-RETRY-CLOSURE-R1",
   "mmjUi29FailureReceiptPreflightAuthoritySeparationHistoricalSettlementClosureRelease": "MMJ-UI29-FAILURE-RECEIPT-PREFLIGHT-AUTHORITY-SEPARATION-AND-HISTORICAL-SETTLEMENT-CLOSURE-R1",
   "mmjUi29WorksPaginatedViewport8ResponsiveCompositionRelease": "MMJ-UI29-WORKS-PAGINATED-VIEWPORT-8-RESPONSIVE-COMPOSITION-R1",
-  "mmjPortfolioHandoffTransientRetryClosureRelease": "MMJ-UI29-PORTFOLIO-HANDOFF-TRANSIENT-RETRY-CLOSURE-R1"
+  "mmjPortfolioHandoffTransientRetryClosureRelease": "MMJ-UI29-PORTFOLIO-HANDOFF-TRANSIENT-RETRY-CLOSURE-R1",
+  "mmjUi29WorksPaginationPublicBoundaryAllowlistClosureRelease": "MMJ-UI29-WORKS-PAGINATION-PUBLIC-BOUNDARY-ALLOWLIST-CLOSURE-R1"
 }

@@ -23,6 +23,7 @@ const allowedShared = new Set([
   'shared/constants/taxonomy.ts',
   'shared/navigation/navigation-route-key.ts',
   'shared/query/portfolio-snapshot-query.ts',
+  'shared/query/works-pagination.ts',
   'shared/query/works-project-query.ts',
   'shared/query/works-query-state.ts',
   'shared/resolver/media-delivery-config.ts',

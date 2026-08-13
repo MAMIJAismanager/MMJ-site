@@ -16,6 +16,7 @@ const [
   listingCss,
   queryCss,
   shellCss,
+  publicBoundary,
   pkgText,
 ] = await Promise.all([
   read('shared/query/works-query-state.ts'),
@@ -28,11 +29,13 @@ const [
   read('app/assets/css/project-listing.css'),
   read('app/assets/css/works-query.css'),
   read('app/assets/css/shell.css'),
+  read('scripts/public-boundary-gate.mjs'),
   read('package.json'),
 ])
 
 const pkg = JSON.parse(pkgText)
 const release = 'MMJ-UI29-WORKS-PAGINATED-VIEWPORT-8-RESPONSIVE-COMPOSITION-R1'
+const boundaryClosureRelease = 'MMJ-UI29-WORKS-PAGINATION-PUBLIC-BOUNDARY-ALLOWLIST-CLOSURE-R1'
 
 assert.ok(state.includes("'page',\n  'project',"), 'page is not an official Works query key')
 assert.ok(state.includes('readonly page: number'), 'Works query page state missing')
@@ -76,6 +79,20 @@ assert.ok(shellCss.includes('.mm-layout--viewport-works'), 'Works viewport-speci
 assert.ok(shellCss.includes('overflow: visible;'), 'non-stage Works document-flow fallback missing')
 assert.ok(shellCss.includes('@media (min-width: 112rem) and (min-height: 60rem)'), 'Works stage lock threshold missing')
 
+assert.ok(
+  publicBoundary.includes("  'shared/query/works-pagination.ts',"),
+  'works-pagination.ts is not exactly admitted by the public shared allowlist',
+)
+assert.ok(
+  publicBoundary.includes("if (rel.startsWith('shared/') && !allowedShared.has(rel))"),
+  'exact shared allowlist enforcement drift',
+)
+assert.equal(
+  publicBoundary.includes("rel.startsWith('shared/query/')"),
+  false,
+  'shared/query directory-level boundary bypass is forbidden',
+)
+
 const runtimeGeometrySources = [state, pagination, query, composable, page, paginator]
 for (const source of runtimeGeometrySources) {
   for (const forbidden of [
@@ -95,6 +112,11 @@ assert.equal(
   release,
   'release marker drift',
 )
+assert.equal(
+  pkg.mmjUi29WorksPaginationPublicBoundaryAllowlistClosureRelease,
+  boundaryClosureRelease,
+  'Works pagination public-boundary closure release marker drift',
+)
 assert.ok(
   String(pkg.scripts?.['gate:works-paginated-viewport-8-responsive-composition-r1'] || '')
     .includes('mmj-ui29-works-paginated-viewport-8-responsive-composition-r1-test.mjs'),
@@ -105,6 +127,16 @@ assert.ok(
     .includes('mmj-ui29-works-paginated-viewport-8-responsive-composition-r1-gate.mjs'),
   'static gate is not wired to package gate',
 )
+assert.ok(
+  String(pkg.scripts?.['gate:works-paginated-viewport-8-responsive-composition-r1'] || '')
+    .includes('scripts/public-boundary-gate.mjs'),
+  'Works pagination gate is not integrated with the public boundary gate',
+)
+assert.equal(
+  pkg.scripts?.['gate:works-pagination-public-boundary-allowlist-closure-r1'],
+  'npm run gate:works-paginated-viewport-8-responsive-composition-r1',
+  'boundary closure gate alias drift',
+)
 
 console.log('PASS_FILTER_SORT_THEN_PAGINATION')
 console.log('PASS_FIXED_EIGHT_ITEM_PAGE_WINDOW')
@@ -114,4 +146,7 @@ console.log('PASS_PAGE_BOUND_PROJECT_FOCUS')
 console.log('PASS_1920_CLASS_FOUR_BY_TWO_COMPOSITION_AUTHORITY')
 console.log('PASS_RESPONSIVE_DOCUMENT_FLOW_FALLBACK')
 console.log('PASS_NO_RUNTIME_VIEWPORT_GEOMETRY_LOOP')
+console.log('PASS_WORKS_PAGINATION_PUBLIC_BOUNDARY_EXACT_ALLOWLIST')
+console.log('PASS_NO_SHARED_QUERY_DIRECTORY_BYPASS')
+console.log('PASS_MMJ_UI29_WORKS_PAGINATION_PUBLIC_BOUNDARY_ALLOWLIST_CLOSURE_R1')
 console.log('PASS_MMJ_UI29_WORKS_PAGINATED_VIEWPORT_8_RESPONSIVE_COMPOSITION_R1')
