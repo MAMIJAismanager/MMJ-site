@@ -66,7 +66,7 @@ async function runMutationBoundaryFixture({ verifierSource, expectedEvent, marke
   const scriptsRoot = resolve(fixtureRoot, 'scripts')
   const marker = resolve(fixtureRoot, 'receipt-called.txt')
   await mkdir(scriptsRoot, { recursive: true })
-  await writeFile(resolve(scriptsRoot, 'mmj-ui29-dispatch-input-verify.mjs'), verifierSource, 'utf8')
+  await writeFile(resolve(scriptsRoot, 'mmj-ui29-failure-receipt-evidence-verify.mjs'), verifierSource, 'utf8')
   await writeFile(resolve(scriptsRoot, 'mmj-ui29-build-receipt.mjs'), `import { writeFileSync } from 'node:fs'; writeFileSync(process.env.MMJ_TEST_MARKER, 'called'); console.log(JSON.stringify({event:'FAKE_RECEIPT_OK'}));\n`, 'utf8')
   try {
     const result = spawnSync(process.execPath, [wrapper], {
@@ -98,7 +98,7 @@ await runMutationBoundaryFixture({
 })
 
 await runMutationBoundaryFixture({
-  verifierSource: `console.log(JSON.stringify({event:'PASS_MMJ_UI29_B_DISPATCH_PREFLIGHT'}));\n`,
+  verifierSource: `console.log(JSON.stringify({event:'PASS_MMJ_UI29_FAILURE_RECEIPT_EVIDENCE_AUTHORITY_R1'}));\n`,
   expectedEvent: 'PASS_MMJ_GITHUB_PAGES_ACTUAL_FAILURE_RECEIPT_ADMITTED',
   markerExpected: true,
 })

@@ -41,8 +41,8 @@ if (!decision.failureReceiptEligible) {
 }
 
 const root = process.cwd()
-const verifier = resolve(root, 'scripts/mmj-ui29-dispatch-input-verify.mjs')
-const authority = spawnSync(process.execPath, [verifier, 'preflight'], {
+const verifier = resolve(root, 'scripts/mmj-ui29-failure-receipt-evidence-verify.mjs')
+const authority = spawnSync(process.execPath, [verifier], {
   cwd: root,
   env: process.env,
   encoding: 'utf8',
@@ -67,7 +67,7 @@ if (authority.status !== 0) {
     process.exit(0)
   }
   if (authority.stderr) process.stderr.write(authority.stderr)
-  throw new Error(`Failure receipt authority verification failed before CMS mutation. verifierStatus=${authority.status ?? 'null'}`)
+  throw new Error(`Failure receipt evidence verification failed before CMS mutation. verifierStatus=${authority.status ?? 'null'}`)
 }
 
 const receipt = resolve(root, 'scripts/mmj-ui29-build-receipt.mjs')
@@ -89,6 +89,7 @@ console.log(JSON.stringify({
   buildResult,
   deployResult,
   failureReceiptEligible: true,
-  currentDispatchAuthority: true,
+  failureReceiptEvidenceAuthority: true,
+  buildAdmissionAuthorityReused: false,
   cmsMutation: true,
 }))
