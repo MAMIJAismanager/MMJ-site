@@ -184,8 +184,34 @@ const workDetailCss = await read('app/assets/css/work-detail.css')
 if (workDetailCss.includes('.mm-work-detail__cover')) fail('work detail cover CSS residue remains.')
 for (const forbidden of ['.mm-work-detail-header__meta', '.mm-work-detail-header__roles', '.mm-work-detail-header__release', '.mm-work-detail-header__summary', '.mm-work-detail-header__tags', 'minmax(16rem, 0.4fr)']) if (workDetailCss.includes(forbidden)) fail(`work detail auxiliary CSS residue remains: ${forbidden}`)
 if (!workDetailCss.includes('.mm-work-asset-frame__caption')) fail('generic work-asset caption CSS authority missing')
-const desktopHeaderBlock = workDetailCss.match(/@media\s*\(min-width:\s*80rem\)\s*\{[\s\S]*?\.mm-work-detail-header\s*\{([\s\S]*?)\}[\s\S]*?\}/)?.[1] ?? null
-if (desktopHeaderBlock === null || !desktopHeaderBlock.includes('grid-template-columns: minmax(0, 1fr)') || !desktopHeaderBlock.includes('max-width: var(--mm-copy-max)')) fail('work detail desktop header single-column reflow missing')
+// MMJ-UI29-WORK-DETAIL-STATIC-GATE-AUTHORITY-REBIND-R1: BEGIN
+const workDetailLayoutAuthority = await read('app/work-detail/work-detail-layout-profile.ts')
+for (const required of [
+  'WORK_DETAIL_REFERENCE_VIEWPORT',
+  'width: 1920',
+  'height: 1080',
+  "'reference-split'",
+  "'wide-split'",
+  "'mobile-stack'",
+]) if (!workDetailLayoutAuthority.includes(required)) fail(`work detail layout SSOT missing: ${required}`)
+for (const required of [
+  'data-mm-work-detail-core',
+  ':data-mm-work-detail-layout="layoutProfile.mode"',
+  ':data-mm-work-detail-core-fit="layoutProfile.coreViewportFit',
+  ':style="layoutStyle"',
+]) if (!slugPage.includes(required)) fail(`work detail Vue layout projection missing: ${required}`)
+if (workDetailHeader.includes('mm-page-title')) fail('global page title authority leaked into Work Detail header')
+for (const required of [
+  ".mm-work-detail-core[data-mm-work-detail-core-layout='reference-split']",
+  ".mm-work-detail-core[data-mm-work-detail-core-layout='wide-split']",
+  'var(--mm-work-detail-copy-column)',
+  'font-size: var(--mm-work-detail-title-size)',
+  'var(--mm-work-detail-section-title-size)',
+  'var(--mm-work-detail-media-max-inline)',
+]) if (!workDetailCss.includes(required)) fail(`work detail runtime layout authority missing: ${required}`)
+const workDetailCoreMediaQuery = /@media[^\{]*\{[\s\S]*?mm-work-detail-core[\s\S]*?\}/g
+if (workDetailCoreMediaQuery.test(workDetailCss)) fail('CSS media query must not promote Work Detail core layout')
+// MMJ-UI29-WORK-DETAIL-STATIC-GATE-AUTHORITY-REBIND-R1: END
 
 const workAssetFrame = await read('app/components/work/WorkAssetFrame.vue')
 for (const required of ["captionMode?: 'full' | 'none'", "captionMode: 'full'", "v-if=\"captionMode === 'full'\"", 'asset.label', 'asset.caption', 'asset.credit']) if (!workAssetFrame.includes(required)) fail(`work asset caption contract missing: ${required}`)
