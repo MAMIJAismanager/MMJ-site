@@ -11,12 +11,17 @@ import type {
   ProjectCardView,
 } from '~~/shared/view/portfolio-project-view'
 
+import type {
+  WorksCardDensity,
+} from '~/works/works-layout-profile'
+
 import ProjectCardMedia from './ProjectCardMedia.vue'
 import ProjectCardMetadata from './ProjectCardMetadata.vue'
 
 interface ProjectCardProps {
   readonly project: ProjectCardView
   readonly index: number
+  readonly density: WorksCardDensity
 }
 
 type NuxtNavigate = (event?: MouseEvent) => Promise<unknown>
@@ -48,6 +53,7 @@ function onControlledNuxtFallback(
   <article
     class="mm-project-card"
     data-mm-project-card
+    :data-mm-project-card-density="density"
   >
     <NuxtLink
       v-slot="{ href, navigate }"

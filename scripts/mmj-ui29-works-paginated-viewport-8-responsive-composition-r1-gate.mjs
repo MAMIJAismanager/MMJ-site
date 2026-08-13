@@ -36,6 +36,7 @@ const [
 const pkg = JSON.parse(pkgText)
 const release = 'MMJ-UI29-WORKS-PAGINATED-VIEWPORT-8-RESPONSIVE-COMPOSITION-R1'
 const boundaryClosureRelease = 'MMJ-UI29-WORKS-PAGINATION-PUBLIC-BOUNDARY-ALLOWLIST-CLOSURE-R1'
+const r2Release = 'MMJ-UI29-WORKS-1920X1080-REFERENCE-FLUID-COMPOSITION-AND-MOBILE-CHECKERBOARD-R2'
 
 assert.ok(state.includes("'page',\n  'project',"), 'page is not an official Works query key')
 assert.ok(state.includes('readonly page: number'), 'Works query page state missing')
@@ -72,12 +73,25 @@ assert.ok(queryCss.includes('min-width: 2.75rem'), 'pagination minimum hit targe
 assert.ok(queryCss.includes('min-height: 2.75rem'), 'pagination minimum hit target height missing')
 assert.ok(summary.includes('pageEndIndexExclusive'), 'visible page range summary missing')
 
-assert.ok(listingCss.includes('@media (min-width: 112rem) and (min-height: 60rem)'), 'stage-capable 1920-class media authority missing')
-assert.ok(listingCss.includes('grid-template-columns: repeat(4, minmax(0, 1fr));'), 'canonical desktop four-column projection missing')
-assert.ok(listingCss.includes('92rem'), 'canonical stage width bound missing')
-assert.ok(shellCss.includes('.mm-layout--viewport-works'), 'Works viewport-specific layout authority missing')
-assert.ok(shellCss.includes('overflow: visible;'), 'non-stage Works document-flow fallback missing')
-assert.ok(shellCss.includes('@media (min-width: 112rem) and (min-height: 60rem)'), 'Works stage lock threshold missing')
+const r2Active = (
+  pkg.mmjUi29Works1920x1080ReferenceFluidCompositionAndMobileCheckerboardR2Release
+  === r2Release
+)
+if (r2Active) {
+  assert.ok(page.includes('useWorksLayoutProfile'), 'R2 Works layout profile authority missing')
+  assert.ok(page.includes(':layout="worksLayoutProfile"'), 'R2 ProjectGrid layout projection missing')
+  assert.ok(listingCss.includes('var(--mm-works-title-size)'), 'R2 title token renderer missing')
+  assert.equal(listingCss.includes('@media (min-width: 112rem)'), false, 'legacy listing layout media authority remains')
+  assert.ok(shellCss.includes("data-mm-works-viewport-lock='true'"), 'R2 Works shell lock renderer missing')
+  assert.ok(shellCss.includes("data-mm-works-viewport-lock='false'"), 'R2 Works shell flow renderer missing')
+} else {
+  assert.ok(listingCss.includes('@media (min-width: 112rem) and (min-height: 60rem)'), 'stage-capable 1920-class media authority missing')
+  assert.ok(listingCss.includes('grid-template-columns: repeat(4, minmax(0, 1fr));'), 'canonical desktop four-column projection missing')
+  assert.ok(listingCss.includes('92rem'), 'canonical stage width bound missing')
+  assert.ok(shellCss.includes('.mm-layout--viewport-works'), 'Works viewport-specific layout authority missing')
+  assert.ok(shellCss.includes('overflow: visible;'), 'non-stage Works document-flow fallback missing')
+  assert.ok(shellCss.includes('@media (min-width: 112rem) and (min-height: 60rem)'), 'Works stage lock threshold missing')
+}
 
 assert.ok(
   publicBoundary.includes("  'shared/query/works-pagination.ts',"),

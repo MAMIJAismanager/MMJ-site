@@ -7,9 +7,9 @@ definePageMeta({
 import {
   computed,
   nextTick,
-  onBeforeUnmount,
   onMounted,
   ref,
+  watch,
 } from 'vue'
 
 import ProjectGrid from '~/components/project/ProjectGrid.vue'
@@ -36,6 +36,10 @@ import {
 } from '~/composables/useWorksNavigationMemory'
 
 import {
+  useWorksLayoutProfile,
+} from '~/composables/useWorksLayoutProfile'
+
+import {
   findPortfolioGatewayCategory,
 } from '~~/shared/constants/portfolio-gateway-categories'
 
@@ -46,8 +50,6 @@ import type {
 import type {
   WorksSort,
 } from '~~/shared/query/works-query-state'
-
-const MOBILE_VIEWPORT_QUERY = '(max-width: 47.999rem)'
 
 const WORKS_SEO = Object.freeze({
   title: '작업 | 매미: 著',
@@ -85,10 +87,14 @@ const {
   replaceQuery,
 })
 
+const {
+  profile: worksLayoutProfile,
+  ready: worksLayoutReady,
+  style: worksLayoutStyle,
+} = useWorksLayoutProfile()
+
 const worksQueryPlacement = ref<WorksQueryPlacement>('pending')
-let mobileViewportQuery: MediaQueryList | null = null
-let placementFrame: number | null = null
-let placementDisposed = false
+let placementRevision = 0
 
 function mobileMenuContextTargetExists(): boolean {
   return document.getElementById(
@@ -96,62 +102,33 @@ function mobileMenuContextTargetExists(): boolean {
   ) !== null
 }
 
-function resolveWorksQueryPlacement(
-  media: MediaQueryList | MediaQueryListEvent,
-): void {
-  if (!media.matches) {
+async function syncWorksQueryPlacement(): Promise<void> {
+  if (!import.meta.client) return
+
+  const revision = ++placementRevision
+  if (!worksLayoutProfile.value.mobileQueryPlacement) {
     worksQueryPlacement.value = 'inline'
     return
   }
+
+  worksQueryPlacement.value = 'pending'
+  await nextTick()
+  if (revision !== placementRevision) return
 
   worksQueryPlacement.value = mobileMenuContextTargetExists()
     ? 'mobile-menu'
     : 'inline'
 }
 
-function syncWorksQueryPlacement(
-  media: MediaQueryList | MediaQueryListEvent,
-): void {
-  if (placementFrame !== null) {
-    cancelAnimationFrame(placementFrame)
-    placementFrame = null
-  }
+watch(
+  () => worksLayoutProfile.value.mobileQueryPlacement,
+  () => {
+    void syncWorksQueryPlacement()
+  },
+)
 
-  if (!media.matches) {
-    worksQueryPlacement.value = 'inline'
-    return
-  }
-
-  worksQueryPlacement.value = 'pending'
-  placementFrame = requestAnimationFrame(() => {
-    placementFrame = null
-    if (placementDisposed) return
-    resolveWorksQueryPlacement(media)
-  })
-}
-
-onMounted(async () => {
-  placementDisposed = false
-  mobileViewportQuery = window.matchMedia(MOBILE_VIEWPORT_QUERY)
-  await nextTick()
-  syncWorksQueryPlacement(mobileViewportQuery)
-  mobileViewportQuery.addEventListener(
-    'change',
-    syncWorksQueryPlacement,
-  )
-})
-
-onBeforeUnmount(() => {
-  placementDisposed = true
-  if (placementFrame !== null) {
-    cancelAnimationFrame(placementFrame)
-    placementFrame = null
-  }
-  mobileViewportQuery?.removeEventListener(
-    'change',
-    syncWorksQueryPlacement,
-  )
-  mobileViewportQuery = null
+onMounted(() => {
+  void syncWorksQueryPlacement()
 })
 
 function submitSearch(
@@ -218,6 +195,11 @@ function resetWorksQuery(): void {
     :data-mm-hidden-category-active="hiddenCategoryActive ? 'true' : 'false'"
     :data-mm-hidden-access-denied="hiddenAccessDenied ? 'true' : 'false'"
     :data-mm-works-query-placement="worksQueryPlacement"
+    :data-mm-works-layout-ready="worksLayoutReady ? 'true' : 'false'"
+    :data-mm-works-layout-mode="worksLayoutProfile.mode"
+    :data-mm-works-viewport-locked="worksLayoutProfile.viewportLocked ? 'true' : 'false'"
+    :data-mm-works-layout-columns="worksLayoutProfile.columnCount"
+    :style="worksLayoutStyle"
   >
     <header class="mm-page__header">
       <p class="mm-label">
@@ -254,6 +236,7 @@ function resetWorksQuery(): void {
           :has-active-filters="hasActiveFilters"
           :query-ready="queryReady"
           :placement="worksQueryPlacement"
+          :layout-mode="worksLayoutProfile.mode"
           @submit-search="submitSearch"
           @change-category="changeCategory"
           @change-tag="changeTag"
@@ -286,6 +269,7 @@ function resetWorksQuery(): void {
     <ProjectGrid
       v-else-if="pageProjects.length > 0"
       :projects="pageProjects"
+      :layout="worksLayoutProfile"
       @detail-activate="handleDetailActivation"
     />
 

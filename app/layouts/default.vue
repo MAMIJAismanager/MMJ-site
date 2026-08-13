@@ -4,7 +4,16 @@ import GlobalAudioDock from '~/components/player/GlobalAudioDock.vue'
 import SiteFooter from '~/components/shell/SiteFooter.vue'
 import SiteHeader from '~/components/shell/SiteHeader.vue'
 
+import {
+  useWorksLayoutProfile,
+} from '~/composables/useWorksLayoutProfile'
+
 const route = useRoute()
+
+const {
+  profile: worksLayoutProfile,
+  ready: worksLayoutReady,
+} = useWorksLayoutProfile()
 
 const viewportComposition = computed(() => {
   const value = route.meta.viewportComposition
@@ -21,9 +30,13 @@ const viewportComposition = computed(() => {
   return null
 })
 
-const usesViewportComposition = computed(() => (
-  viewportComposition.value !== null
-))
+const usesViewportComposition = computed(() => {
+  if (viewportComposition.value === 'works') {
+    return worksLayoutProfile.value.viewportLocked
+  }
+
+  return viewportComposition.value !== null
+})
 
 const showsSiteFooter = computed(() => (
   route.meta.hideSiteFooter !== true
@@ -41,6 +54,21 @@ const showsSiteFooter = computed(() => (
         },
       ]"
       data-mm-layout="default"
+      :data-mm-works-layout-ready="
+        viewportComposition === 'works'
+          ? (worksLayoutReady ? 'true' : 'false')
+          : undefined
+      "
+      :data-mm-works-viewport-lock="
+        viewportComposition === 'works'
+          ? (worksLayoutProfile.viewportLocked ? 'true' : 'false')
+          : undefined
+      "
+      :data-mm-works-layout-mode="
+        viewportComposition === 'works'
+          ? worksLayoutProfile.mode
+          : undefined
+      "
     >
       <a
         class="mm-skip-link"

@@ -28,6 +28,10 @@ import type {
   WorksSort,
 } from '~~/shared/query/works-query-state'
 
+import type {
+  WorksLayoutMode,
+} from '~/works/works-layout-profile'
+
 export type WorksQueryPlacement =
   | 'pending'
   | 'inline'
@@ -44,6 +48,7 @@ interface WorksFilterBarProps {
   readonly hasActiveFilters: boolean
   readonly queryReady: boolean
   readonly placement: WorksQueryPlacement
+  readonly layoutMode: WorksLayoutMode
 }
 
 const props = defineProps<WorksFilterBarProps>()
@@ -128,6 +133,7 @@ function changeSort(event: Event): void {
     data-mm-works-query-controls
     :data-placement="placement"
     :data-mm-works-query-placement="placement"
+    :data-mm-works-layout-mode="layoutMode"
     :data-mm-works-query-category="categoryDebugValue"
     data-mm-works-role-filter="retired"
   >

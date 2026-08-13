@@ -7,10 +7,15 @@ import type {
   ProjectCardView,
 } from '~~/shared/view/portfolio-project-view'
 
+import type {
+  WorksLayoutProfile,
+} from '~/works/works-layout-profile'
+
 import ProjectCard from './ProjectCard.vue'
 
 interface ProjectGridProps {
   readonly projects: readonly ProjectCardView[]
+  readonly layout: WorksLayoutProfile
 }
 
 defineProps<ProjectGridProps>()
@@ -25,6 +30,12 @@ const emit = defineEmits<{
     class="mm-project-grid"
     data-mm-project-list
     data-mm-project-grid
+    :data-mm-project-grid-columns="layout.columnCount"
+    :data-mm-project-grid-mode="layout.mode"
+    :style="{
+      gridTemplateColumns:
+        `repeat(${layout.columnCount}, minmax(0, 1fr))`,
+    }"
   >
     <li
       v-for="(project, index) in projects"
@@ -36,6 +47,7 @@ const emit = defineEmits<{
       <ProjectCard
         :project="project"
         :index="index"
+        :density="layout.cardDensity"
         @detail-activate="emit('detailActivate', $event)"
       />
     </li>
