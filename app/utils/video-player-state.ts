@@ -7,6 +7,10 @@ export type VideoPlayerRuntimeErrorCode =
   | 'invalid-runtime-observation'
   | 'unknown-media-error'
 
+export type VideoFrameReceiptMode =
+  | 'video-frame-callback'
+  | 'loaded-data-playing'
+
 export interface VideoPlayerRuntimeError {
   readonly code: VideoPlayerRuntimeErrorCode
   readonly message: string
@@ -16,6 +20,8 @@ export interface VideoPlayerRuntimeState {
   readonly readiness:
     | 'metadata-pending'
     | 'metadata-ready'
+    | 'data-ready'
+    | 'can-play'
     | 'error'
   readonly activation:
     | 'required'
@@ -23,8 +29,19 @@ export interface VideoPlayerRuntimeState {
     | 'complete'
   readonly playback:
     | 'paused'
+    | 'starting'
     | 'playing'
     | 'ended'
+  readonly buffering:
+    | 'none'
+    | 'waiting'
+    | 'stalled'
+  readonly firstFrame:
+    | 'pending'
+    | 'presented'
+  readonly frameReceiptMode: VideoFrameReceiptMode | null
+  readonly loadedDataObserved: boolean
+  readonly playingObserved: boolean
   readonly poster:
     | 'absent'
     | 'loading'
@@ -42,7 +59,13 @@ export type VideoPlayerRuntimeEvent =
   | Readonly<{ type: 'source-reset'; hasPoster: boolean }>
   | Readonly<{ type: 'poster-state'; state: 'loading' | 'loaded' | 'error' }>
   | Readonly<{ type: 'play-requested' }>
-  | Readonly<{ type: 'play-started' }>
+  | Readonly<{ type: 'native-play' }>
+  | Readonly<{ type: 'loaded-data' }>
+  | Readonly<{ type: 'can-play' }>
+  | Readonly<{ type: 'waiting' }>
+  | Readonly<{ type: 'stalled' }>
+  | Readonly<{ type: 'playing' }>
+  | Readonly<{ type: 'first-frame-presented'; mode: VideoFrameReceiptMode }>
   | Readonly<{ type: 'paused' }>
   | Readonly<{ type: 'ended' }>
   | Readonly<{ type: 'metadata-ready'; durationSeconds: number }>
@@ -76,6 +99,11 @@ const ERROR_CODES = new Set<VideoPlayerRuntimeErrorCode>([
   'unknown-media-error',
 ])
 
+const FRAME_RECEIPT_MODES = new Set<VideoFrameReceiptMode>([
+  'video-frame-callback',
+  'loaded-data-playing',
+])
+
 function fail(message: string, event: unknown): never {
   throw new VideoPlayerStateError(message, event)
 }
@@ -106,6 +134,11 @@ export function createInitialVideoPlayerState(
     readiness: 'metadata-pending',
     activation: 'required',
     playback: 'paused',
+    buffering: 'none',
+    firstFrame: 'pending',
+    frameReceiptMode: null,
+    loadedDataObserved: false,
+    playingObserved: false,
     poster: hasPoster ? 'loading' : 'absent',
     currentTimeSeconds: 0,
     durationSeconds: null,
@@ -156,29 +189,86 @@ export function reduceVideoPlayerState(
       if (!['loading', 'loaded', 'error'].includes(event.state)) {
         fail('invalid poster state', event)
       }
+      if (state.firstFrame === 'presented') return state
       return freezeState({ ...state, poster: event.state })
 
     case 'play-requested':
       if (state.activation !== 'required') return state
-      return freezeState({ ...state, activation: 'pending', error: null })
+      return freezeState({
+        ...state,
+        activation: 'pending',
+        playback: 'starting',
+        error: null,
+      })
 
-    case 'play-started':
+    case 'native-play':
+      return freezeState({
+        ...state,
+        playback: state.firstFrame === 'presented' ? 'playing' : 'starting',
+        error: null,
+      })
+
+    case 'loaded-data':
+      return freezeState({
+        ...state,
+        readiness: state.readiness === 'can-play' ? 'can-play' : 'data-ready',
+        loadedDataObserved: true,
+      })
+
+    case 'can-play':
+      return freezeState({
+        ...state,
+        readiness: 'can-play',
+        buffering: 'none',
+      })
+
+    case 'waiting':
+      return freezeState({ ...state, buffering: 'waiting' })
+
+    case 'stalled':
+      return freezeState({ ...state, buffering: 'stalled' })
+
+    case 'playing':
+      return freezeState({
+        ...state,
+        playback: 'playing',
+        buffering: 'none',
+        playingObserved: true,
+      })
+
+    case 'first-frame-presented':
+      if (!FRAME_RECEIPT_MODES.has(event.mode)) {
+        fail('invalid first-frame receipt mode', event)
+      }
+      if (state.firstFrame === 'presented') return state
       return freezeState({
         ...state,
         activation: 'complete',
         playback: 'playing',
+        buffering: 'none',
+        firstFrame: 'presented',
+        frameReceiptMode: event.mode,
         poster: state.poster === 'absent' ? 'absent' : 'dismissed',
         error: null,
       })
 
     case 'paused':
       if (state.playback === 'ended') return state
-      return freezeState({ ...state, playback: 'paused' })
+      return freezeState({
+        ...state,
+        activation:
+          state.firstFrame === 'pending' && state.activation === 'pending'
+            ? 'required'
+            : state.activation,
+        playback: 'paused',
+        buffering: 'none',
+      })
 
     case 'ended':
       return freezeState({
         ...state,
         playback: 'ended',
+        buffering: 'none',
         currentTimeSeconds: state.durationSeconds ?? state.currentTimeSeconds,
       })
 
@@ -188,9 +278,12 @@ export function reduceVideoPlayerState(
         'durationSeconds',
         event,
       )
+      const readiness = state.readiness === 'metadata-pending'
+        ? 'metadata-ready'
+        : state.readiness
       return freezeState({
         ...state,
-        readiness: 'metadata-ready',
+        readiness,
         durationSeconds,
         error: null,
       })
@@ -230,6 +323,7 @@ export function reduceVideoPlayerState(
         ...state,
         readiness: 'error',
         playback: 'paused',
+        buffering: 'none',
         activation: state.activation === 'pending' ? 'required' : state.activation,
         error: freezeError(event.code, event.message),
       })

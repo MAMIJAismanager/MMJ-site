@@ -11,6 +11,7 @@ import {
 import ResponsiveImage from './ResponsiveImage.vue'
 
 import { useCrossMediaArbitration } from '~/composables/useCrossMediaArbitration'
+import { useVideoWarmupAuthority } from '~/composables/useVideoWarmupAuthority'
 
 import {
   createInitialVideoPlayerState,
@@ -40,6 +41,13 @@ interface Emits {
   (event: 'playback-started'): void
 }
 
+type VideoFrameCallbackVideo = HTMLVideoElement & Readonly<{
+  requestVideoFrameCallback?: (
+    callback: (now: number, metadata: unknown) => void,
+  ) => number
+  cancelVideoFrameCallback?: (handle: number) => void
+}>
+
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 const arbitration = useCrossMediaArbitration()
@@ -49,7 +57,23 @@ const muted = ref(false)
 const runtimeState = ref<VideoPlayerRuntimeState>(
   createInitialVideoPlayerState(props.presentation.posterPlan !== null),
 )
+const assetId = computed(() => String(props.presentation.assetId))
+const baselinePreload = computed(() => props.presentation.preload)
+const sourceIdentity = computed(() => [
+  props.presentation.assetId,
+  ...props.presentation.sources.map(source => (
+    `${source.renditionId}|${source.url}|${source.mediaType}|${source.width}x${source.height}|${source.durationMs}|${source.hasAudio ? 'audio' : 'silent'}|${source.isDefault ? 'default' : 'alternate'}`
+  )),
+].join('::'))
+const warmup = useVideoWarmupAuthority({
+  assetId,
+  baselinePreload,
+  playerElement,
+  videoElement,
+})
+const warmupState = warmup.state
 let arbitrationRegistration: CrossMediaVideoRegistration | null = null
+let frameCallbackHandle: number | null = null
 
 function pauseForAudioPlayback(): void {
   const video = videoElement.value
@@ -121,12 +145,58 @@ function onPosterStateChange(state: ResponsiveImageLoadState): void {
   dispatch({ type: 'poster-state', state })
 }
 
+function cancelFirstFrameCallback(): void {
+  if (frameCallbackHandle === null) return
+  const video = videoElement.value as VideoFrameCallbackVideo | null
+  video?.cancelVideoFrameCallback?.(frameCallbackHandle)
+  frameCallbackHandle = null
+}
+
+function confirmFallbackFirstFrame(): void {
+  if (
+    runtimeState.value.firstFrame !== 'pending'
+    || !runtimeState.value.loadedDataObserved
+    || !runtimeState.value.playingObserved
+  ) return
+  const video = videoElement.value as VideoFrameCallbackVideo | null
+  if (video?.requestVideoFrameCallback !== undefined) return
+  dispatch({
+    type: 'first-frame-presented',
+    mode: 'loaded-data-playing',
+  })
+}
+
+function scheduleFirstFrameReceipt(): void {
+  if (runtimeState.value.firstFrame === 'presented') return
+  const video = videoElement.value as VideoFrameCallbackVideo | null
+  if (video === null) return
+  if (typeof video.requestVideoFrameCallback !== 'function') {
+    confirmFallbackFirstFrame()
+    return
+  }
+  if (frameCallbackHandle !== null) return
+
+  const generation = warmupState.value.sourceGeneration
+  frameCallbackHandle = video.requestVideoFrameCallback(() => {
+    frameCallbackHandle = null
+    if (
+      generation !== warmupState.value.sourceGeneration
+      || runtimeState.value.firstFrame === 'presented'
+    ) return
+    dispatch({
+      type: 'first-frame-presented',
+      mode: 'video-frame-callback',
+    })
+  })
+}
+
 async function startPlayback(): Promise<void> {
   const video = videoElement.value
   if (video === null || runtimeState.value.activation === 'pending') return
 
   if (runtimeState.value.activation === 'required') {
     dispatch({ type: 'play-requested' })
+    warmup.requestDirectPlay()
   }
   if (runtimeState.value.playback === 'ended') {
     video.currentTime = 0
@@ -136,6 +206,7 @@ async function startPlayback(): Promise<void> {
   try {
     await video.play()
   } catch {
+    warmup.noteError('play-rejected')
     dispatch({
       type: 'media-error',
       code: 'play-rejected',
@@ -203,11 +274,12 @@ async function toggleFullscreen(): Promise<void> {
 }
 
 function onPlay(): void {
-  dispatch({ type: 'play-started' })
+  dispatch({ type: 'native-play' })
   try {
     arbitrationRegistration?.playbackStarted()
   } catch {
     videoElement.value?.pause()
+    warmup.noteError('invalid-runtime-observation')
     dispatch({
       type: 'media-error',
       code: 'invalid-runtime-observation',
@@ -221,13 +293,22 @@ function onPlay(): void {
   })
 }
 
+function onPlaying(): void {
+  dispatch({ type: 'playing' })
+  warmup.notePlaying()
+  scheduleFirstFrameReceipt()
+  confirmFallbackFirstFrame()
+}
+
 function onPause(): void {
   dispatch({ type: 'paused' })
+  warmup.notePaused()
   arbitrationRegistration?.playbackPaused()
 }
 
 function onEnded(): void {
   dispatch({ type: 'ended' })
+  warmup.noteSettled()
   arbitrationRegistration?.playbackEnded()
 }
 
@@ -235,6 +316,7 @@ function onMetadataObservation(): void {
   const video = videoElement.value
   if (video === null) return
   if (!Number.isFinite(video.duration) || video.duration <= 0) {
+    warmup.noteError('invalid-runtime-observation')
     dispatch({
       type: 'media-error',
       code: 'invalid-runtime-observation',
@@ -242,13 +324,34 @@ function onMetadataObservation(): void {
     })
     return
   }
+  warmup.noteMetadataReady()
   dispatch({ type: 'metadata-ready', durationSeconds: video.duration })
+}
+
+function onLoadedData(): void {
+  warmup.noteLoadedData()
+  dispatch({ type: 'loaded-data' })
+  confirmFallbackFirstFrame()
+}
+
+function onCanPlay(): void {
+  warmup.noteCanPlay()
+  dispatch({ type: 'can-play' })
+}
+
+function onWaiting(): void {
+  dispatch({ type: 'waiting' })
+}
+
+function onStalled(): void {
+  dispatch({ type: 'stalled' })
 }
 
 function onTimeUpdate(): void {
   const video = videoElement.value
   if (video === null) return
   if (!Number.isFinite(video.currentTime) || video.currentTime < 0) {
+    warmup.noteError('invalid-runtime-observation')
     dispatch({
       type: 'media-error',
       code: 'invalid-runtime-observation',
@@ -261,6 +364,7 @@ function onTimeUpdate(): void {
 
 function onMediaError(): void {
   const code = mapMediaErrorCode(videoElement.value?.error?.code ?? null)
+  warmup.noteError(code)
   dispatch({
     type: 'media-error',
     code,
@@ -275,6 +379,20 @@ function onFullscreenChange(): void {
   })
 }
 
+function onPlayerPointerEnter(event: PointerEvent): void {
+  if (event.pointerType === 'mouse') warmup.requestHover()
+}
+
+function onPlayerPointerDown(event: PointerEvent): void {
+  if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+    warmup.requestPointer()
+  }
+}
+
+function onPlayerFocusIn(): void {
+  warmup.requestFocus()
+}
+
 function releaseVideoSources(): void {
   const video = videoElement.value
   if (video === null) return
@@ -287,18 +405,24 @@ function releaseVideoSources(): void {
 }
 
 watch(
-  () => props.presentation,
-  presentation => {
+  sourceIdentity,
+  async () => {
+    cancelFirstFrameCallback()
     arbitrationRegistration?.playbackPaused()
-    releaseVideoSources()
+    warmup.notePaused()
     muted.value = false
+    warmup.resetSource()
     dispatch({
       type: 'source-reset',
-      hasPoster: presentation.posterPlan !== null,
+      hasPoster: props.presentation.posterPlan !== null,
     })
-    void nextTick(() => {
-      videoElement.value?.load()
-    })
+    await nextTick()
+    const video = videoElement.value
+    if (video !== null) {
+      video.preload = warmupState.value.preload
+      video.load()
+      warmup.noteExplicitLoad()
+    }
   },
 )
 
@@ -308,6 +432,8 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  cancelFirstFrameCallback()
+  warmup.notePaused()
   arbitrationRegistration?.dispose()
   arbitrationRegistration = null
   document.removeEventListener('fullscreenchange', onFullscreenChange)
@@ -323,7 +449,17 @@ onBeforeUnmount(() => {
     :data-mm-video-player-state="runtimeState.playback"
     :data-mm-video-player-activation="runtimeState.activation"
     :data-mm-video-player-readiness="runtimeState.readiness"
+    :data-mm-video-buffering="runtimeState.buffering"
+    :data-mm-video-first-frame="runtimeState.firstFrame"
+    :data-mm-video-frame-receipt-mode="runtimeState.frameReceiptMode ?? 'pending'"
+    :data-mm-video-warmup-phase="warmupState.phase"
+    :data-mm-video-warmup-intent="warmupState.intent"
+    :data-mm-video-preload="warmupState.preload"
+    :aria-busy="activationPending ? 'true' : 'false'"
     data-mm-video-download-ui="denied"
+    @pointerenter="onPlayerPointerEnter"
+    @pointerdown="onPlayerPointerDown"
+    @focusin="onPlayerFocusIn"
     @contextmenu.prevent
   >
     <video
@@ -335,12 +471,17 @@ onBeforeUnmount(() => {
       disablepictureinpicture
       disableremoteplayback
       :playsinline="presentation.playsInline"
-      preload="none"
+      :preload="warmupState.preload"
       @click="togglePlayback"
       @contextmenu.prevent
       @dragstart.prevent
       @loadedmetadata="onMetadataObservation"
       @durationchange="onMetadataObservation"
+      @loadeddata="onLoadedData"
+      @canplay="onCanPlay"
+      @waiting="onWaiting"
+      @stalled="onStalled"
+      @playing="onPlaying"
       @timeupdate="onTimeUpdate"
       @volumechange="onVolumeChange"
       @play="onPlay"

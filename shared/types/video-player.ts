@@ -25,7 +25,7 @@ export interface VideoPlayerPresentation {
   readonly declaredDurationMs: number
   readonly hasAudio: boolean
   readonly posterPlan: ResponsiveImageRenderPlan | null
-  readonly preload: 'none'
+  readonly preload: 'metadata'
   readonly playsInline: true
 }
 

@@ -320,7 +320,7 @@ export function createVideoPlayerPlanningAuthority(): VideoPlayerPlanningAuthori
       declaredDurationMs: defaultSource.durationMs,
       hasAudio: defaultSource.hasAudio,
       posterPlan,
-      preload: 'none' as const,
+      preload: 'metadata' as const,
       playsInline: true as const,
     })
 
