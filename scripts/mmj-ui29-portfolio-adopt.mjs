@@ -17,6 +17,10 @@ import {
   validateSnapshot,
   verifyGeneratedArtifactSet,
 } from './lib/mmj-ui29-public-contract.mjs'
+import {
+  portfolioRequestTimeoutMs,
+  runPortfolioHandoffTransactionWithRetry,
+} from './lib/mmj-ui29-portfolio-handoff-retry-authority.mjs'
 
 const root = process.cwd()
 const generated = resolve(root, 'generated')
@@ -66,49 +70,79 @@ async function readLimited(response, maximum, stage) {
   return Buffer.concat(chunks)
 }
 
+function failTransport(error, stage, controller) {
+  const originalErrorName = typeof error?.name === 'string' ? error.name : 'Error'
+  const originalErrorMessage = typeof error?.message === 'string' ? error.message : String(error)
+  const originalCauseCode = typeof error?.cause?.code === 'string' ? error.cause.code : null
+  if (controller.signal.aborted || error?.name === 'AbortError') fail('E_MMJ_UI29_HANDOFF_TIMEOUT', `${stage} request timed out.`, {
+    stage,
+    transportKind: 'timeout',
+    originalErrorName,
+    originalErrorMessage,
+    originalCauseCode,
+  })
+  if (/redirect/i.test(originalErrorMessage)) fail('E_MMJ_UI29_HANDOFF_REDIRECTED', `${stage} request was redirected.`, { stage })
+  fail('E_MMJ_UI29_HANDOFF_TIMEOUT', `${stage} request failed.`, {
+    stage,
+    transportKind: 'network',
+    originalErrorName,
+    originalErrorMessage,
+    originalCauseCode,
+  })
+}
+
 async function fetchJson(path, maximum, stage) {
-  if (Date.now() >= totalDeadline) fail('E_MMJ_UI29_HANDOFF_TIMEOUT', 'Portfolio handoff transaction exceeded 60 seconds.', { stage })
+  const requestTimeoutMs = portfolioRequestTimeoutMs({ deadline: totalDeadline })
+  if (requestTimeoutMs <= 0) fail('E_MMJ_UI29_HANDOFF_TIMEOUT', 'Portfolio handoff transaction exceeded 60 seconds.', { stage })
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 15_000)
-  let response
+  const timeout = setTimeout(() => controller.abort(), requestTimeoutMs)
   try {
-    response = await fetch(`${origin}${path}`, {
-      method: 'GET',
-      redirect: 'error',
-      signal: controller.signal,
-      cache: 'no-store',
-      headers: {
-        accept: 'application/json',
-        'cache-control': 'no-cache',
-        pragma: 'no-cache',
-      },
-    })
-  } catch (error) {
-    if (error?.name === 'AbortError') fail('E_MMJ_UI29_HANDOFF_TIMEOUT', `${stage} request timed out.`, { stage })
-    const message = String(error?.message ?? '')
-    if (/redirect/i.test(message)) fail('E_MMJ_UI29_HANDOFF_REDIRECTED', `${stage} request was redirected.`, { stage })
-    fail('E_MMJ_UI29_HANDOFF_TIMEOUT', `${stage} request failed.`, { stage })
+    let response
+    try {
+      response = await fetch(`${origin}${path}`, {
+        method: 'GET',
+        redirect: 'error',
+        signal: controller.signal,
+        cache: 'no-store',
+        headers: {
+          accept: 'application/json',
+          'cache-control': 'no-cache',
+          pragma: 'no-cache',
+        },
+      })
+    } catch (error) {
+      failTransport(error, stage, controller)
+    }
+
+    const contentType = response.headers.get('content-type') ?? ''
+    if (!/^application\/json(?:\s*;|$)/i.test(contentType)) {
+      fail('E_MMJ_UI29_HANDOFF_CONTENT_TYPE_INVALID', `${stage} response is not application/json.`, {
+        stage,
+        status: response.status,
+        contentType,
+      })
+    }
+
+    let bytes
+    try {
+      bytes = await readLimited(response, maximum, stage)
+    } catch (error) {
+      if (error instanceof Ui29Error) throw error
+      failTransport(error, stage, controller)
+    }
+
+    if (!response.ok) {
+      if (response.status === 404) fail('E_MMJ_UI29_PORTFOLIO_COLLECTION_NOT_PROMOTED', 'Portfolio collection has not been promoted.', { stage, status: response.status, byteCount: bytes.length })
+      fail('E_MMJ_UI29_HANDOFF_TIMEOUT', `${stage} request returned an error response.`, { stage, status: response.status, byteCount: bytes.length })
+    }
+    let value
+    try { value = JSON.parse(bytes.toString('utf8')) } catch {
+      fail(stage === 'head' || stage === 'head-repeat' ? 'E_MMJ_UI29_HEAD_INVALID' : stage === 'receipt' ? 'E_MMJ_UI29_RECEIPT_INVALID' : 'E_MMJ_UI29_SNAPSHOT_INVALID', `${stage} response is not valid JSON.`)
+    }
+    return { response, bytes, value }
   } finally {
     clearTimeout(timeout)
   }
-  const contentType = response.headers.get('content-type') ?? ''
-  if (!/^application\/json(?:\s*;|$)/i.test(contentType)) {
-    fail('E_MMJ_UI29_HANDOFF_CONTENT_TYPE_INVALID', `${stage} response is not application/json.`, {
-      stage,
-      status: response.status,
-      contentType,
-    })
-  }
-  const bytes = await readLimited(response, maximum, stage)
-  if (!response.ok) {
-    if (response.status === 404) fail('E_MMJ_UI29_PORTFOLIO_COLLECTION_NOT_PROMOTED', 'Portfolio collection has not been promoted.', { stage, status: response.status, byteCount: bytes.length })
-    fail('E_MMJ_UI29_HANDOFF_TIMEOUT', `${stage} request returned an error response.`, { stage, status: response.status, byteCount: bytes.length })
-  }
-  let value
-  try { value = JSON.parse(bytes.toString('utf8')) } catch {
-    fail(stage === 'head' ? 'E_MMJ_UI29_HEAD_INVALID' : stage === 'receipt' ? 'E_MMJ_UI29_RECEIPT_INVALID' : 'E_MMJ_UI29_SNAPSHOT_INVALID', `${stage} response is not valid JSON.`)
-  }
-  return { response, bytes, value }
 }
 
 async function transaction() {
@@ -150,7 +184,7 @@ async function transaction() {
     })
   }
   const { routes } = validateSnapshot(snapshotResponse.value, receipt)
-  const headBResponse = await fetchJson('/api/v1/public/portfolio-snapshot/head', 64 * 1024, 'head')
+  const headBResponse = await fetchJson('/api/v1/public/portfolio-snapshot/head', 64 * 1024, 'head-repeat')
   const headB = validateHead(headBResponse.value)
   validateHeadStability(headA, headB)
   return { head: headA, receipt, snapshotBytes: snapshotResponse.bytes, receiptBytes: receiptResponse.bytes, routes }
@@ -231,20 +265,11 @@ async function adopt(input) {
   return publicReleaseManifest
 }
 
-let adopted
-for (let attempt = 1; attempt <= 3; attempt += 1) {
-  try {
-    adopted = await adopt(await transaction())
-    break
-  } catch (error) {
-    const retryable = error instanceof Ui29Error && [
-      'E_MMJ_UI29_PORTFOLIO_HEAD_UNSTABLE',
-      'E_MMJ_UI29_SNAPSHOT_HEADER_MISMATCH',
-    ].includes(error.code)
-    if (!retryable || attempt === 3) throw error
-    await new Promise(resolveDelay => setTimeout(resolveDelay, attempt * 250))
-  }
-}
+const transactionResult = await runPortfolioHandoffTransactionWithRetry({
+  deadline: totalDeadline,
+  transaction,
+})
+const adopted = await adopt(transactionResult)
 
 console.log(JSON.stringify({
   event: 'PASS_MMJ_UI29_A_PORTFOLIO_HANDOFF_ADOPTED',
