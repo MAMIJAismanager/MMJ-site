@@ -38,6 +38,9 @@ import {
 import {
   useWorksLayoutProfile,
 } from '~/composables/useWorksLayoutProfile'
+import {
+  useWorksPhysicalFitAdmission,
+} from '~/composables/useWorksPhysicalFitAdmission'
 
 import {
   findPortfolioGatewayCategory,
@@ -87,14 +90,65 @@ const {
   replaceQuery,
 })
 
+const pageElement = ref<HTMLElement | null>(null)
+const headerMeasureElement = ref<HTMLElement | null>(null)
+const queryMeasureElement = ref<HTMLElement | null>(null)
+const summaryMeasureElement = ref<HTMLElement | null>(null)
+const gridMeasureElement = ref<HTMLElement | null>(null)
+const paginationMeasureElement = ref<HTMLElement | null>(null)
+
 const {
+  viewportRevision: worksViewportRevision,
+  candidate: worksLayoutCandidate,
   profile: worksLayoutProfile,
   ready: worksLayoutReady,
   style: worksLayoutStyle,
 } = useWorksLayoutProfile()
 
+const activeGatewayCategory = computed(() => (
+  state.value.category === null
+    ? null
+    : findPortfolioGatewayCategory(state.value.category)
+))
+
 const worksQueryPlacement = ref<WorksQueryPlacement>('pending')
 let placementRevision = 0
+
+const worksPhysicalFitKey = computed(() => [
+  `viewport:${worksViewportRevision.value}`,
+  `mode:${worksLayoutCandidate.value.mode}`,
+  `density:${worksLayoutCandidate.value.cardDensity}`,
+  `content:${worksLayoutCandidate.value.tokens.contentMaxRem}`,
+  `page:${evaluation.value.currentPage}`,
+  `pages:${evaluation.value.pageCount}`,
+  `title:${activeGatewayCategory.value?.title ?? '작업'}`,
+  `query-placement:${worksQueryPlacement.value}`,
+  `projects:${pageProjects.value.map(project => project.id).join(',')}`,
+].join('|'))
+
+const worksPhysicalFitEnabled = computed(() => (
+  queryReady.value
+  && pageProjects.value.length > 0
+  && worksQueryPlacement.value === 'inline'
+  && worksLayoutCandidate.value.lockEligible
+))
+
+const {
+  receipt: worksPhysicalFitReceipt,
+} = useWorksPhysicalFitAdmission({
+  enabled: worksPhysicalFitEnabled,
+  fitKey: worksPhysicalFitKey,
+  candidate: worksLayoutCandidate,
+  viewportRevision: worksViewportRevision,
+  elements: {
+    page: pageElement,
+    header: headerMeasureElement,
+    query: queryMeasureElement,
+    summary: summaryMeasureElement,
+    grid: gridMeasureElement,
+    pagination: paginationMeasureElement,
+  },
+})
 
 function mobileMenuContextTargetExists(): boolean {
   return document.getElementById(
@@ -168,12 +222,6 @@ function changePage(page: number): void {
   })
 }
 
-const activeGatewayCategory = computed(() => (
-  state.value.category === null
-    ? null
-    : findPortfolioGatewayCategory(state.value.category)
-))
-
 function resetWorksQuery(): void {
   void resetQuery()
 }
@@ -181,6 +229,7 @@ function resetWorksQuery(): void {
 
 <template>
   <section
+    ref="pageElement"
     class="mm-page mm-works-index"
     data-mm-page="works-index"
     :data-mm-query-ready="queryReady ? 'true' : 'false'"
@@ -201,10 +250,19 @@ function resetWorksQuery(): void {
     :data-mm-works-layout-columns="worksLayoutProfile.columnCount"
     :data-mm-works-fit-admission="worksLayoutProfile.viewportFit.admission"
     :data-mm-works-fit-admitted="worksLayoutProfile.viewportFit.admitted ? 'true' : 'false'"
+    :data-mm-works-physical-fit-phase="worksPhysicalFitReceipt.phase"
+    :data-mm-works-physical-fit-verified="worksPhysicalFitReceipt.commitVerified ? 'true' : 'false'"
+    :data-mm-works-fit-required-block="worksPhysicalFitReceipt.requiredBlockPx"
+    :data-mm-works-fit-available-block="worksPhysicalFitReceipt.availableBlockPx"
+    :data-mm-works-fit-spare-block="worksPhysicalFitReceipt.spareBlockPx"
     :data-mm-works-pagination-placement="worksLayoutProfile.paginationPlacement"
     :style="worksLayoutStyle"
   >
-    <header class="mm-page__header">
+    <header
+      ref="headerMeasureElement"
+      class="mm-page__header"
+      data-mm-works-physical-section="header"
+    >
       <p class="mm-label">
         Portfolio
       </p>
@@ -228,7 +286,9 @@ function resetWorksQuery(): void {
       defer
     >
       <div
+        ref="queryMeasureElement"
         class="mm-works-query-host"
+        data-mm-works-physical-section="query"
         :data-mm-works-query-placement="worksQueryPlacement"
       >
         <WorksFilterBar
@@ -250,65 +310,83 @@ function resetWorksQuery(): void {
       </div>
     </Teleport>
 
-    <WorksResultSummary
-      :total-count="evaluation.totalCount"
-      :result-count="evaluation.resultCount"
-      :has-active-filters="hasActiveFilters"
-      :query-ready="queryReady"
-      :current-page="evaluation.currentPage"
-      :page-count="evaluation.pageCount"
-      :page-start-index="evaluation.pageStartIndex"
-      :page-end-index-exclusive="evaluation.pageEndIndexExclusive"
-    />
-
-    <p
-      v-if="!queryReady"
-      class="mm-body"
-      data-mm-query-pending
-    >
-      작업 목록 확인 중
-    </p>
-
-    <ProjectGrid
-      v-else-if="pageProjects.length > 0"
-      :projects="pageProjects"
-      :layout="worksLayoutProfile"
-      @detail-activate="handleDetailActivation"
-    />
-
     <div
-      v-else-if="queryReady && evaluation.totalCount > 0"
-      class="mm-works-query-empty"
-      data-mm-filtered-empty-state
+      ref="summaryMeasureElement"
+      data-mm-works-physical-section="summary"
+      style="min-width: 0"
     >
-      <p class="mm-body">
-        조건에 맞는 작업이 없습니다.
-      </p>
-
-      <button
-        class="mm-works-query__button"
-        type="button"
-        @click="resetWorksQuery"
-      >
-        조건 초기화
-      </button>
+      <WorksResultSummary
+        :total-count="evaluation.totalCount"
+        :result-count="evaluation.resultCount"
+        :has-active-filters="hasActiveFilters"
+        :query-ready="queryReady"
+        :current-page="evaluation.currentPage"
+        :page-count="evaluation.pageCount"
+        :page-start-index="evaluation.pageStartIndex"
+        :page-end-index-exclusive="evaluation.pageEndIndexExclusive"
+      />
     </div>
 
-    <p
-      v-else
-      class="mm-body"
-      data-mm-empty-state
+    <div
+      ref="gridMeasureElement"
+      data-mm-works-physical-section="grid"
+      style="min-width: 0; min-height: 0"
     >
-      현재 공개된 작업이 없습니다.
-    </p>
+      <p
+        v-if="!queryReady"
+        class="mm-body"
+        data-mm-query-pending
+      >
+        작업 목록 확인 중
+      </p>
 
-    <WorksPagination
-      v-if="queryReady && evaluation.pageCount > 1"
-      :current-page="evaluation.currentPage"
-      :page-count="evaluation.pageCount"
-      :query-ready="queryReady"
-      :placement="worksLayoutProfile.paginationPlacement"
-      @change-page="changePage"
-    />
+      <ProjectGrid
+        v-else-if="pageProjects.length > 0"
+        :projects="pageProjects"
+        :layout="worksLayoutProfile"
+        @detail-activate="handleDetailActivation"
+      />
+
+      <div
+        v-else-if="queryReady && evaluation.totalCount > 0"
+        class="mm-works-query-empty"
+        data-mm-filtered-empty-state
+      >
+        <p class="mm-body">
+          조건에 맞는 작업이 없습니다.
+        </p>
+
+        <button
+          class="mm-works-query__button"
+          type="button"
+          @click="resetWorksQuery"
+        >
+          조건 초기화
+        </button>
+      </div>
+
+      <p
+        v-else
+        class="mm-body"
+        data-mm-empty-state
+      >
+        현재 공개된 작업이 없습니다.
+      </p>
+    </div>
+
+    <div
+      ref="paginationMeasureElement"
+      data-mm-works-physical-section="pagination"
+      style="min-width: 0"
+    >
+      <WorksPagination
+        v-if="queryReady && evaluation.pageCount > 1"
+        :current-page="evaluation.currentPage"
+        :page-count="evaluation.pageCount"
+        :query-ready="queryReady"
+        :placement="worksLayoutProfile.paginationPlacement"
+        @change-page="changePage"
+      />
+    </div>
   </section>
 </template>

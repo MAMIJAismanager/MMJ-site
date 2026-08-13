@@ -7,7 +7,9 @@ const read = path => readFile(resolve(root, path), 'utf8')
 
 const [
   profile,
+  physicalFit,
   layoutComposable,
+  physicalComposable,
   page,
   grid,
   card,
@@ -22,7 +24,9 @@ const [
   packageText,
 ] = await Promise.all([
   read('app/works/works-layout-profile.ts'),
+  read('app/works/works-physical-fit.ts'),
   read('app/composables/useWorksLayoutProfile.ts'),
+  read('app/composables/useWorksPhysicalFitAdmission.ts'),
   read('app/pages/works/index.vue'),
   read('app/components/project/ProjectGrid.vue'),
   read('app/components/project/ProjectCard.vue'),
@@ -39,6 +43,7 @@ const [
 
 const pkg = JSON.parse(packageText)
 const release = 'MMJ-UI29-WORKS-1920X1080-REFERENCE-FLUID-COMPOSITION-AND-MOBILE-CHECKERBOARD-R2'
+const physicalRelease = 'MMJ-UI29-WORKS-PHYSICAL-FIT-ADMISSION-R2'
 
 for (const token of [
   'width: 1920',
@@ -50,6 +55,7 @@ for (const token of [
   "| 'desktop-wide'",
   'readonly columnCount: 1 | 2 | 3 | 4',
   'readonly viewportLocked: boolean',
+  'readonly lockEligible: boolean',
   'readonly mobileQueryPlacement: boolean',
   'resolveWorksLayoutProfile',
 ]) {
@@ -57,6 +63,18 @@ for (const token of [
 }
 for (const forbidden of ['window.', 'document.', 'matchMedia', 'ResizeObserver', 'getBoundingClientRect']) {
   assert.equal(profile.includes(forbidden), false, `pure layout resolver leaked browser authority: ${forbidden}`)
+}
+assert.ok(profile.includes("const viewportLocked = physicalFitPhase === 'admitted-locked'"), 'physical receipt must own viewport lock')
+
+for (const token of [
+  "| 'measuring-natural'",
+  "| 'admitted-locked'",
+  "| 'rejected-flow'",
+  "| 'revoked-flow'",
+  'resolveWorksNaturalPhysicalFit',
+  'verifyWorksLockedPhysicalCommit',
+]) {
+  assert.ok(physicalFit.includes(token), `physical fit superseding authority missing: ${token}`)
 }
 
 for (const token of [
@@ -66,20 +84,26 @@ for (const token of [
   'window.requestAnimationFrame',
   'observerConsumers',
   'useState<WorksViewportSnapshot | null>',
+  'viewportRevision',
+  'candidate',
 ]) {
   assert.ok(layoutComposable.includes(token), `viewport observation authority missing: ${token}`)
 }
 for (const forbidden of ['ResizeObserver', 'getBoundingClientRect', 'visualViewport', 'matchMedia']) {
   assert.equal(layoutComposable.includes(forbidden), false, `shadow viewport observer forbidden: ${forbidden}`)
 }
+assert.ok(physicalComposable.includes('new ResizeObserver('), 'physical R2 ResizeObserver missing')
+assert.ok(physicalComposable.includes('grid.scrollHeight'), 'physical R2 grid scroll measurement missing')
 
 for (const token of [
   'useWorksLayoutProfile',
   'worksLayoutProfile',
   'worksLayoutReady',
   'worksLayoutStyle',
+  'useWorksPhysicalFitAdmission',
   ':data-mm-works-layout-mode="worksLayoutProfile.mode"',
   ':data-mm-works-viewport-locked="worksLayoutProfile.viewportLocked ? \'true\' : \'false\'"',
+  ':data-mm-works-physical-fit-phase="worksPhysicalFitReceipt.phase"',
   ':layout-mode="worksLayoutProfile.mode"',
   ':layout="worksLayoutProfile"',
 ]) {
@@ -140,6 +164,11 @@ assert.equal(
   'R2 release marker drift',
 )
 assert.equal(
+  pkg.mmjUi29WorksPhysicalFitAdmissionR2Release,
+  physicalRelease,
+  'physical R2 superseding release marker drift',
+)
+assert.equal(
   pkg.scripts?.['gate:works-1920x1080-reference-fluid-composition-r2'],
   'node --experimental-strip-types scripts/mmj-ui29-works-1920x1080-reference-fluid-composition-r2-test.mjs && node scripts/mmj-ui29-works-1920x1080-reference-fluid-composition-r2-gate.mjs',
   'R2 package gate binding drift',
@@ -150,10 +179,11 @@ assert.ok(
   'R2 gate is missing from aggregate UI29 gate',
 )
 
-console.log('PASS_TYPESCRIPT_WORKS_LAYOUT_PROFILE_AUTHORITY')
+console.log('PASS_TYPESCRIPT_WORKS_LAYOUT_CANDIDATE_AUTHORITY')
 console.log('PASS_VUE3_WORKS_LAYOUT_STATE_PROJECTION')
 console.log('PASS_NO_CSS_LAYOUT_PROMOTION_AUTHORITY')
-console.log('PASS_1920X1080_REFERENCE_FOUR_BY_TWO')
+console.log('PASS_1920X1080_REFERENCE_FOUR_BY_TWO_CANDIDATE')
+console.log('PASS_PHYSICAL_LOCK_DEFERRED_TO_DOM_RECEIPT')
 console.log('PASS_MOBILE_TWO_BY_FOUR_CHECKERBOARD')
 console.log('PASS_WORKS_QUERY_FILTER_PAGE_STATE_ISOLATION')
 console.log('PASS_MMJ_UI29_WORKS_1920X1080_REFERENCE_FLUID_COMPOSITION_AND_MOBILE_CHECKERBOARD_R2')

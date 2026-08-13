@@ -12,10 +12,21 @@ import {
   WORKS_PENDING_LAYOUT_PROFILE,
   resolveWorksLayoutProfile,
 } from '~/works/works-layout-profile'
+import {
+  WORKS_PHYSICAL_FIT_ACTIVE_KEY_STATE_KEY,
+  WORKS_PHYSICAL_FIT_STATE_KEY,
+  createInitialWorksPhysicalFitReceipt,
+} from '~/works/works-physical-fit'
 
 import type {
   WorksViewportSnapshot,
 } from '~/works/works-layout-profile'
+import type {
+  WorksPhysicalFitReceipt,
+} from '~/works/works-physical-fit'
+
+const WORKS_VIEWPORT_STATE_KEY = 'mmj-works-layout-viewport-r2'
+const WORKS_VIEWPORT_REVISION_STATE_KEY = 'mmj-works-layout-viewport-revision-r2'
 
 let observerConsumers = 0
 let resizeFrame: number | null = null
@@ -60,15 +71,43 @@ function releaseViewportObserver(): void {
 
 export function useWorksLayoutProfile() {
   const viewport = useState<WorksViewportSnapshot | null>(
-    'mmj-works-layout-viewport-r2',
+    WORKS_VIEWPORT_STATE_KEY,
+    () => null,
+  )
+  const viewportRevision = useState<number>(
+    WORKS_VIEWPORT_REVISION_STATE_KEY,
+    () => 0,
+  )
+  const physicalFit = useState<WorksPhysicalFitReceipt>(
+    WORKS_PHYSICAL_FIT_STATE_KEY,
+    () => createInitialWorksPhysicalFitReceipt(),
+  )
+  const activePhysicalFitKey = useState<string | null>(
+    WORKS_PHYSICAL_FIT_ACTIVE_KEY_STATE_KEY,
     () => null,
   )
 
-  const profile = computed(() => (
+  const candidate = computed(() => (
     viewport.value === null
       ? WORKS_PENDING_LAYOUT_PROFILE
-      : resolveWorksLayoutProfile(viewport.value)
+      : resolveWorksLayoutProfile(viewport.value, null)
   ))
+
+  const profile = computed(() => {
+    if (viewport.value === null) return WORKS_PENDING_LAYOUT_PROFILE
+
+    const admittedPhysicalFit = (
+      physicalFit.value.fitKey !== null
+      && physicalFit.value.fitKey === activePhysicalFitKey.value
+    )
+      ? physicalFit.value
+      : null
+
+    return resolveWorksLayoutProfile(
+      viewport.value,
+      admittedPhysicalFit,
+    )
+  })
 
   const ready = computed(() => viewport.value !== null)
 
@@ -94,7 +133,24 @@ export function useWorksLayoutProfile() {
 
   onMounted(() => {
     retainViewportObserver(() => {
-      viewport.value = readViewport()
+      const next = readViewport()
+      const previous = viewport.value
+      if (
+        previous !== null
+        && previous.width === next.width
+        && previous.height === next.height
+      ) {
+        return
+      }
+
+      viewport.value = next
+      viewportRevision.value += 1
+      activePhysicalFitKey.value = null
+      physicalFit.value = createInitialWorksPhysicalFitReceipt(
+        null,
+        viewportRevision.value,
+        'unmeasured',
+      )
     })
   })
 
@@ -104,6 +160,9 @@ export function useWorksLayoutProfile() {
 
   return {
     viewport,
+    viewportRevision,
+    candidate,
+    physicalFit,
     profile,
     ready,
     style,

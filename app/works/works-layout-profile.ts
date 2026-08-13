@@ -1,3 +1,8 @@
+import type {
+  WorksPhysicalFitPhase,
+  WorksPhysicalFitReceipt,
+} from './works-physical-fit'
+
 export const WORKS_REFERENCE_VIEWPORT = Object.freeze({
   width: 1920,
   height: 1080,
@@ -12,9 +17,12 @@ export const WORKS_ULTRAWIDE_MIN_WIDTH = 2304
 export const WORKS_MOBILE_MIN_CHECKERBOARD_WIDTH = 336
 export const WORKS_MOBILE_MAX_WIDTH = 767
 export const WORKS_TABLET_MAX_WIDTH = 1179
-export const WORKS_SITE_HEADER_BLOCK_PX = 72
-export const WORKS_PAGINATION_BUTTON_BLOCK_PX = 44
-export const WORKS_VIEWPORT_SAFETY_PX = 12
+
+// Candidate-only sizing hints. These values may shape a natural-flow trial,
+// but they never authorize viewport locking. Physical DOM receipts own commit.
+const WORKS_CANDIDATE_SITE_HEADER_HINT_PX = 72
+const WORKS_CANDIDATE_PAGINATION_HINT_PX = 44
+const WORKS_CANDIDATE_SAFETY_HINT_PX = 12
 
 export type WorksLayoutMode =
   | 'pending'
@@ -70,6 +78,9 @@ export interface WorksLayoutProfile {
   readonly columnCount: 1 | 2 | 3 | 4
   readonly pageRowCount: 2 | 3 | 4 | 8
   readonly viewportLocked: boolean
+  readonly lockEligible: boolean
+  readonly physicalFitPhase: WorksPhysicalFitPhase
+  readonly candidateAdmission: 'not-applicable' | 'reference' | 'compact'
   readonly mobileQueryPlacement: boolean
   readonly referenceScale: number
   readonly verticalScale: number
@@ -204,35 +215,51 @@ function flowTokens(mode: WorksLayoutMode): WorksLayoutTokens {
   }
 }
 
-function unlockedFitReceipt(
-  height: number,
-  admission: WorksViewportFitAdmission = 'natural-flow',
+function viewportFitFromPhysical(
+  physicalFit: WorksPhysicalFitReceipt | null,
+  candidateAdmission: 'not-applicable' | 'reference' | 'compact',
 ): WorksViewportFitReceipt {
+  if (physicalFit === null) {
+    return freezeFit({
+      admitted: false,
+      admission: candidateAdmission === 'not-applicable'
+        ? 'not-applicable'
+        : 'natural-flow',
+      availableBlockPx: 0,
+      requiredBlockPx: 0,
+      gridBlockPx: 0,
+      paginationReservedBlockPx: 0,
+    })
+  }
+
+  const admitted = physicalFit.phase === 'admitted-locked'
   return freezeFit({
-    admitted: false,
-    admission,
-    availableBlockPx: Math.max(0, height - WORKS_SITE_HEADER_BLOCK_PX - WORKS_VIEWPORT_SAFETY_PX),
-    requiredBlockPx: 0,
-    gridBlockPx: 0,
-    paginationReservedBlockPx: WORKS_PAGINATION_BUTTON_BLOCK_PX,
+    admitted,
+    admission: admitted && candidateAdmission !== 'not-applicable'
+      ? candidateAdmission
+      : candidateAdmission === 'not-applicable'
+        ? 'not-applicable'
+        : 'natural-flow',
+    availableBlockPx: physicalFit.availableBlockPx,
+    requiredBlockPx: physicalFit.requiredBlockPx,
+    gridBlockPx: physicalFit.gridBlockPx,
+    paginationReservedBlockPx: physicalFit.paginationBlockPx,
   })
 }
 
-interface LockedReferenceCandidate {
-  readonly tokens: WorksLayoutTokens
-  readonly receipt: WorksViewportFitReceipt
-}
-
-function fitReferenceTokens(
-  width: number,
+function deriveReferenceCandidateTokens(
   height: number,
   baseTokens: WorksLayoutTokens,
-  metadataBlockPx: number,
+  metadataHintPx: number,
   minimumContentRem: number,
-  admission: 'reference' | 'compact',
-): LockedReferenceCandidate {
+): WorksLayoutTokens {
   const remPx = 16
-  const availableBlockPx = Math.max(0, height - WORKS_SITE_HEADER_BLOCK_PX - WORKS_VIEWPORT_SAFETY_PX)
+  const availableBlockHintPx = Math.max(
+    0,
+    height
+      - WORKS_CANDIDATE_SITE_HEADER_HINT_PX
+      - WORKS_CANDIDATE_SAFETY_HINT_PX,
+  )
   const pagePaddingPx = baseTokens.pagePaddingBlockRem * remPx
   const pageGapPx = baseTokens.pageGapRem * remPx
   const headerGapPx = baseTokens.headerGapRem * remPx
@@ -241,48 +268,43 @@ function fitReferenceTokens(
   const queryControlPx = baseTokens.queryControlHeightRem * remPx
   const gridGapPx = baseTokens.gridGapRem * remPx
 
-  const headerBlockPx = 19 + headerGapPx + (titlePx * 1.18)
-  const queryBlockPx = (queryPaddingPx * 2) + 28 + queryControlPx
-  const summaryBlockPx = 22
-  const paginationReservedBlockPx = WORKS_PAGINATION_BUTTON_BLOCK_PX
-  const staticBlockPx = (
+  const headerBlockHintPx = 19 + headerGapPx + (titlePx * 1.18)
+  const queryBlockHintPx = (queryPaddingPx * 2) + 28 + queryControlPx
+  const staticBlockHintPx = (
     (pagePaddingPx * 2)
-    + headerBlockPx
-    + queryBlockPx
-    + summaryBlockPx
-    + paginationReservedBlockPx
+    + headerBlockHintPx
+    + queryBlockHintPx
+    + 22
+    + WORKS_CANDIDATE_PAGINATION_HINT_PX
     + (pageGapPx * 4)
   )
-  const gridAvailableBlockPx = Math.max(0, availableBlockPx - staticBlockPx)
-  const rowAvailableBlockPx = Math.max(0, (gridAvailableBlockPx - gridGapPx) / 2)
-  const mediaAvailableBlockPx = Math.max(0, rowAvailableBlockPx - metadataBlockPx)
-  const cardInlineByHeightPx = mediaAvailableBlockPx * (4 / 3)
-  const heightBoundContentPx = (cardInlineByHeightPx * 4) + (gridGapPx * 3)
+  const gridAvailableHintPx = Math.max(
+    0,
+    availableBlockHintPx - staticBlockHintPx,
+  )
+  const rowAvailableHintPx = Math.max(
+    0,
+    (gridAvailableHintPx - gridGapPx) / 2,
+  )
+  const mediaAvailableHintPx = Math.max(
+    0,
+    rowAvailableHintPx - metadataHintPx,
+  )
+  const cardInlineByHeightHintPx = mediaAvailableHintPx * (4 / 3)
+  const heightBoundContentHintPx = (
+    (cardInlineByHeightHintPx * 4)
+    + (gridGapPx * 3)
+  )
   const desiredContentPx = baseTokens.contentMaxRem * remPx
   const minimumContentPx = minimumContentRem * remPx
   const contentMaxPx = Math.max(
     minimumContentPx,
-    Math.min(desiredContentPx, heightBoundContentPx),
+    Math.min(desiredContentPx, heightBoundContentHintPx),
   )
-  const cardInlinePx = Math.max(0, (contentMaxPx - (gridGapPx * 3)) / 4)
-  const rowRequiredBlockPx = (cardInlinePx * 0.75) + metadataBlockPx
-  const gridBlockPx = (rowRequiredBlockPx * 2) + gridGapPx
-  const requiredBlockPx = staticBlockPx + gridBlockPx
-  const admitted = requiredBlockPx <= availableBlockPx + 0.5
 
-  return Object.freeze({
-    tokens: freezeTokens({
-      ...baseTokens,
-      contentMaxRem: round(contentMaxPx / remPx),
-    }),
-    receipt: freezeFit({
-      admitted,
-      admission: admitted ? admission : 'natural-flow',
-      availableBlockPx: round(availableBlockPx),
-      requiredBlockPx: round(requiredBlockPx),
-      gridBlockPx: round(gridBlockPx),
-      paginationReservedBlockPx,
-    }),
+  return freezeTokens({
+    ...baseTokens,
+    contentMaxRem: round(contentMaxPx / remPx),
   })
 }
 
@@ -291,17 +313,21 @@ export const WORKS_PENDING_LAYOUT_PROFILE = freezeProfile({
   columnCount: 3,
   pageRowCount: 3,
   viewportLocked: false,
+  lockEligible: false,
+  physicalFitPhase: 'not-applicable',
+  candidateAdmission: 'not-applicable',
   mobileQueryPlacement: false,
   referenceScale: 1,
   verticalScale: 1,
   cardDensity: 'balanced',
   paginationPlacement: 'in-flow',
-  viewportFit: unlockedFitReceipt(0, 'not-applicable'),
+  viewportFit: viewportFitFromPhysical(null, 'not-applicable'),
   tokens: flowTokens('pending'),
 })
 
 export function resolveWorksLayoutProfile(
   viewport: WorksViewportSnapshot,
+  physicalFit: WorksPhysicalFitReceipt | null = null,
 ): WorksLayoutProfile {
   const width = Math.max(1, Math.round(viewport.width))
   const height = Math.max(1, Math.round(viewport.height))
@@ -327,12 +353,15 @@ export function resolveWorksLayoutProfile(
       columnCount: 1,
       pageRowCount: 8,
       viewportLocked: false,
+      lockEligible: false,
+      physicalFitPhase: 'not-applicable',
+      candidateAdmission: 'not-applicable',
       mobileQueryPlacement: true,
       referenceScale,
       verticalScale,
       cardDensity: 'compact',
       paginationPlacement: 'in-flow',
-      viewportFit: unlockedFitReceipt(height),
+      viewportFit: viewportFitFromPhysical(null, 'not-applicable'),
       tokens: flowTokens('mobile-single'),
     })
   }
@@ -343,12 +372,15 @@ export function resolveWorksLayoutProfile(
       columnCount: 2,
       pageRowCount: 4,
       viewportLocked: false,
+      lockEligible: false,
+      physicalFitPhase: 'not-applicable',
+      candidateAdmission: 'not-applicable',
       mobileQueryPlacement: true,
       referenceScale,
       verticalScale,
       cardDensity: 'compact',
       paginationPlacement: 'in-flow',
-      viewportFit: unlockedFitReceipt(height),
+      viewportFit: viewportFitFromPhysical(null, 'not-applicable'),
       tokens: flowTokens('mobile-checkerboard'),
     })
   }
@@ -359,12 +391,15 @@ export function resolveWorksLayoutProfile(
       columnCount: 2,
       pageRowCount: 4,
       viewportLocked: false,
+      lockEligible: false,
+      physicalFitPhase: 'not-applicable',
+      candidateAdmission: 'not-applicable',
       mobileQueryPlacement: false,
       referenceScale,
       verticalScale,
       cardDensity: 'balanced',
       paginationPlacement: 'in-flow',
-      viewportFit: unlockedFitReceipt(height),
+      viewportFit: viewportFitFromPhysical(null, 'not-applicable'),
       tokens: flowTokens('tablet-flow'),
     })
   }
@@ -380,84 +415,62 @@ export function resolveWorksLayoutProfile(
       columnCount: 3,
       pageRowCount: 3,
       viewportLocked: false,
+      lockEligible: false,
+      physicalFitPhase: 'not-applicable',
+      candidateAdmission: 'not-applicable',
       mobileQueryPlacement: false,
       referenceScale,
       verticalScale,
       cardDensity: 'balanced',
       paginationPlacement: 'in-flow',
-      viewportFit: unlockedFitReceipt(height),
+      viewportFit: viewportFitFromPhysical(null, 'not-applicable'),
       tokens: flowTokens('desktop-flow'),
     })
   }
 
   const wide = width >= WORKS_ULTRAWIDE_MIN_WIDTH
-  const referenceCandidate = fitReferenceTokens(
-    width,
-    height,
-    referenceTokens(referenceScale, verticalScale),
-    wide && referenceScale > 1.05 ? 76 : 70,
-    64,
-    'reference',
-  )
-
-  if (referenceCandidate.receipt.admitted) {
-    return freezeProfile({
-      mode: wide ? 'desktop-wide' : 'desktop-reference',
-      columnCount: 4,
-      pageRowCount: 2,
-      viewportLocked: true,
-      mobileQueryPlacement: false,
-      referenceScale,
-      verticalScale,
-      cardDensity: wide && referenceScale > 1.05
-        ? 'relaxed'
-        : 'reference',
-      paginationPlacement: 'in-flow',
-      viewportFit: referenceCandidate.receipt,
-      tokens: referenceCandidate.tokens,
-    })
-  }
-
-  const compactCandidate = fitReferenceTokens(
-    width,
-    height,
-    compactReferenceTokens(referenceScale, verticalScale),
-    60,
-    52,
-    'compact',
-  )
-
-  if (compactCandidate.receipt.admitted) {
-    return freezeProfile({
-      mode: wide ? 'desktop-wide' : 'desktop-reference',
-      columnCount: 4,
-      pageRowCount: 2,
-      viewportLocked: true,
-      mobileQueryPlacement: false,
-      referenceScale,
-      verticalScale,
-      cardDensity: 'compact',
-      paginationPlacement: 'in-flow',
-      viewportFit: compactCandidate.receipt,
-      tokens: compactCandidate.tokens,
-    })
-  }
+  const compactCandidate = verticalScale < 0.9
+  const candidateAdmission = compactCandidate
+    ? 'compact' as const
+    : 'reference' as const
+  const candidateTokens = compactCandidate
+    ? deriveReferenceCandidateTokens(
+        height,
+        compactReferenceTokens(referenceScale, verticalScale),
+        60,
+        52,
+      )
+    : deriveReferenceCandidateTokens(
+        height,
+        referenceTokens(referenceScale, verticalScale),
+        wide && referenceScale > 1.05 ? 76 : 70,
+        64,
+      )
+  const cardDensity: WorksCardDensity = compactCandidate
+    ? 'compact'
+    : wide && referenceScale > 1.05
+      ? 'relaxed'
+      : 'reference'
+  const physicalFitPhase = physicalFit?.phase ?? 'unmeasured'
+  const viewportLocked = physicalFitPhase === 'admitted-locked'
 
   return freezeProfile({
-    mode: 'desktop-flow',
-    columnCount: 3,
-    pageRowCount: 3,
-    viewportLocked: false,
+    mode: wide ? 'desktop-wide' : 'desktop-reference',
+    columnCount: 4,
+    pageRowCount: 2,
+    viewportLocked,
+    lockEligible: true,
+    physicalFitPhase,
+    candidateAdmission,
     mobileQueryPlacement: false,
     referenceScale,
     verticalScale,
-    cardDensity: 'balanced',
+    cardDensity,
     paginationPlacement: 'in-flow',
-    viewportFit: freezeFit({
-      ...compactCandidate.receipt,
-      admitted: false,
-      admission: 'natural-flow',
-    }),
-    tokens: flowTokens('desktop-flow'),
+    viewportFit: viewportFitFromPhysical(
+      physicalFit,
+      candidateAdmission,
+    ),
+    tokens: candidateTokens,
   })
 }

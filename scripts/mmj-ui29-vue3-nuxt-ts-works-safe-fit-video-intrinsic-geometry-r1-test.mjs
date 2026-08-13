@@ -4,47 +4,66 @@ import {
   resolveWorksLayoutProfile,
 } from '../app/works/works-layout-profile.ts'
 import {
+  resolveWorksNaturalPhysicalFit,
+} from '../app/works/works-physical-fit.ts'
+import {
   resolveVideoGeometryProfile,
 } from '../app/video/video-geometry-profile.ts'
 
-const reference = resolveWorksLayoutProfile({ width: 1920, height: 1080 })
-assert.equal(reference.mode, 'desktop-reference')
-assert.equal(reference.columnCount, 4)
-assert.equal(reference.pageRowCount, 2)
-assert.equal(reference.viewportLocked, true)
-assert.equal(reference.paginationPlacement, 'in-flow')
-assert.equal(reference.viewportFit.admitted, true)
-assert.equal(reference.viewportFit.admission, 'reference')
-assert.ok(reference.viewportFit.requiredBlockPx <= reference.viewportFit.availableBlockPx)
+const referenceCandidate = resolveWorksLayoutProfile({ width: 1920, height: 1080 })
+assert.equal(referenceCandidate.mode, 'desktop-reference')
+assert.equal(referenceCandidate.columnCount, 4)
+assert.equal(referenceCandidate.pageRowCount, 2)
+assert.equal(referenceCandidate.viewportLocked, false)
+assert.equal(referenceCandidate.lockEligible, true)
+assert.equal(referenceCandidate.paginationPlacement, 'in-flow')
+assert.equal(referenceCandidate.viewportFit.admitted, false)
+
+const physicalReceipt = resolveWorksNaturalPhysicalFit({
+  fitKey: 'r1-compat-reference',
+  revision: 1,
+  viewportBlockPx: 1080,
+  siteHeaderBlockPx: 72,
+  mainAvailableBlockPx: 1008,
+  pageClientBlockPx: 920,
+  pageScrollBlockPx: 920,
+  headerBlockPx: 72,
+  queryBlockPx: 86,
+  summaryBlockPx: 22,
+  gridClientBlockPx: 610,
+  gridScrollBlockPx: 610,
+  paginationBlockPx: 44,
+  gridBottomPx: 900,
+  paginationTopPx: 916,
+})
+const physicallyAdmittedReference = resolveWorksLayoutProfile(
+  { width: 1920, height: 1080 },
+  physicalReceipt,
+)
+assert.equal(physicallyAdmittedReference.viewportLocked, true)
+assert.equal(physicallyAdmittedReference.viewportFit.admitted, true)
+assert.equal(physicallyAdmittedReference.viewportFit.admission, 'reference')
 
 const browserChromeConstrained = resolveWorksLayoutProfile({ width: 1920, height: 900 })
 assert.equal(browserChromeConstrained.mode, 'desktop-reference')
 assert.equal(browserChromeConstrained.columnCount, 4)
 assert.equal(browserChromeConstrained.pageRowCount, 2)
-assert.equal(browserChromeConstrained.viewportLocked, true)
+assert.equal(browserChromeConstrained.viewportLocked, false)
+assert.equal(browserChromeConstrained.lockEligible, true)
+assert.equal(browserChromeConstrained.cardDensity, 'compact')
 assert.equal(browserChromeConstrained.paginationPlacement, 'in-flow')
-assert.equal(browserChromeConstrained.viewportFit.admitted, true)
-assert.ok(browserChromeConstrained.viewportFit.requiredBlockPx <= browserChromeConstrained.viewportFit.availableBlockPx)
-assert.ok(browserChromeConstrained.tokens.contentMaxRem < reference.tokens.contentMaxRem)
-
-const compactThreshold = resolveWorksLayoutProfile({ width: 1440, height: 760 })
-assert.equal(compactThreshold.mode, 'desktop-reference')
-assert.equal(compactThreshold.viewportLocked, true)
-assert.equal(compactThreshold.viewportFit.admitted, true)
-assert.equal(compactThreshold.viewportFit.admission, 'compact')
-assert.equal(compactThreshold.cardDensity, 'compact')
 
 const insufficientHeight = resolveWorksLayoutProfile({ width: 1440, height: 700 })
 assert.equal(insufficientHeight.mode, 'desktop-flow')
 assert.equal(insufficientHeight.viewportLocked, false)
-assert.equal(insufficientHeight.viewportFit.admitted, false)
+assert.equal(insufficientHeight.lockEligible, false)
 assert.equal(insufficientHeight.paginationPlacement, 'in-flow')
 
-const wide = resolveWorksLayoutProfile({ width: 2560, height: 1080 })
-assert.equal(wide.mode, 'desktop-wide')
-assert.equal(wide.viewportLocked, true)
-assert.equal(wide.paginationPlacement, 'in-flow')
-assert.ok(wide.viewportFit.requiredBlockPx <= wide.viewportFit.availableBlockPx)
+const wideCandidate = resolveWorksLayoutProfile({ width: 2560, height: 1080 })
+assert.equal(wideCandidate.mode, 'desktop-wide')
+assert.equal(wideCandidate.viewportLocked, false)
+assert.equal(wideCandidate.lockEligible, true)
+assert.equal(wideCandidate.paginationPlacement, 'in-flow')
 
 const video169 = resolveVideoGeometryProfile({
   intrinsicWidth: 1920,
@@ -111,9 +130,9 @@ assert.throws(
   /E_MMJ_VIDEO_GEOMETRY_INVALID_INTRINSIC_WIDTH/,
 )
 
-console.log('PASS_WORKS_REFERENCE_FIT_BUDGET')
-console.log('PASS_WORKS_BROWSER_CHROME_SAFE_COMPACTION')
-console.log('PASS_WORKS_COMPACT_RETRY_AND_FLOW_DEMOTION')
+console.log('PASS_WORKS_REFERENCE_CANDIDATE_BUDGET')
+console.log('PASS_WORKS_PHYSICAL_RECEIPT_LOCK_ADMISSION')
+console.log('PASS_WORKS_NATURAL_FLOW_FALLBACK')
 console.log('PASS_PAGINATION_IN_FLOW_RESERVATION')
 console.log('PASS_VIDEO_INTRINSIC_ASPECT_PRESERVATION')
 console.log('PASS_VIDEO_NO_CROP_NO_STRETCH_NO_UPSCALE')

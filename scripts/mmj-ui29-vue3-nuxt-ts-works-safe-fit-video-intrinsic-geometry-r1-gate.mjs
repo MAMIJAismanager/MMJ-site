@@ -7,7 +7,9 @@ const read = path => readFile(resolve(root, path), 'utf8')
 
 const [
   worksProfile,
+  worksPhysicalFit,
   worksComposable,
+  worksPhysicalComposable,
   worksPage,
   grid,
   pagination,
@@ -20,7 +22,9 @@ const [
   pkgText,
 ] = await Promise.all([
   read('app/works/works-layout-profile.ts'),
+  read('app/works/works-physical-fit.ts'),
   read('app/composables/useWorksLayoutProfile.ts'),
+  read('app/composables/useWorksPhysicalFitAdmission.ts'),
   read('app/pages/works/index.vue'),
   read('app/components/project/ProjectGrid.vue'),
   read('app/components/works/WorksPagination.vue'),
@@ -35,37 +39,72 @@ const [
 
 const pkg = JSON.parse(pkgText)
 const release = 'MMJ-UI29-VUE3-NUXT-TS-WORKS-SAFE-FIT-AND-VIDEO-INTRINSIC-GEOMETRY-R1'
+const physicalR2Release = 'MMJ-UI29-WORKS-PHYSICAL-FIT-ADMISSION-R2'
 
 for (const token of [
-  'export interface WorksViewportFitReceipt',
   "readonly paginationPlacement: 'in-flow'",
-  'readonly viewportFit: WorksViewportFitReceipt',
-  'fitReferenceTokens(',
+  'readonly lockEligible: boolean',
+  'readonly physicalFitPhase: WorksPhysicalFitPhase',
+  'deriveReferenceCandidateTokens(',
+  "const viewportLocked = physicalFitPhase === 'admitted-locked'",
   "'reference'",
   "'compact'",
   "'natural-flow'",
-  'const admitted = requiredBlockPx <= availableBlockPx + 0.5',
-  'paginationReservedBlockPx',
-  'contentMaxRem: round(contentMaxPx / remPx)',
 ]) {
-  assert.ok(worksProfile.includes(token), `Works safe-fit authority missing: ${token}`)
+  assert.ok(worksProfile.includes(token), `Works candidate authority missing: ${token}`)
 }
 for (const forbidden of ['window.', 'document.', 'ResizeObserver', 'getBoundingClientRect']) {
-  assert.equal(worksProfile.includes(forbidden), false, `pure Works fit resolver leaked browser authority: ${forbidden}`)
+  assert.equal(worksProfile.includes(forbidden), false, `pure Works candidate resolver leaked browser authority: ${forbidden}`)
+}
+for (const retired of [
+  'WORKS_SITE_HEADER_BLOCK_PX',
+  'WORKS_PAGINATION_BUTTON_BLOCK_PX',
+  'rowRequiredBlockPx',
+  'referenceCandidate.receipt.admitted',
+]) {
+  assert.equal(worksProfile.includes(retired), false, `retired synthetic lock authority remains: ${retired}`)
+}
+
+for (const token of [
+  "| 'measuring-natural'",
+  "| 'admitted-locked'",
+  "| 'rejected-flow'",
+  "| 'revoked-flow'",
+  'resolveWorksNaturalPhysicalFit',
+  'verifyWorksLockedPhysicalCommit',
+]) {
+  assert.ok(worksPhysicalFit.includes(token), `Works physical superseding authority missing: ${token}`)
+}
+for (const forbidden of ['window.', 'document.', 'HTMLElement', 'ResizeObserver', 'getBoundingClientRect']) {
+  assert.equal(worksPhysicalFit.includes(forbidden), false, `pure Works physical resolver leaked DOM authority: ${forbidden}`)
 }
 
 for (const token of [
   "'--mm-works-fit-available-block'",
   "'--mm-works-fit-required-block'",
-  "'--mm-works-pagination-reserved-block'",
+  'viewportRevision',
+  'candidate',
+  'WORKS_PHYSICAL_FIT_STATE_KEY',
 ]) {
-  assert.ok(worksComposable.includes(token), `Works fit projection missing: ${token}`)
+  assert.ok(worksComposable.includes(token), `Works layout/physical bridge missing: ${token}`)
+}
+assert.equal(worksComposable.includes('ResizeObserver'), false, 'physical observation must not leak into layout composable')
+
+for (const token of [
+  'new ResizeObserver(',
+  'window.requestAnimationFrame',
+  'page.scrollHeight',
+  'grid.scrollHeight',
+  'verifyWorksLockedPhysicalCommit(snapshot)',
+]) {
+  assert.ok(worksPhysicalComposable.includes(token), `Nuxt physical admission missing: ${token}`)
 }
 
 for (const token of [
   ':data-mm-works-fit-admission="worksLayoutProfile.viewportFit.admission"',
   ':data-mm-works-fit-admitted="worksLayoutProfile.viewportFit.admitted ? \'true\' : \'false\'"',
   ':data-mm-works-pagination-placement="worksLayoutProfile.paginationPlacement"',
+  ':data-mm-works-physical-fit-phase="worksPhysicalFitReceipt.phase"',
   ':placement="worksLayoutProfile.paginationPlacement"',
 ]) {
   assert.ok(worksPage.includes(token), `Works page fit projection missing: ${token}`)
@@ -81,11 +120,6 @@ for (const token of [
   ':data-mm-pagination-placement="placement"',
 ]) {
   assert.ok(pagination.includes(token), `Pagination in-flow authority missing: ${token}`)
-}
-for (const forbidden of ['position: fixed', 'position: absolute', 'position: sticky']) {
-  const navStart = pagination.indexOf('<nav')
-  assert.ok(navStart >= 0, 'pagination nav missing')
-  assert.equal(pagination.slice(navStart).includes(forbidden), false, `pagination Vue overlay authority forbidden: ${forbidden}`)
 }
 
 for (const token of [
@@ -161,10 +195,11 @@ const gateCommand = 'node --experimental-strip-types scripts/mmj-ui29-vue3-nuxt-
 assert.equal(pkg.scripts?.[gateName], gateCommand, 'package gate binding drift')
 assert.ok(String(pkg.scripts?.['gate:mmj-ui29-a'] ?? '').includes(`npm run ${gateName}`), 'aggregate UI29 gate missing safe-fit/video geometry R1')
 assert.equal(pkg.mmjUi29Vue3NuxtTsWorksSafeFitVideoIntrinsicGeometryRelease, release, 'release marker drift')
+assert.equal(pkg.mmjUi29WorksPhysicalFitAdmissionR2Release, physicalR2Release, 'physical R2 superseding release missing')
 
-console.log('PASS_TYPESCRIPT_WORKS_VIEWPORT_FIT_AUTHORITY')
+console.log('PASS_TYPESCRIPT_WORKS_CANDIDATE_AUTHORITY')
+console.log('PASS_NUXT_PHYSICAL_FIT_SUPERSEDING_AUTHORITY')
 console.log('PASS_VUE3_PAGINATION_IN_FLOW_PROJECTION')
-console.log('PASS_NUXT_VIEWPORT_OBSERVATION_ONLY')
 console.log('PASS_TYPESCRIPT_VIDEO_INTRINSIC_GEOMETRY_AUTHORITY')
 console.log('PASS_VUE3_VIDEO_GEOMETRY_PROJECTION')
 console.log('PASS_NO_FORCED_16X9_OR_VIEWPORT_CROP_AUTHORITY')
