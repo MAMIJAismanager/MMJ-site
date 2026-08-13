@@ -12,6 +12,9 @@ export const WORKS_ULTRAWIDE_MIN_WIDTH = 2304
 export const WORKS_MOBILE_MIN_CHECKERBOARD_WIDTH = 336
 export const WORKS_MOBILE_MAX_WIDTH = 767
 export const WORKS_TABLET_MAX_WIDTH = 1179
+export const WORKS_SITE_HEADER_BLOCK_PX = 72
+export const WORKS_PAGINATION_BUTTON_BLOCK_PX = 44
+export const WORKS_VIEWPORT_SAFETY_PX = 12
 
 export type WorksLayoutMode =
   | 'pending'
@@ -27,6 +30,12 @@ export type WorksCardDensity =
   | 'balanced'
   | 'reference'
   | 'relaxed'
+
+export type WorksViewportFitAdmission =
+  | 'not-applicable'
+  | 'reference'
+  | 'compact'
+  | 'natural-flow'
 
 export interface WorksViewportSnapshot {
   readonly width: number
@@ -47,6 +56,15 @@ export interface WorksLayoutTokens {
   readonly cardTitleRem: number
 }
 
+export interface WorksViewportFitReceipt {
+  readonly admitted: boolean
+  readonly admission: WorksViewportFitAdmission
+  readonly availableBlockPx: number
+  readonly requiredBlockPx: number
+  readonly gridBlockPx: number
+  readonly paginationReservedBlockPx: number
+}
+
 export interface WorksLayoutProfile {
   readonly mode: WorksLayoutMode
   readonly columnCount: 1 | 2 | 3 | 4
@@ -56,6 +74,8 @@ export interface WorksLayoutProfile {
   readonly referenceScale: number
   readonly verticalScale: number
   readonly cardDensity: WorksCardDensity
+  readonly paginationPlacement: 'in-flow'
+  readonly viewportFit: WorksViewportFitReceipt
   readonly tokens: WorksLayoutTokens
 }
 
@@ -71,9 +91,14 @@ function freezeTokens(tokens: WorksLayoutTokens): WorksLayoutTokens {
   return Object.freeze({ ...tokens })
 }
 
+function freezeFit(receipt: WorksViewportFitReceipt): WorksViewportFitReceipt {
+  return Object.freeze({ ...receipt })
+}
+
 function freezeProfile(profile: WorksLayoutProfile): WorksLayoutProfile {
   return Object.freeze({
     ...profile,
+    viewportFit: freezeFit(profile.viewportFit),
     tokens: freezeTokens(profile.tokens),
   })
 }
@@ -94,6 +119,25 @@ function referenceTokens(
     gridGapRem: round(clamp(0.78 * referenceScale, 0.55, 1)),
     cardPaddingRem: round(clamp(0.72 * referenceScale, 0.52, 0.9)),
     cardTitleRem: round(clamp(1.02 * referenceScale, 0.84, 1.15)),
+  })
+}
+
+function compactReferenceTokens(
+  referenceScale: number,
+  verticalScale: number,
+): WorksLayoutTokens {
+  return freezeTokens({
+    contentMaxRem: round(clamp(92 * referenceScale, 52, 100)),
+    pagePaddingBlockRem: round(clamp(0.62 * verticalScale, 0.45, 0.8)),
+    pageGapRem: round(clamp(0.5 * verticalScale, 0.35, 0.65)),
+    headerGapRem: round(clamp(0.3 * verticalScale, 0.22, 0.4)),
+    titleRem: round(clamp(2.25 * referenceScale, 1.9, 2.6)),
+    queryGapRem: round(clamp(0.58 * referenceScale, 0.45, 0.8)),
+    queryPaddingRem: round(clamp(0.5 * referenceScale, 0.42, 0.75)),
+    queryControlHeightRem: round(clamp(2.3 * referenceScale, 2.15, 2.5)),
+    gridGapRem: round(clamp(0.6 * referenceScale, 0.45, 0.8)),
+    cardPaddingRem: round(clamp(0.52 * referenceScale, 0.45, 0.7)),
+    cardTitleRem: round(clamp(0.86 * referenceScale, 0.78, 0.98)),
   })
 }
 
@@ -160,6 +204,88 @@ function flowTokens(mode: WorksLayoutMode): WorksLayoutTokens {
   }
 }
 
+function unlockedFitReceipt(
+  height: number,
+  admission: WorksViewportFitAdmission = 'natural-flow',
+): WorksViewportFitReceipt {
+  return freezeFit({
+    admitted: false,
+    admission,
+    availableBlockPx: Math.max(0, height - WORKS_SITE_HEADER_BLOCK_PX - WORKS_VIEWPORT_SAFETY_PX),
+    requiredBlockPx: 0,
+    gridBlockPx: 0,
+    paginationReservedBlockPx: WORKS_PAGINATION_BUTTON_BLOCK_PX,
+  })
+}
+
+interface LockedReferenceCandidate {
+  readonly tokens: WorksLayoutTokens
+  readonly receipt: WorksViewportFitReceipt
+}
+
+function fitReferenceTokens(
+  width: number,
+  height: number,
+  baseTokens: WorksLayoutTokens,
+  metadataBlockPx: number,
+  minimumContentRem: number,
+  admission: 'reference' | 'compact',
+): LockedReferenceCandidate {
+  const remPx = 16
+  const availableBlockPx = Math.max(0, height - WORKS_SITE_HEADER_BLOCK_PX - WORKS_VIEWPORT_SAFETY_PX)
+  const pagePaddingPx = baseTokens.pagePaddingBlockRem * remPx
+  const pageGapPx = baseTokens.pageGapRem * remPx
+  const headerGapPx = baseTokens.headerGapRem * remPx
+  const titlePx = baseTokens.titleRem * remPx
+  const queryPaddingPx = baseTokens.queryPaddingRem * remPx
+  const queryControlPx = baseTokens.queryControlHeightRem * remPx
+  const gridGapPx = baseTokens.gridGapRem * remPx
+
+  const headerBlockPx = 19 + headerGapPx + (titlePx * 1.18)
+  const queryBlockPx = (queryPaddingPx * 2) + 28 + queryControlPx
+  const summaryBlockPx = 22
+  const paginationReservedBlockPx = WORKS_PAGINATION_BUTTON_BLOCK_PX
+  const staticBlockPx = (
+    (pagePaddingPx * 2)
+    + headerBlockPx
+    + queryBlockPx
+    + summaryBlockPx
+    + paginationReservedBlockPx
+    + (pageGapPx * 4)
+  )
+  const gridAvailableBlockPx = Math.max(0, availableBlockPx - staticBlockPx)
+  const rowAvailableBlockPx = Math.max(0, (gridAvailableBlockPx - gridGapPx) / 2)
+  const mediaAvailableBlockPx = Math.max(0, rowAvailableBlockPx - metadataBlockPx)
+  const cardInlineByHeightPx = mediaAvailableBlockPx * (4 / 3)
+  const heightBoundContentPx = (cardInlineByHeightPx * 4) + (gridGapPx * 3)
+  const desiredContentPx = baseTokens.contentMaxRem * remPx
+  const minimumContentPx = minimumContentRem * remPx
+  const contentMaxPx = Math.max(
+    minimumContentPx,
+    Math.min(desiredContentPx, heightBoundContentPx),
+  )
+  const cardInlinePx = Math.max(0, (contentMaxPx - (gridGapPx * 3)) / 4)
+  const rowRequiredBlockPx = (cardInlinePx * 0.75) + metadataBlockPx
+  const gridBlockPx = (rowRequiredBlockPx * 2) + gridGapPx
+  const requiredBlockPx = staticBlockPx + gridBlockPx
+  const admitted = requiredBlockPx <= availableBlockPx + 0.5
+
+  return Object.freeze({
+    tokens: freezeTokens({
+      ...baseTokens,
+      contentMaxRem: round(contentMaxPx / remPx),
+    }),
+    receipt: freezeFit({
+      admitted,
+      admission: admitted ? admission : 'natural-flow',
+      availableBlockPx: round(availableBlockPx),
+      requiredBlockPx: round(requiredBlockPx),
+      gridBlockPx: round(gridBlockPx),
+      paginationReservedBlockPx,
+    }),
+  })
+}
+
 export const WORKS_PENDING_LAYOUT_PROFILE = freezeProfile({
   mode: 'pending',
   columnCount: 3,
@@ -169,6 +295,8 @@ export const WORKS_PENDING_LAYOUT_PROFILE = freezeProfile({
   referenceScale: 1,
   verticalScale: 1,
   cardDensity: 'balanced',
+  paginationPlacement: 'in-flow',
+  viewportFit: unlockedFitReceipt(0, 'not-applicable'),
   tokens: flowTokens('pending'),
 })
 
@@ -203,6 +331,8 @@ export function resolveWorksLayoutProfile(
       referenceScale,
       verticalScale,
       cardDensity: 'compact',
+      paginationPlacement: 'in-flow',
+      viewportFit: unlockedFitReceipt(height),
       tokens: flowTokens('mobile-single'),
     })
   }
@@ -217,6 +347,8 @@ export function resolveWorksLayoutProfile(
       referenceScale,
       verticalScale,
       cardDensity: 'compact',
+      paginationPlacement: 'in-flow',
+      viewportFit: unlockedFitReceipt(height),
       tokens: flowTokens('mobile-checkerboard'),
     })
   }
@@ -231,6 +363,8 @@ export function resolveWorksLayoutProfile(
       referenceScale,
       verticalScale,
       cardDensity: 'balanced',
+      paginationPlacement: 'in-flow',
+      viewportFit: unlockedFitReceipt(height),
       tokens: flowTokens('tablet-flow'),
     })
   }
@@ -250,22 +384,80 @@ export function resolveWorksLayoutProfile(
       referenceScale,
       verticalScale,
       cardDensity: 'balanced',
+      paginationPlacement: 'in-flow',
+      viewportFit: unlockedFitReceipt(height),
       tokens: flowTokens('desktop-flow'),
     })
   }
 
   const wide = width >= WORKS_ULTRAWIDE_MIN_WIDTH
+  const referenceCandidate = fitReferenceTokens(
+    width,
+    height,
+    referenceTokens(referenceScale, verticalScale),
+    wide && referenceScale > 1.05 ? 76 : 70,
+    64,
+    'reference',
+  )
+
+  if (referenceCandidate.receipt.admitted) {
+    return freezeProfile({
+      mode: wide ? 'desktop-wide' : 'desktop-reference',
+      columnCount: 4,
+      pageRowCount: 2,
+      viewportLocked: true,
+      mobileQueryPlacement: false,
+      referenceScale,
+      verticalScale,
+      cardDensity: wide && referenceScale > 1.05
+        ? 'relaxed'
+        : 'reference',
+      paginationPlacement: 'in-flow',
+      viewportFit: referenceCandidate.receipt,
+      tokens: referenceCandidate.tokens,
+    })
+  }
+
+  const compactCandidate = fitReferenceTokens(
+    width,
+    height,
+    compactReferenceTokens(referenceScale, verticalScale),
+    60,
+    52,
+    'compact',
+  )
+
+  if (compactCandidate.receipt.admitted) {
+    return freezeProfile({
+      mode: wide ? 'desktop-wide' : 'desktop-reference',
+      columnCount: 4,
+      pageRowCount: 2,
+      viewportLocked: true,
+      mobileQueryPlacement: false,
+      referenceScale,
+      verticalScale,
+      cardDensity: 'compact',
+      paginationPlacement: 'in-flow',
+      viewportFit: compactCandidate.receipt,
+      tokens: compactCandidate.tokens,
+    })
+  }
+
   return freezeProfile({
-    mode: wide ? 'desktop-wide' : 'desktop-reference',
-    columnCount: 4,
-    pageRowCount: 2,
-    viewportLocked: true,
+    mode: 'desktop-flow',
+    columnCount: 3,
+    pageRowCount: 3,
+    viewportLocked: false,
     mobileQueryPlacement: false,
     referenceScale,
     verticalScale,
-    cardDensity: wide && referenceScale > 1.05
-      ? 'relaxed'
-      : 'reference',
-    tokens: referenceTokens(referenceScale, verticalScale),
+    cardDensity: 'balanced',
+    paginationPlacement: 'in-flow',
+    viewportFit: freezeFit({
+      ...compactCandidate.receipt,
+      admitted: false,
+      admission: 'natural-flow',
+    }),
+    tokens: flowTokens('desktop-flow'),
   })
 }

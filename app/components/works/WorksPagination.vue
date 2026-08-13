@@ -5,6 +5,7 @@ interface WorksPaginationProps {
   readonly currentPage: number
   readonly pageCount: number
   readonly queryReady: boolean
+  readonly placement: 'in-flow'
 }
 
 type PaginationToken =
@@ -75,6 +76,7 @@ function activatePage(page: number): void {
     data-mm-works-pagination
     :data-mm-current-page="currentPage"
     :data-mm-page-count="pageCount"
+    :data-mm-pagination-placement="placement"
   >
     <ol class="mm-works-pagination__list">
       <li

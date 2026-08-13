@@ -86,6 +86,9 @@ export function useWorksLayoutProfile() {
       '--mm-works-grid-gap': `${tokens.gridGapRem}rem`,
       '--mm-works-card-padding': `${tokens.cardPaddingRem}rem`,
       '--mm-works-card-title-size': `${tokens.cardTitleRem}rem`,
+      '--mm-works-fit-available-block': `${profile.value.viewportFit.availableBlockPx}px`,
+      '--mm-works-fit-required-block': `${profile.value.viewportFit.requiredBlockPx}px`,
+      '--mm-works-pagination-reserved-block': `${profile.value.viewportFit.paginationReservedBlockPx}px`,
     })
   })
 

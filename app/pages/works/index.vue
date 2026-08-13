@@ -199,6 +199,9 @@ function resetWorksQuery(): void {
     :data-mm-works-layout-mode="worksLayoutProfile.mode"
     :data-mm-works-viewport-locked="worksLayoutProfile.viewportLocked ? 'true' : 'false'"
     :data-mm-works-layout-columns="worksLayoutProfile.columnCount"
+    :data-mm-works-fit-admission="worksLayoutProfile.viewportFit.admission"
+    :data-mm-works-fit-admitted="worksLayoutProfile.viewportFit.admitted ? 'true' : 'false'"
+    :data-mm-works-pagination-placement="worksLayoutProfile.paginationPlacement"
     :style="worksLayoutStyle"
   >
     <header class="mm-page__header">
@@ -304,6 +307,7 @@ function resetWorksQuery(): void {
       :current-page="evaluation.currentPage"
       :page-count="evaluation.pageCount"
       :query-ready="queryReady"
+      :placement="worksLayoutProfile.paginationPlacement"
       @change-page="changePage"
     />
   </section>

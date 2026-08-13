@@ -17,6 +17,7 @@ import {
 } from '~~/shared/resolver/accessible-description-resolution'
 
 import type { ProjectId } from '~~/shared/types/domain-identifiers'
+import type { VideoGeometryConstraint } from '~/video/video-geometry-profile'
 import type {
   ResolvedAssetReference,
   ResolvedImageAssetReference,
@@ -32,6 +33,8 @@ interface Props {
   readonly videoRuntime?: 'disabled' | 'primary-detail'
   readonly audioRuntime?: 'disabled' | 'primary-detail'
   readonly captionMode?: 'full' | 'none'
+  readonly mediaMaxInlinePx?: number
+  readonly mediaMaxBlockPx?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -114,6 +117,19 @@ const videoPresentation = computed(() => {
 })
 
 
+const videoGeometryConstraint = computed<VideoGeometryConstraint | undefined>(() => {
+  if (
+    videoPresentation.value === null
+    || props.mediaMaxInlinePx === undefined
+    || props.mediaMaxBlockPx === undefined
+  ) return undefined
+
+  return Object.freeze({
+    maxInlinePx: props.mediaMaxInlinePx,
+    maxBlockPx: props.mediaMaxBlockPx,
+  })
+})
+
 const audioTrack = computed(() => {
   if (
     props.audioRuntime !== 'primary-detail'
@@ -145,6 +161,7 @@ const audioArtworkState = computed(() => {
     <VideoPlayer
       v-if="videoPresentation !== null"
       :presentation="videoPresentation"
+      :geometry-constraint="videoGeometryConstraint"
     />
     <MediaFrame
       v-else

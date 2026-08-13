@@ -133,6 +133,8 @@ useSeoMeta({
           video-runtime="primary-detail"
           audio-runtime="primary-detail"
           caption-mode="none"
+          :media-max-inline-px="layoutProfile.mediaMaxInlinePx"
+          :media-max-block-px="layoutProfile.mediaMaxBlockPx"
         />
       </section>
     </section>

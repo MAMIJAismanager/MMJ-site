@@ -32,6 +32,8 @@ const emit = defineEmits<{
     data-mm-project-grid
     :data-mm-project-grid-columns="layout.columnCount"
     :data-mm-project-grid-mode="layout.mode"
+    :data-mm-project-grid-rows="layout.pageRowCount"
+    :data-mm-project-grid-fit="layout.viewportFit.admission"
     :style="{
       gridTemplateColumns:
         `repeat(${layout.columnCount}, minmax(0, 1fr))`,

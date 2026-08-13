@@ -1,7 +1,8 @@
 .mm-video-player {
   position: relative;
   display: grid;
-  width: 100%;
+  width: min(100%, var(--mm-video-player-inline-size));
+  max-width: 100%;
   aspect-ratio: var(--mm-video-player-ratio);
   overflow: hidden;
   border-radius: var(--mm-radius-medium);
@@ -192,39 +193,22 @@
 }
 
 /*
- * Work-detail primary video preview.
- * The 1920 x 1080 coordinate system remains 16:9, while the embedded preview
- * occupies about half of a 1920-wide viewport and contracts fluidly below it.
- * Source pixels are never cropped or stretched; contain produces letterbox or
- * pillarbox bars on the unused axis.
+ * MMJ-UI29 intrinsic video geometry renderer.
+ * TypeScript owns source geometry and Vue projects the resolved constraints.
+ * CSS only renders those values; it does not promote a 16:9 stage.
  */
 .mm-work-asset-frame[data-mm-video-runtime="primary-detail"][data-mm-work-asset-kind="video"] > .mm-video-player {
   justify-self: center;
-  width: min(100%, clamp(40rem, 50vw, 60rem));
-  max-width: 60rem;
+  max-width: 100%;
   min-width: 0;
-  aspect-ratio: 16 / 9;
   background: #11151a;
 }
 
-@media (max-width: 48rem) {
-  .mm-work-asset-frame[data-mm-video-runtime="primary-detail"][data-mm-work-asset-kind="video"] > .mm-video-player {
-    width: 100%;
-    max-width: none;
-  }
-}
-
-/*
- * Fullscreen uses the monitor as the outer stage. The source is never stretched:
- * the video and poster remain centered with contain and the unused axis becomes bars.
- * This selector intentionally follows the primary-detail rule so the old bounded
- * aspect ratio cannot leak into fullscreen on ultrawide displays.
- */
-.mm-video-player:fullscreen,
-.mm-work-asset-frame[data-mm-video-runtime="primary-detail"][data-mm-work-asset-kind="video"] > .mm-video-player:fullscreen {
+.mm-video-player[data-mm-video-fullscreen='true'],
+.mm-video-player:fullscreen {
   justify-self: stretch;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   max-width: none;
   max-height: none;
   aspect-ratio: auto;
@@ -232,10 +216,25 @@
   background: #11151a;
 }
 
-.mm-video-player:fullscreen .mm-video-player__video,
-.mm-video-player:fullscreen .mm-video-player__poster img {
-  width: 100%;
-  height: 100%;
+.mm-video-player[data-mm-video-fullscreen='true'] .mm-video-player__video,
+.mm-video-player:fullscreen .mm-video-player__video {
+  place-self: center;
+  width: min(100%, var(--mm-video-player-intrinsic-inline-size));
+  height: min(100%, var(--mm-video-player-intrinsic-block-size));
+  object-fit: contain;
+  object-position: center;
+}
+
+.mm-video-player[data-mm-video-fullscreen='true'] .mm-video-player__poster,
+.mm-video-player:fullscreen .mm-video-player__poster {
+  display: grid;
+  place-items: center;
+}
+
+.mm-video-player[data-mm-video-fullscreen='true'] .mm-video-player__poster :is(picture, img),
+.mm-video-player:fullscreen .mm-video-player__poster :is(picture, img) {
+  width: min(100%, var(--mm-video-player-intrinsic-inline-size));
+  height: min(100%, var(--mm-video-player-intrinsic-block-size));
   object-fit: contain;
   object-position: center;
 }

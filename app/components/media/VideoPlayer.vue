@@ -12,6 +12,7 @@ import ResponsiveImage from './ResponsiveImage.vue'
 
 import { useCrossMediaArbitration } from '~/composables/useCrossMediaArbitration'
 import { useVideoWarmupAuthority } from '~/composables/useVideoWarmupAuthority'
+import { resolveVideoGeometryProfile } from '~/video/video-geometry-profile'
 
 import {
   createInitialVideoPlayerState,
@@ -32,9 +33,11 @@ import type {
   VideoPlayerRuntimeEvent,
   VideoPlayerRuntimeState,
 } from '~/utils/video-player-state'
+import type { VideoGeometryConstraint } from '~/video/video-geometry-profile'
 
 interface Props {
   readonly presentation: VideoPlayerPresentation
+  readonly geometryConstraint?: VideoGeometryConstraint
 }
 
 interface Emits {
@@ -99,8 +102,18 @@ const activationPending = computed(() => (
 ))
 const isPlaying = computed(() => runtimeState.value.playback === 'playing')
 const seekMaximum = computed(() => runtimeState.value.durationSeconds ?? 0)
+const geometryProfile = computed(() => resolveVideoGeometryProfile({
+  intrinsicWidth: props.presentation.intrinsicSize.width,
+  intrinsicHeight: props.presentation.intrinsicSize.height,
+  constraint: props.geometryConstraint ?? null,
+  fullscreen: runtimeState.value.fullscreen,
+}))
 const frameStyle = computed(() => ({
-  '--mm-video-player-ratio': `${props.presentation.intrinsicSize.width} / ${props.presentation.intrinsicSize.height}`,
+  '--mm-video-player-ratio': `${geometryProfile.value.intrinsicWidth} / ${geometryProfile.value.intrinsicHeight}`,
+  '--mm-video-player-inline-size': `${geometryProfile.value.renderedInlinePx}px`,
+  '--mm-video-player-block-size': `${geometryProfile.value.renderedBlockPx}px`,
+  '--mm-video-player-intrinsic-inline-size': `${geometryProfile.value.intrinsicWidth}px`,
+  '--mm-video-player-intrinsic-block-size': `${geometryProfile.value.intrinsicHeight}px`,
 }))
 
 function formatTime(value: number | null): string {
@@ -455,6 +468,11 @@ onBeforeUnmount(() => {
     :data-mm-video-warmup-phase="warmupState.phase"
     :data-mm-video-warmup-intent="warmupState.intent"
     :data-mm-video-preload="warmupState.preload"
+    :data-mm-video-geometry-mode="geometryProfile.mode"
+    :data-mm-video-fit="geometryProfile.fit"
+    :data-mm-video-crop="geometryProfile.allowCrop ? 'allowed' : 'denied'"
+    :data-mm-video-upscale="geometryProfile.allowUpscale ? 'allowed' : 'denied'"
+    :data-mm-video-fullscreen="runtimeState.fullscreen ? 'true' : 'false'"
     :aria-busy="activationPending ? 'true' : 'false'"
     data-mm-video-download-ui="denied"
     @pointerenter="onPlayerPointerEnter"
