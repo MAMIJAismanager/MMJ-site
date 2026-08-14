@@ -25,6 +25,8 @@ env:
   LC_ALL: C.UTF-8
   SOURCE_DATE_EPOCH: '1784378700'
   MMJ_BUILD_ID: mmj-github-pages-production
+  MMJ_PUBLIC_RELEASE_REQUIRED: '1'
+  MMJ_PUBLIC_RELEASE_REVISION: ${{ github.sha }}
   MMJ_BUILD_ENVIRONMENT_CLASS: production
   MMJ_PORTFOLIO_HANDOFF_ORIGIN: https://cms.mamajing.work
   MMJ_COMMISSION_GUIDE_HANDOFF_ORIGIN: https://cms.mamajing.work

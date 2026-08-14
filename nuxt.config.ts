@@ -7,6 +7,11 @@ import { dirname, join } from 'node:path'
 // @ts-expect-error Nuxt config executes in Node; the project intentionally adds no direct Node type dependency.
 import { fileURLToPath } from 'node:url'
 import { resolvePortfolioMediaDeliveryConfig } from './shared/constants/media-delivery'
+import {
+  buildPublicReleaseBootstrapSource,
+  isCanonicalPublicReleaseRevision,
+  normalizePublicReleaseRevision,
+} from './shared/release/public-release-contract'
 
 interface PortfolioRouteManifest {
   readonly schemaVersion: 1
@@ -24,6 +29,16 @@ const snapshotBytes = readFileSync(snapshotPath)
 const runtimeProcess = (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process
 const runtimeEnv = runtimeProcess?.env ?? {}
 const environmentClass = runtimeEnv.MMJ_BUILD_ENVIRONMENT_CLASS === 'production' ? 'production' : runtimeEnv.MMJ_BUILD_ENVIRONMENT_CLASS === 'test' ? 'test' : 'development'
+const publicReleaseRevisionInput = String(runtimeEnv.MMJ_PUBLIC_RELEASE_REVISION ?? '').trim()
+const publicReleaseRevisionRequired = runtimeEnv.MMJ_PUBLIC_RELEASE_REQUIRED === '1'
+const publicReleaseRevision = normalizePublicReleaseRevision(publicReleaseRevisionInput)
+if (
+  publicReleaseRevisionRequired
+  && !isCanonicalPublicReleaseRevision(publicReleaseRevisionInput)
+) {
+  throw new Error('FAIL_MMJ_PUBLIC_RELEASE_REVISION_UNBOUND: release build requires MMJ_PUBLIC_RELEASE_REVISION=GITHUB_SHA.')
+}
+const publicReleaseBootstrapSource = buildPublicReleaseBootstrapSource(publicReleaseRevision)
 const mediaDeliveryConfig = resolvePortfolioMediaDeliveryConfig(runtimeEnv.NUXT_PUBLIC_MMJ_MEDIA_BASE_URL, environmentClass)
 const contactFormEndpoint = runtimeEnv.NUXT_PUBLIC_MMJ_CONTACT_FORM_ENDPOINT ?? ''
 const snapshotValue: unknown = JSON.parse(snapshotBytes.toString())
@@ -159,6 +174,7 @@ export default defineNuxtConfig({
     public: {
       mmjMediaBaseUrl: mediaDeliveryConfig.mediaBaseUrl ?? '',
       mmjContactFormEndpoint: contactFormEndpoint,
+      mmjPublicReleaseRevision: publicReleaseRevision,
     },
   },
 
@@ -182,6 +198,12 @@ export default defineNuxtConfig({
   app: {
     head: {
       title: '매미: 著',
+      script: publicReleaseBootstrapSource === ''
+        ? []
+        : [{
+            id: 'mmj-public-release-bootstrap',
+            innerHTML: publicReleaseBootstrapSource,
+          }],
       htmlAttrs: {
         lang: 'ko',
       },
