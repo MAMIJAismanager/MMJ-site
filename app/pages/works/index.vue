@@ -13,6 +13,7 @@ import {
 } from 'vue'
 
 import ProjectGrid from '~/components/project/ProjectGrid.vue'
+import WorksCompositionProbe from '~/components/project/WorksCompositionProbe.vue'
 import WorksFilterBar from '~/components/works/WorksFilterBar.vue'
 import WorksPagination from '~/components/works/WorksPagination.vue'
 import WorksResultSummary from '~/components/works/WorksResultSummary.vue'
@@ -26,21 +27,18 @@ import {
   worksTagOptions,
   worksYearOptions,
 } from '~/data/works-query'
-
 import {
   useWorksQueryState,
 } from '~/composables/useWorksQueryState'
-
 import {
   useWorksNavigationMemory,
 } from '~/composables/useWorksNavigationMemory'
-
 import {
   useWorksLayoutProfile,
 } from '~/composables/useWorksLayoutProfile'
 import {
-  useWorksPhysicalFitAdmission,
-} from '~/composables/useWorksPhysicalFitAdmission'
+  useWorksCompositionTransaction,
+} from '~/composables/useWorksCompositionTransaction'
 
 import {
   findPortfolioGatewayCategory,
@@ -49,14 +47,16 @@ import {
 import type {
   PortfolioGatewayCategoryId,
 } from '~~/shared/types/portfolio-gateway-category'
-
 import type {
   WorksSort,
 } from '~~/shared/query/works-query-state'
 import type {
-  WorksProjectGridPhysicalReader,
-  WorksCardPhysicalReceipt,
-} from '~/works/works-card-physical'
+  WorksCompositionProbeReceipt,
+} from '~/works/works-composition-solver'
+
+interface WorksCompositionProbeReader {
+  readProbeReceipt(): WorksCompositionProbeReceipt | null
+}
 
 const WORKS_SEO = Object.freeze({
   title: '작업 | 매미: 著',
@@ -95,18 +95,12 @@ const {
 })
 
 const pageElement = ref<HTMLElement | null>(null)
-const headerMeasureElement = ref<HTMLElement | null>(null)
-const queryMeasureElement = ref<HTMLElement | null>(null)
 const summaryMeasureElement = ref<HTMLElement | null>(null)
-const gridMeasureElement = ref<HTMLElement | null>(null)
-const paginationMeasureElement = ref<HTMLElement | null>(null)
-const projectGridReader = ref<WorksProjectGridPhysicalReader | null>(null)
+const compositionProbeReader = ref<WorksCompositionProbeReader | null>(null)
 
 const {
   viewport: worksViewport,
   viewportRevision: worksViewportRevision,
-  candidate: worksLayoutCandidate,
-  referenceFit: worksReferenceFit,
   profile: worksLayoutProfile,
   ready: worksLayoutReady,
   style: worksLayoutStyle,
@@ -120,47 +114,6 @@ const activeGatewayCategory = computed(() => (
 
 const worksQueryPlacement = ref<WorksQueryPlacement>('pending')
 let placementRevision = 0
-
-const worksPhysicalFitKey = computed(() => [
-  `viewport:${worksViewportRevision.value}`,
-  `mode:${worksLayoutCandidate.value.mode}`,
-  `page:${evaluation.value.currentPage}`,
-  `pages:${evaluation.value.pageCount}`,
-  `title:${activeGatewayCategory.value?.title ?? '작업'}`,
-  `query-placement:${worksQueryPlacement.value}`,
-  `projects:${pageProjects.value.map(project => project.id).join(',')}`,
-].join('|'))
-
-const worksPhysicalFitEnabled = computed(() => (
-  queryReady.value
-  && pageProjects.value.length > 0
-  && worksQueryPlacement.value === 'inline'
-  && worksLayoutCandidate.value.lockEligible
-))
-
-function readVisibleCardPhysicalReceipts(): readonly WorksCardPhysicalReceipt[] {
-  return projectGridReader.value?.readCardPhysicalReceipts()
-    ?? Object.freeze([])
-}
-
-const {
-  receipt: worksPhysicalFitReceipt,
-} = useWorksPhysicalFitAdmission({
-  enabled: worksPhysicalFitEnabled,
-  fitKey: worksPhysicalFitKey,
-  candidate: worksLayoutCandidate,
-  viewport: worksViewport,
-  viewportRevision: worksViewportRevision,
-  elements: {
-    page: pageElement,
-    header: headerMeasureElement,
-    query: queryMeasureElement,
-    summary: summaryMeasureElement,
-    grid: gridMeasureElement,
-    pagination: paginationMeasureElement,
-  },
-  readCardPhysicalReceipts: readVisibleCardPhysicalReceipts,
-})
 
 function mobileMenuContextTargetExists(): boolean {
   return document.getElementById(
@@ -197,33 +150,51 @@ onMounted(() => {
   void syncWorksQueryPlacement()
 })
 
-function submitSearch(
-  value: string | null,
-): void {
+const worksCompositionEnabled = computed(() => (
+  queryReady.value
+  && pageProjects.value.length > 0
+  && worksQueryPlacement.value !== 'pending'
+  && worksLayoutReady.value
+))
+
+function readProbeReceipt(): WorksCompositionProbeReceipt | null {
+  return compositionProbeReader.value?.readProbeReceipt() ?? null
+}
+
+const {
+  published: worksPublishedComposition,
+  probeRequest: worksProbeRequest,
+  telemetry: worksCompositionTelemetry,
+} = useWorksCompositionTransaction({
+  enabled: worksCompositionEnabled,
+  viewport: worksViewport,
+  viewportRevision: worksViewportRevision,
+  layout: worksLayoutProfile,
+  projects: pageProjects,
+  currentPage: computed(() => evaluation.value.currentPage),
+  pageCount: computed(() => evaluation.value.pageCount),
+  pageElement,
+  summaryElement: summaryMeasureElement,
+  readProbeReceipt,
+})
+
+function submitSearch(value: string | null): void {
   void patchQuery({ q: value })
 }
 
-function changeCategory(
-  value: PortfolioGatewayCategoryId | null,
-): void {
+function changeCategory(value: PortfolioGatewayCategoryId | null): void {
   void patchQuery({ category: value })
 }
 
-function changeTag(
-  value: string | null,
-): void {
+function changeTag(value: string | null): void {
   void patchQuery({ tag: value })
 }
 
-function changeYear(
-  value: number | null,
-): void {
+function changeYear(value: number | null): void {
   void patchQuery({ year: value })
 }
 
-function changeSort(
-  value: WorksSort,
-): void {
+function changeSort(value: WorksSort): void {
   void patchQuery({ sort: value })
 }
 
@@ -258,34 +229,18 @@ function resetWorksQuery(): void {
     :data-mm-works-query-placement="worksQueryPlacement"
     :data-mm-works-layout-ready="worksLayoutReady ? 'true' : 'false'"
     :data-mm-works-layout-mode="worksLayoutProfile.mode"
-    :data-mm-works-viewport-locked="worksLayoutProfile.viewportLocked ? 'true' : 'false'"
-    :data-mm-works-layout-columns="worksLayoutProfile.columnCount"
-    :data-mm-works-fit-admission="worksLayoutProfile.viewportFit.admission"
-    :data-mm-works-fit-admitted="worksLayoutProfile.viewportFit.admitted ? 'true' : 'false'"
-    :data-mm-works-physical-fit-phase="worksPhysicalFitReceipt.phase"
-    :data-mm-works-physical-fit-verified="worksPhysicalFitReceipt.commitVerified ? 'true' : 'false'"
-    :data-mm-works-fit-required-block="worksPhysicalFitReceipt.requiredBlockPx"
-    :data-mm-works-fit-available-block="worksPhysicalFitReceipt.availableBlockPx"
-    :data-mm-works-fit-spare-block="worksPhysicalFitReceipt.spareBlockPx"
-    :data-mm-works-pagination-placement="worksLayoutProfile.paginationPlacement"
-    :data-mm-works-reference-fit-phase="worksReferenceFit.phase"
-    :data-mm-works-reference-fit-pass="worksReferenceFit.pass"
-    :data-mm-works-hard-reference="worksReferenceFit.hardReference ? 'true' : 'false'"
-    :data-mm-works-viewport-width="worksViewport?.width ?? 0"
-    :data-mm-works-viewport-height="worksViewport?.height ?? 0"
-    :data-mm-works-row0-meta-max="worksPhysicalFitReceipt.row0MetadataMaxPx"
-    :data-mm-works-row1-meta-max="worksPhysicalFitReceipt.row1MetadataMaxPx"
-    :data-mm-works-pagination-bottom="worksPhysicalFitReceipt.paginationBottomPx"
-    :data-mm-works-visible-bottom="worksPhysicalFitReceipt.visualViewportBottomPx"
-    :data-mm-works-scroll-overflow="worksPhysicalFitReceipt.overflowObserved ? 'true' : 'false'"
-    :data-mm-works-pagination-clipped="worksPhysicalFitReceipt.paginationClipped ? 'true' : 'false'"
+    :data-mm-works-composition-phase="worksCompositionTelemetry.phase"
+    :data-mm-works-composition-probe-count="worksCompositionTelemetry.probeCount"
+    :data-mm-works-visible-commit-count="worksCompositionTelemetry.visibleCommitCount"
+    :data-mm-works-stale-draft-reject-count="worksCompositionTelemetry.staleDraftRejectCount"
+    :data-mm-works-composition-kind="worksPublishedComposition?.composition.kind ?? 'pending'"
+    :data-mm-works-commit-id="worksPublishedComposition?.composition.commitId"
+    :data-mm-works-card-inline="worksPublishedComposition?.commit?.cardInlinePx ?? 0"
+    :data-mm-works-grid-inline="worksPublishedComposition?.commit?.gridInlinePx ?? 0"
+    :data-mm-works-composition-failure="worksCompositionTelemetry.lastFailureReason"
     :style="worksLayoutStyle"
   >
-    <header
-      ref="headerMeasureElement"
-      class="mm-page__header"
-      data-mm-works-physical-section="header"
-    >
+    <header class="mm-page__header">
       <p class="mm-label">
         Portfolio
       </p>
@@ -309,9 +264,7 @@ function resetWorksQuery(): void {
       defer
     >
       <div
-        ref="queryMeasureElement"
         class="mm-works-query-host"
-        data-mm-works-physical-section="query"
         :data-mm-works-query-placement="worksQueryPlacement"
       >
         <WorksFilterBar
@@ -335,7 +288,6 @@ function resetWorksQuery(): void {
 
     <div
       ref="summaryMeasureElement"
-      data-mm-works-physical-section="summary"
       style="min-width: 0"
     >
       <WorksResultSummary
@@ -350,71 +302,81 @@ function resetWorksQuery(): void {
       />
     </div>
 
+    <WorksCompositionProbe
+      ref="compositionProbeReader"
+      :projects="pageProjects"
+      :request="worksProbeRequest"
+      :current-page="evaluation.currentPage"
+      :page-count="evaluation.pageCount"
+    />
+
     <div
-      ref="gridMeasureElement"
-      data-mm-works-physical-section="grid"
-      style="min-width: 0; min-height: 0"
+      v-if="!queryReady"
+      data-mm-works-composition-stage="pending-query"
+      style="min-width: 0"
     >
-      <p
-        v-if="!queryReady"
-        class="mm-body"
-        data-mm-query-pending
-      >
+      <p class="mm-body" data-mm-query-pending>
         작업 목록 확인 중
-      </p>
-
-      <ProjectGrid
-        v-else-if="pageProjects.length > 0"
-        ref="projectGridReader"
-        :projects="pageProjects"
-        :layout="worksLayoutProfile"
-        :solved-inline-px="
-          worksReferenceFit.hardReference
-          && worksReferenceFit.contentInlinePx > 0
-            ? worksReferenceFit.contentInlinePx
-            : null
-        "
-        @detail-activate="handleDetailActivation"
-      />
-
-      <div
-        v-else-if="queryReady && evaluation.totalCount > 0"
-        class="mm-works-query-empty"
-        data-mm-filtered-empty-state
-      >
-        <p class="mm-body">
-          조건에 맞는 작업이 없습니다.
-        </p>
-
-        <button
-          class="mm-works-query__button"
-          type="button"
-          @click="resetWorksQuery"
-        >
-          조건 초기화
-        </button>
-      </div>
-
-      <p
-        v-else
-        class="mm-body"
-        data-mm-empty-state
-      >
-        현재 공개된 작업이 없습니다.
       </p>
     </div>
 
     <div
-      ref="paginationMeasureElement"
-      data-mm-works-physical-section="pagination"
+      v-else-if="pageProjects.length > 0"
+      data-mm-works-composition-stage="projects"
+      style="min-width: 0"
+    >
+      <ProjectGrid
+        v-if="worksPublishedComposition !== null"
+        :projects="worksPublishedComposition.projects"
+        :composition="worksPublishedComposition.composition"
+        @detail-activate="handleDetailActivation"
+      />
+
+      <p
+        v-else
+        class="mm-body"
+        data-mm-works-composition-pending
+      >
+        작업 배치 계산 중
+      </p>
+    </div>
+
+    <div
+      v-else-if="evaluation.totalCount > 0"
+      class="mm-works-query-empty"
+      data-mm-filtered-empty-state
+    >
+      <p class="mm-body">
+        조건에 맞는 작업이 없습니다.
+      </p>
+
+      <button
+        class="mm-works-query__button"
+        type="button"
+        @click="resetWorksQuery"
+      >
+        조건 초기화
+      </button>
+    </div>
+
+    <p
+      v-else
+      class="mm-body"
+      data-mm-empty-state
+    >
+      현재 공개된 작업이 없습니다.
+    </p>
+
+    <div
+      v-if="worksPublishedComposition !== null && worksPublishedComposition.pageCount > 1"
+      data-mm-works-composition-stage="pagination"
       style="min-width: 0"
     >
       <WorksPagination
-        v-if="queryReady && evaluation.pageCount > 1"
-        :current-page="evaluation.currentPage"
-        :page-count="evaluation.pageCount"
+        :current-page="worksPublishedComposition.currentPage"
+        :page-count="worksPublishedComposition.pageCount"
         :query-ready="queryReady"
-        :placement="worksLayoutProfile.paginationPlacement"
+        placement="in-flow"
         @change-page="changePage"
       />
     </div>

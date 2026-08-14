@@ -1,50 +1,48 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed } from 'vue'
 
 import type {
   ProjectDetailActivationPayload,
 } from '~/types/navigation-restoration'
-
 import type {
   ProjectCardView,
 } from '~~/shared/view/portfolio-project-view'
-
 import type {
-  WorksLayoutProfile,
-} from '~/works/works-layout-profile'
-import type {
-  WorksCardPhysicalReader,
-  WorksCardPhysicalReceipt,
-} from '~/works/works-card-physical'
+  WorksGridComposition,
+} from '~/works/works-composition-transaction'
 
 import ProjectCard from './ProjectCard.vue'
 
 interface ProjectGridProps {
   readonly projects: readonly ProjectCardView[]
-  readonly layout: WorksLayoutProfile
-  readonly solvedInlinePx?: number | null
+  readonly composition: WorksGridComposition
 }
 
-defineProps<ProjectGridProps>()
+const props = defineProps<ProjectGridProps>()
 
 const emit = defineEmits<{
   detailActivate: [payload: ProjectDetailActivationPayload]
 }>()
 
-const cardReaders = ref<WorksCardPhysicalReader[]>([])
-
-function readCardPhysicalReceipts(): readonly WorksCardPhysicalReceipt[] {
-  const receipts: WorksCardPhysicalReceipt[] = []
-  for (const reader of cardReaders.value) {
-    const receipt = reader.readPhysicalReceipt()
-    if (receipt !== null) receipts.push(receipt)
+const gridStyle = computed<Readonly<Record<string, string>>>(() => {
+  const composition = props.composition
+  if (composition.kind === 'flow') {
+    return Object.freeze({
+      gridTemplateColumns:
+        `repeat(${composition.columnCount}, minmax(0, 1fr))`,
+      width: '100%',
+    })
   }
-  receipts.sort((left, right) => left.index - right.index)
-  return Object.freeze(receipts)
-}
 
-defineExpose({
-  readCardPhysicalReceipts,
+  return Object.freeze({
+    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+    width: `${composition.inlinePx}px`,
+    justifySelf: 'center',
+    marginInline: 'auto',
+    '--mm-works-grid-gap': `${composition.gridGapRem}rem`,
+    '--mm-works-card-padding': `${composition.cardPaddingRem}rem`,
+    '--mm-works-card-title-size': `${composition.cardTitleRem}rem`,
+  })
 })
 </script>
 
@@ -53,19 +51,10 @@ defineExpose({
     class="mm-project-grid"
     data-mm-project-list
     data-mm-project-grid
-    :data-mm-project-grid-columns="layout.columnCount"
-    :data-mm-project-grid-mode="layout.mode"
-    :data-mm-project-grid-rows="layout.pageRowCount"
-    :data-mm-project-grid-fit="layout.viewportFit.admission"
-    :style="{
-      gridTemplateColumns:
-        `repeat(${layout.columnCount}, minmax(0, 1fr))`,
-      width: solvedInlinePx === null || solvedInlinePx === undefined
-        ? '100%'
-        : `min(100%, ${solvedInlinePx}px)`,
-      justifySelf: 'center',
-      marginInline: 'auto',
-    }"
+    :data-mm-project-grid-columns="composition.columnCount"
+    :data-mm-project-grid-mode="composition.kind"
+    :data-mm-works-commit-id="composition.commitId"
+    :style="gridStyle"
   >
     <li
       v-for="(project, index) in projects"
@@ -75,10 +64,9 @@ defineExpose({
       :data-mm-project-slug="project.slug"
     >
       <ProjectCard
-        ref="cardReaders"
         :project="project"
         :index="index"
-        :density="layout.cardDensity"
+        :density="composition.cardDensity"
         @detail-activate="emit('detailActivate', $event)"
       />
     </li>

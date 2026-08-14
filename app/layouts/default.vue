@@ -30,13 +30,12 @@ const viewportComposition = computed(() => {
   return null
 })
 
-const usesViewportComposition = computed(() => {
-  if (viewportComposition.value === 'works') {
-    return worksLayoutProfile.value.viewportLocked
-  }
-
-  return viewportComposition.value !== null
-})
+// R5: Works owns no shell viewport lock. One-screen fit must be proven by
+// measured geometry, never created by shell height or overflow clipping.
+const usesViewportComposition = computed(() => (
+  viewportComposition.value !== null
+  && viewportComposition.value !== 'works'
+))
 
 const showsSiteFooter = computed(() => (
   route.meta.hideSiteFooter !== true
@@ -59,9 +58,9 @@ const showsSiteFooter = computed(() => (
           ? (worksLayoutReady ? 'true' : 'false')
           : undefined
       "
-      :data-mm-works-viewport-lock="
+      :data-mm-works-viewport-authority="
         viewportComposition === 'works'
-          ? (worksLayoutProfile.viewportLocked ? 'true' : 'false')
+          ? 'natural-flow-r5'
           : undefined
       "
       :data-mm-works-layout-mode="

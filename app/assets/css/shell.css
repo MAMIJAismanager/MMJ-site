@@ -433,32 +433,6 @@
   }
 }
 
-/* MMJ-UI29 R2: Vue/TypeScript WorksLayoutProfile owns Works viewport state. */
-.mm-layout--viewport-works[data-mm-works-viewport-lock='false'] {
-  grid-template-rows: auto minmax(0, auto);
-  height: auto;
-  min-height: 100dvh;
-  overflow: visible;
-}
-
-.mm-layout--viewport-works[data-mm-works-viewport-lock='false'] .mm-main {
-  min-height: 0;
-  overflow: visible;
-}
-
-.mm-layout--viewport-works[data-mm-works-viewport-lock='true'] {
-  grid-template-rows: auto minmax(0, 1fr);
-  width: 100%;
-  height: 100dvh;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.mm-layout--viewport-works[data-mm-works-viewport-lock='true'] .mm-main {
-  min-height: 0;
-  overflow: hidden;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .mm-site-header__brand[data-mm-brand-feedback='active'] .mm-site-brand-mark {
     animation: none;
