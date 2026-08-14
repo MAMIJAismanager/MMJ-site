@@ -8,29 +8,24 @@ import {
 import type {
   PortfolioGatewayCategoryId,
 } from '~~/shared/types/portfolio-gateway-category'
-
 import type {
   WorksCategoryOption,
   WorksTagOption,
   WorksYearOption,
 } from '~~/shared/query/works-project-query'
-
 import {
   normalizeWorksQueryInput,
 } from '~~/shared/query/works-query-state'
-
 import {
   isPublicPortfolioGatewayCategoryId,
 } from '~~/shared/constants/portfolio-gateway-categories'
-
 import type {
   WorksQueryState,
   WorksSort,
 } from '~~/shared/query/works-query-state'
-
 import type {
-  WorksLayoutMode,
-} from '~/works/works-layout-profile'
+  WorksPageLayoutMode,
+} from '~/works/works-page-composition'
 
 export type WorksQueryPlacement =
   | 'pending'
@@ -39,19 +34,19 @@ export type WorksQueryPlacement =
 
 interface WorksFilterBarProps {
   readonly state: WorksQueryState
-  readonly categoryOptions:
-    readonly WorksCategoryOption[]
-  readonly tagOptions:
-    readonly WorksTagOption[]
-  readonly yearOptions:
-    readonly WorksYearOption[]
+  readonly categoryOptions: readonly WorksCategoryOption[]
+  readonly tagOptions: readonly WorksTagOption[]
+  readonly yearOptions: readonly WorksYearOption[]
   readonly hasActiveFilters: boolean
   readonly queryReady: boolean
   readonly placement: WorksQueryPlacement
-  readonly layoutMode: WorksLayoutMode
+  readonly layoutMode: WorksPageLayoutMode
+  readonly idPrefix?: string
 }
 
-const props = defineProps<WorksFilterBarProps>()
+const props = withDefaults(defineProps<WorksFilterBarProps>(), {
+  idPrefix: 'mm-works',
+})
 
 const emit = defineEmits<{
   'submit-search': [value: string | null]
@@ -63,6 +58,7 @@ const emit = defineEmits<{
 }>()
 
 const qDraft = ref(props.state.q ?? '')
+const controlId = (suffix: string): string => `${props.idPrefix}-${suffix}`
 
 const categorySelectValue = computed(() => (
   isPublicPortfolioGatewayCategoryId(props.state.category)
@@ -70,9 +66,7 @@ const categorySelectValue = computed(() => (
     : ''
 ))
 
-const categoryDebugValue = computed(() => (
-  props.state.category ?? 'all'
-))
+const categoryDebugValue = computed(() => props.state.category ?? 'all')
 
 watch(
   () => props.state.q,
@@ -83,26 +77,19 @@ watch(
 
 function selectValue(event: Event): string {
   const target = event.currentTarget
-  if (!(target instanceof HTMLSelectElement)) {
-    return ''
-  }
+  if (!(target instanceof HTMLSelectElement)) return ''
   return target.value
 }
 
 function submitSearch(): void {
-  emit(
-    'submit-search',
-    normalizeWorksQueryInput(qDraft.value),
-  )
+  emit('submit-search', normalizeWorksQueryInput(qDraft.value))
 }
 
 function changeCategory(event: Event): void {
   const value = selectValue(event)
   emit(
     'change-category',
-    value.length > 0
-      ? value as PortfolioGatewayCategoryId
-      : null,
+    value.length > 0 ? value as PortfolioGatewayCategoryId : null,
   )
 }
 
@@ -113,17 +100,11 @@ function changeTag(event: Event): void {
 
 function changeYear(event: Event): void {
   const value = selectValue(event)
-  emit(
-    'change-year',
-    value.length > 0 ? Number(value) : null,
-  )
+  emit('change-year', value.length > 0 ? Number(value) : null)
 }
 
 function changeSort(event: Event): void {
-  emit(
-    'change-sort',
-    selectValue(event) as WorksSort,
-  )
+  emit('change-sort', selectValue(event) as WorksSort)
 }
 </script>
 
@@ -144,14 +125,14 @@ function changeSort(event: Event): void {
     >
       <label
         class="mm-works-query__label"
-        for="mm-works-search"
+        :for="controlId('search')"
       >
         검색
       </label>
 
       <div class="mm-works-query__search-row">
         <input
-          id="mm-works-search"
+          :id="controlId('search')"
           v-model="qDraft"
           class="mm-works-query__control"
           name="q"
@@ -174,22 +155,19 @@ function changeSort(event: Event): void {
       <div class="mm-works-query__field">
         <label
           class="mm-works-query__label"
-          for="mm-works-category"
+          :for="controlId('category')"
         >
           분야
         </label>
-
         <select
-          id="mm-works-category"
+          :id="controlId('category')"
           class="mm-works-query__control"
           name="category"
           :value="categorySelectValue"
           :disabled="!queryReady || placement === 'pending'"
           @change="changeCategory"
         >
-          <option value="">
-            전체 분야
-          </option>
+          <option value="">전체 분야</option>
           <option
             v-for="option in categoryOptions"
             :key="option.token"
@@ -204,22 +182,19 @@ function changeSort(event: Event): void {
       <div class="mm-works-query__field">
         <label
           class="mm-works-query__label"
-          for="mm-works-tag"
+          :for="controlId('tag')"
         >
           태그
         </label>
-
         <select
-          id="mm-works-tag"
+          :id="controlId('tag')"
           class="mm-works-query__control"
           name="tag"
           :value="state.tag ?? ''"
           :disabled="!queryReady || placement === 'pending'"
           @change="changeTag"
         >
-          <option value="">
-            전체 태그
-          </option>
+          <option value="">전체 태그</option>
           <option
             v-for="option in tagOptions"
             :key="option.token"
@@ -233,22 +208,19 @@ function changeSort(event: Event): void {
       <div class="mm-works-query__field">
         <label
           class="mm-works-query__label"
-          for="mm-works-year"
+          :for="controlId('year')"
         >
           연도
         </label>
-
         <select
-          id="mm-works-year"
+          :id="controlId('year')"
           class="mm-works-query__control"
           name="year"
           :value="state.year ?? ''"
           :disabled="!queryReady || placement === 'pending'"
           @change="changeYear"
         >
-          <option value="">
-            전체 연도
-          </option>
+          <option value="">전체 연도</option>
           <option
             v-for="option in yearOptions"
             :key="option.year"
@@ -262,31 +234,22 @@ function changeSort(event: Event): void {
       <div class="mm-works-query__field">
         <label
           class="mm-works-query__label"
-          for="mm-works-sort"
+          :for="controlId('sort')"
         >
           정렬
         </label>
-
         <select
-          id="mm-works-sort"
+          :id="controlId('sort')"
           class="mm-works-query__control"
           name="sort"
           :value="state.sort"
           :disabled="!queryReady || placement === 'pending'"
           @change="changeSort"
         >
-          <option value="order">
-            기본 순서
-          </option>
-          <option value="newest">
-            최신순
-          </option>
-          <option value="oldest">
-            오래된순
-          </option>
-          <option value="title">
-            제목순
-          </option>
+          <option value="order">기본 순서</option>
+          <option value="newest">최신순</option>
+          <option value="oldest">오래된순</option>
+          <option value="title">제목순</option>
         </select>
       </div>
     </div>

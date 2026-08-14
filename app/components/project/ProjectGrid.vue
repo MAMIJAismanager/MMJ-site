@@ -8,14 +8,14 @@ import type {
   ProjectCardView,
 } from '~~/shared/view/portfolio-project-view'
 import type {
-  WorksGridComposition,
-} from '~/works/works-composition-transaction'
+  WorksPageGridComposition,
+} from '~/works/works-page-composition'
 
 import ProjectCard from './ProjectCard.vue'
 
 interface ProjectGridProps {
   readonly projects: readonly ProjectCardView[]
-  readonly composition: WorksGridComposition
+  readonly composition: WorksPageGridComposition
 }
 
 const props = defineProps<ProjectGridProps>()
@@ -24,37 +24,11 @@ const emit = defineEmits<{
   detailActivate: [payload: ProjectDetailActivationPayload]
 }>()
 
-const gridStyle = computed<Readonly<Record<string, string>>>(() => {
-  const composition = props.composition
-  if (composition.kind === 'flow') {
-    return Object.freeze({
-      gridTemplateColumns:
-        `repeat(${composition.columnCount}, minmax(0, 1fr))`,
-      width: '100%',
-    })
-  }
-
-  if (composition.kind === 'mobile-committed') {
-    return Object.freeze({
-      gridTemplateColumns:
-        `repeat(${composition.columnCount}, minmax(0, 1fr))`,
-      width: '100%',
-      '--mm-works-grid-gap': `${composition.gridGapRem}rem`,
-      '--mm-works-card-padding': `${composition.cardPaddingRem}rem`,
-      '--mm-works-card-title-size': `${composition.cardTitleRem}rem`,
-    })
-  }
-
-  return Object.freeze({
-    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-    width: `${composition.inlinePx}px`,
-    justifySelf: 'center',
-    marginInline: 'auto',
-    '--mm-works-grid-gap': `${composition.gridGapRem}rem`,
-    '--mm-works-card-padding': `${composition.cardPaddingRem}rem`,
-    '--mm-works-card-title-size': `${composition.cardTitleRem}rem`,
-  })
-})
+const gridStyle = computed<Readonly<Record<string, string>>>(() => Object.freeze({
+  gridTemplateColumns:
+    `repeat(${props.composition.columnCount}, minmax(0, 1fr))`,
+  width: '100%',
+}))
 </script>
 
 <template>

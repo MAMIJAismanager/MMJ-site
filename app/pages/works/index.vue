@@ -13,8 +13,7 @@ import {
 } from 'vue'
 
 import ProjectGrid from '~/components/project/ProjectGrid.vue'
-import WorksCompositionProbe from '~/components/project/WorksCompositionProbe.vue'
-import WorksMobileCompositionProbe from '~/components/project/WorksMobileCompositionProbe.vue'
+import WorksPageCompositionProbe from '~/components/project/WorksPageCompositionProbe.vue'
 import WorksFilterBar from '~/components/works/WorksFilterBar.vue'
 import WorksPagination from '~/components/works/WorksPagination.vue'
 import WorksResultSummary from '~/components/works/WorksResultSummary.vue'
@@ -35,22 +34,22 @@ import {
   useWorksNavigationMemory,
 } from '~/composables/useWorksNavigationMemory'
 import {
-  useWorksLayoutProfile,
-} from '~/composables/useWorksLayoutProfile'
+  useWorksViewportSnapshot,
+} from '~/composables/useWorksViewportSnapshot'
 import {
-  useWorksCompositionTransaction,
-} from '~/composables/useWorksCompositionTransaction'
-import {
-  useWorksMobileCompositionTransaction,
-} from '~/composables/useWorksMobileCompositionTransaction'
+  useWorksPageCompositionTransaction,
+} from '~/composables/useWorksPageCompositionTransaction'
 
 import {
   findPortfolioGatewayCategory,
 } from '~~/shared/constants/portfolio-gateway-categories'
 import {
-  isWorksMobileViewport,
-  type WorksMobileProbeReceipt,
-} from '~/works/works-mobile-composition'
+  isWorksR6MobileViewport,
+  resolveWorksPageLayoutMode,
+  worksPageCommitStyle,
+  type WorksPageGridComposition,
+  type WorksPageProbeReceipt,
+} from '~/works/works-page-composition'
 
 import type {
   PortfolioGatewayCategoryId,
@@ -58,22 +57,24 @@ import type {
 import type {
   WorksSort,
 } from '~~/shared/query/works-query-state'
-import type {
-  WorksCompositionProbeReceipt,
-} from '~/works/works-composition-solver'
 
-interface WorksCompositionProbeReader {
-  readProbeReceipt(): WorksCompositionProbeReceipt | null
-}
-
-interface WorksMobileCompositionProbeReader {
-  readProbeReceipt(): WorksMobileProbeReceipt | null
+interface WorksPageCompositionProbeReader {
+  readProbeReceipt(): WorksPageProbeReceipt | null
 }
 
 const WORKS_SEO = Object.freeze({
   title: '작업 | 매미: 著',
   description:
     '매미: 著의 공개 작업과 프로젝트를 한곳에서 확인합니다.',
+})
+
+const HIDDEN_CATEGORY_LEAD = '브랜드 명판의 더블클릭으로 열린 숨은 작업실'
+
+const SSR_FALLBACK_COMPOSITION: WorksPageGridComposition = Object.freeze({
+  kind: 'page-committed',
+  columnCount: 1,
+  cardDensity: 'compact',
+  commitId: 'works-r6-nojs-natural-flow',
 })
 
 useSeoMeta({
@@ -107,19 +108,14 @@ const {
 })
 
 const pageElement = ref<HTMLElement | null>(null)
-const summaryMeasureElement = ref<HTMLElement | null>(null)
-const gridRailElement = ref<HTMLElement | null>(null)
-const compositionProbeReader = ref<WorksCompositionProbeReader | null>(null)
-const mobileCompositionProbeReader =
-  ref<WorksMobileCompositionProbeReader | null>(null)
+const pageProbeReader = ref<WorksPageCompositionProbeReader | null>(null)
+const clientMounted = ref(false)
 
 const {
   viewport: worksViewport,
-  viewportRevision: worksViewportRevision,
-  profile: worksLayoutProfile,
-  ready: worksLayoutReady,
-  style: worksLayoutStyle,
-} = useWorksLayoutProfile()
+  inlineRevision: worksViewportInlineRevision,
+  blockRevision: worksViewportBlockRevision,
+} = useWorksViewportSnapshot()
 
 const activeGatewayCategory = computed(() => (
   state.value.category === null
@@ -127,20 +123,29 @@ const activeGatewayCategory = computed(() => (
     : findPortfolioGatewayCategory(state.value.category)
 ))
 
+const precommitLayoutMode = computed(() => (
+  worksViewport.value === null
+    ? 'mobile-single' as const
+    : resolveWorksPageLayoutMode(worksViewport.value)
+))
+
 const worksQueryPlacement = ref<WorksQueryPlacement>('pending')
 let placementRevision = 0
 
 function mobileMenuContextTargetExists(): boolean {
-  return document.getElementById(
-    'mm-mobile-menu-context-slot',
-  ) !== null
+  return document.getElementById('mm-mobile-menu-context-slot') !== null
 }
 
 async function syncWorksQueryPlacement(): Promise<void> {
   if (!import.meta.client) return
-
   const revision = ++placementRevision
-  if (!worksLayoutProfile.value.mobileQueryPlacement) {
+  const viewport = worksViewport.value
+  if (viewport === null) {
+    worksQueryPlacement.value = 'pending'
+    return
+  }
+
+  if (!isWorksR6MobileViewport(viewport)) {
     worksQueryPlacement.value = 'inline'
     return
   }
@@ -148,114 +153,79 @@ async function syncWorksQueryPlacement(): Promise<void> {
   worksQueryPlacement.value = 'pending'
   await nextTick()
   if (revision !== placementRevision) return
-
   worksQueryPlacement.value = mobileMenuContextTargetExists()
     ? 'mobile-menu'
     : 'inline'
 }
 
 watch(
-  () => worksLayoutProfile.value.mobileQueryPlacement,
+  () => worksViewport.value?.width ?? 0,
   () => {
     void syncWorksQueryPlacement()
   },
 )
 
 onMounted(() => {
+  clientMounted.value = true
   void syncWorksQueryPlacement()
 })
 
 const worksCompositionEnabled = computed(() => (
   queryReady.value
   && pageProjects.value.length > 0
+  && worksViewport.value !== null
   && worksQueryPlacement.value !== 'pending'
-  && worksLayoutReady.value
 ))
 
-const worksMobileViewport = computed(() => (
-  worksViewport.value !== null
-  && isWorksMobileViewport(worksViewport.value)
-))
-
-const worksDesktopCompositionEnabled = computed(() => (
-  worksCompositionEnabled.value
-  && !worksMobileViewport.value
-))
-
-const worksMobileCompositionEnabled = computed(() => (
-  worksCompositionEnabled.value
-  && worksMobileViewport.value
-))
-
-function readProbeReceipt(): WorksCompositionProbeReceipt | null {
-  return compositionProbeReader.value?.readProbeReceipt() ?? null
-}
-
-function readMobileProbeReceipt(): WorksMobileProbeReceipt | null {
-  return mobileCompositionProbeReader.value?.readProbeReceipt() ?? null
+function readPageProbeReceipt(): WorksPageProbeReceipt | null {
+  return pageProbeReader.value?.readProbeReceipt() ?? null
 }
 
 const {
-  published: desktopPublishedComposition,
-  probeRequest: desktopProbeRequest,
-  telemetry: desktopCompositionTelemetry,
-} = useWorksCompositionTransaction({
-  enabled: worksDesktopCompositionEnabled,
+  published: worksPublishedComposition,
+  probeCandidate: worksProbeCandidate,
+  telemetry: worksCompositionTelemetry,
+} = useWorksPageCompositionTransaction({
+  enabled: worksCompositionEnabled,
   viewport: worksViewport,
-  viewportRevision: worksViewportRevision,
-  layout: worksLayoutProfile,
+  inlineRevision: worksViewportInlineRevision,
+  blockRevision: worksViewportBlockRevision,
   projects: pageProjects,
   currentPage: computed(() => evaluation.value.currentPage),
   pageCount: computed(() => evaluation.value.pageCount),
+  queryPlacement: computed(() => (
+    worksQueryPlacement.value === 'mobile-menu'
+      ? 'mobile-menu'
+      : 'inline'
+  )),
   pageElement,
-  summaryElement: summaryMeasureElement,
-  readProbeReceipt,
+  readProbeReceipt: readPageProbeReceipt,
 })
 
-const {
-  published: mobilePublishedComposition,
-  probeRequest: mobileProbeRequest,
-  telemetry: mobileCompositionTelemetry,
-} = useWorksMobileCompositionTransaction({
-  enabled: worksMobileCompositionEnabled,
-  viewport: worksViewport,
-  layout: worksLayoutProfile,
-  projects: pageProjects,
-  currentPage: computed(() => evaluation.value.currentPage),
-  pageCount: computed(() => evaluation.value.pageCount),
-  railElement: gridRailElement,
-  readProbeReceipt: readMobileProbeReceipt,
-})
-
-const worksPublishedComposition = computed(() => (
-  worksMobileViewport.value
-    ? mobilePublishedComposition.value
-    : desktopPublishedComposition.value
+const worksLayoutMode = computed(() => (
+  worksPublishedComposition.value?.commit.layoutMode
+  ?? precommitLayoutMode.value
 ))
 
-const worksCompositionTelemetry = computed(() => (
-  worksMobileViewport.value
-    ? mobileCompositionTelemetry.value
-    : desktopCompositionTelemetry.value
+const worksPublication = computed(() => {
+  if (worksPublishedComposition.value !== null) return 'committed'
+  if (worksCompositionTelemetry.value.phase === 'failed') return 'failed'
+  return 'pending'
+})
+
+const worksPageStyle = computed(() => (
+  worksPublishedComposition.value === null
+    ? undefined
+    : worksPageCommitStyle(worksPublishedComposition.value.commit)
 ))
 
 const worksPublishedCardInlinePx = computed(() => (
-  worksPublishedComposition.value?.commit?.cardInlinePx ?? 0
+  worksPublishedComposition.value?.commit.cardInlinePx ?? 0
 ))
 
-const worksPublishedGridInlinePx = computed(() => {
-  const commit = worksPublishedComposition.value?.commit
-  return commit?.mode === 'single-viewport'
-    ? commit.gridInlinePx
-    : 0
-})
-
-const worksPublishedMobileColumns = computed(() => {
-  const composition = worksPublishedComposition.value?.composition
-  return composition?.kind === 'mobile-committed'
-    ? composition.columnCount
-    : undefined
-})
+const worksPublishedGridInlinePx = computed(() => (
+  worksPublishedComposition.value?.commit.pageRailInlinePx ?? 0
+))
 
 function submitSearch(value: string | null): void {
   void patchQuery({ q: value })
@@ -278,10 +248,7 @@ function changeSort(value: WorksSort): void {
 }
 
 function changePage(page: number): void {
-  void patchQuery({
-    page,
-    project: null,
-  })
+  void patchQuery({ page, project: null })
 }
 
 function resetWorksQuery(): void {
@@ -306,36 +273,31 @@ function resetWorksQuery(): void {
     :data-mm-hidden-category-active="hiddenCategoryActive ? 'true' : 'false'"
     :data-mm-hidden-access-denied="hiddenAccessDenied ? 'true' : 'false'"
     :data-mm-works-query-placement="worksQueryPlacement"
-    :data-mm-works-layout-ready="worksLayoutReady ? 'true' : 'false'"
-    :data-mm-works-layout-mode="worksLayoutProfile.mode"
-    :data-mm-works-mobile-authority="worksMobileViewport ? 'measure-admit-r5-m1' : undefined"
-    :data-mm-works-composition-phase="worksCompositionTelemetry.phase"
+    :data-mm-works-r6-phase="worksCompositionTelemetry.phase"
+    :data-mm-works-publication="worksPublication"
+    :data-mm-works-layout-mode="worksLayoutMode"
     :data-mm-works-composition-probe-count="worksCompositionTelemetry.probeCount"
     :data-mm-works-visible-commit-count="worksCompositionTelemetry.visibleCommitCount"
     :data-mm-works-stale-draft-reject-count="worksCompositionTelemetry.staleDraftRejectCount"
-    :data-mm-works-composition-kind="worksPublishedComposition?.composition.kind ?? 'pending'"
-    :data-mm-works-mobile-columns="worksPublishedMobileColumns"
-    :data-mm-works-commit-id="worksPublishedComposition?.composition.commitId"
-    :data-mm-works-card-inline="worksPublishedCardInlinePx"
+    :data-mm-works-commit-id="worksPublishedComposition?.commit.commitId"
+    :data-mm-works-rail-inline="worksPublishedGridInlinePx"
     :data-mm-works-grid-inline="worksPublishedGridInlinePx"
+    :data-mm-works-card-inline="worksPublishedCardInlinePx"
+    :data-mm-works-single-viewport-verified="worksPublishedComposition?.commit.singleViewportVerified"
     :data-mm-works-composition-failure="worksCompositionTelemetry.lastFailureReason"
-    :style="worksLayoutStyle"
+    :style="worksPageStyle"
   >
     <header class="mm-page__header">
-      <p class="mm-label">
-        Portfolio
-      </p>
-
+      <p class="mm-label">Portfolio</p>
       <h1 class="mm-page-title">
         {{ activeGatewayCategory?.title ?? '작업' }}
       </h1>
-
       <p
         v-if="hiddenCategoryActive"
         class="mm-page__lead"
         data-mm-hidden-category-heading
       >
-        브랜드 명판의 더블클릭으로 열린 숨은 작업실
+        {{ HIDDEN_CATEGORY_LEAD }}
       </p>
     </header>
 
@@ -356,7 +318,7 @@ function resetWorksQuery(): void {
           :has-active-filters="hasActiveFilters"
           :query-ready="queryReady"
           :placement="worksQueryPlacement"
-          :layout-mode="worksLayoutProfile.mode"
+          :layout-mode="worksLayoutMode"
           @submit-search="submitSearch"
           @change-category="changeCategory"
           @change-tag="changeTag"
@@ -367,10 +329,7 @@ function resetWorksQuery(): void {
       </div>
     </Teleport>
 
-    <div
-      ref="summaryMeasureElement"
-      style="min-width: 0"
-    >
+    <div style="min-width: 0">
       <WorksResultSummary
         :total-count="evaluation.totalCount"
         :result-count="evaluation.resultCount"
@@ -383,33 +342,16 @@ function resetWorksQuery(): void {
       />
     </div>
 
-    <WorksCompositionProbe
-      ref="compositionProbeReader"
-      :projects="pageProjects"
-      :request="desktopProbeRequest"
-      :current-page="evaluation.currentPage"
-      :page-count="evaluation.pageCount"
-    />
-
-    <WorksMobileCompositionProbe
-      ref="mobileCompositionProbeReader"
-      :projects="pageProjects"
-      :request="mobileProbeRequest"
-    />
-
     <div
       v-if="!queryReady"
       data-mm-works-composition-stage="pending-query"
       style="min-width: 0"
     >
-      <p class="mm-body" data-mm-query-pending>
-        작업 목록 확인 중
-      </p>
+      <p class="mm-body" data-mm-query-pending>작업 목록 확인 중</p>
     </div>
 
     <div
       v-else-if="pageProjects.length > 0"
-      ref="gridRailElement"
       data-mm-works-composition-stage="projects"
       style="min-width: 0; width: 100%"
     >
@@ -419,6 +361,21 @@ function resetWorksQuery(): void {
         :composition="worksPublishedComposition.composition"
         @detail-activate="handleDetailActivation"
       />
+
+      <ProjectGrid
+        v-else-if="!clientMounted"
+        :projects="pageProjects"
+        :composition="SSR_FALLBACK_COMPOSITION"
+        @detail-activate="handleDetailActivation"
+      />
+
+      <p
+        v-else-if="worksCompositionTelemetry.phase === 'failed'"
+        class="mm-body"
+        data-mm-works-composition-failed
+      >
+        작업 배치 검증에 실패했습니다.
+      </p>
 
       <p
         v-else
@@ -434,10 +391,7 @@ function resetWorksQuery(): void {
       class="mm-works-query-empty"
       data-mm-filtered-empty-state
     >
-      <p class="mm-body">
-        조건에 맞는 작업이 없습니다.
-      </p>
-
+      <p class="mm-body">조건에 맞는 작업이 없습니다.</p>
       <button
         class="mm-works-query__button"
         type="button"
@@ -447,18 +401,14 @@ function resetWorksQuery(): void {
       </button>
     </div>
 
-    <p
-      v-else
-      class="mm-body"
-      data-mm-empty-state
-    >
+    <p v-else class="mm-body" data-mm-empty-state>
       현재 공개된 작업이 없습니다.
     </p>
 
     <div
       v-if="worksPublishedComposition !== null && worksPublishedComposition.pageCount > 1"
       data-mm-works-composition-stage="pagination"
-      style="min-width: 0"
+      style="min-width: 0; width: 100%"
     >
       <WorksPagination
         :current-page="worksPublishedComposition.currentPage"
@@ -468,5 +418,37 @@ function resetWorksQuery(): void {
         @change-page="changePage"
       />
     </div>
+
+    <div
+      v-else-if="!clientMounted && evaluation.pageCount > 1"
+      style="min-width: 0; width: 100%"
+    >
+      <WorksPagination
+        :current-page="evaluation.currentPage"
+        :page-count="evaluation.pageCount"
+        :query-ready="queryReady"
+        placement="in-flow"
+        @change-page="changePage"
+      />
+    </div>
   </section>
+
+  <WorksPageCompositionProbe
+    ref="pageProbeReader"
+    :candidate="worksProbeCandidate"
+    :projects="pageProjects"
+    :title="activeGatewayCategory?.title ?? '작업'"
+    :hidden-lead="hiddenCategoryActive ? HIDDEN_CATEGORY_LEAD : null"
+    :state="state"
+    :category-options="worksCategoryOptions"
+    :tag-options="worksTagOptions"
+    :year-options="worksYearOptions"
+    :has-active-filters="hasActiveFilters"
+    :total-count="evaluation.totalCount"
+    :result-count="evaluation.resultCount"
+    :current-page="evaluation.currentPage"
+    :page-count="evaluation.pageCount"
+    :page-start-index="evaluation.pageStartIndex"
+    :page-end-index-exclusive="evaluation.pageEndIndexExclusive"
+  />
 </template>

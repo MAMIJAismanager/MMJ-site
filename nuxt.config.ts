@@ -39,6 +39,7 @@ if (
   throw new Error('FAIL_MMJ_PUBLIC_RELEASE_REVISION_UNBOUND: release build requires MMJ_PUBLIC_RELEASE_REVISION=GITHUB_SHA.')
 }
 const publicReleaseBootstrapSource = buildPublicReleaseBootstrapSource(publicReleaseRevision)
+const worksFirstFrameBootstrapSource = "document.documentElement.dataset.mmJs='true'"
 const mediaDeliveryConfig = resolvePortfolioMediaDeliveryConfig(runtimeEnv.NUXT_PUBLIC_MMJ_MEDIA_BASE_URL, environmentClass)
 const contactFormEndpoint = runtimeEnv.NUXT_PUBLIC_MMJ_CONTACT_FORM_ENDPOINT ?? ''
 const snapshotValue: unknown = JSON.parse(snapshotBytes.toString())
@@ -198,12 +199,18 @@ export default defineNuxtConfig({
   app: {
     head: {
       title: '매미: 著',
-      script: publicReleaseBootstrapSource === ''
-        ? []
-        : [{
-            id: 'mmj-public-release-bootstrap',
-            innerHTML: publicReleaseBootstrapSource,
-          }],
+      script: [
+        {
+          id: 'mmj-works-first-frame-bootstrap',
+          innerHTML: worksFirstFrameBootstrapSource,
+        },
+        ...(publicReleaseBootstrapSource === ''
+          ? []
+          : [{
+              id: 'mmj-public-release-bootstrap',
+              innerHTML: publicReleaseBootstrapSource,
+            }]),
+      ],
       htmlAttrs: {
         lang: 'ko',
       },

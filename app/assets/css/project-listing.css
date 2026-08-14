@@ -2,27 +2,33 @@
   display: grid;
   width: min(
     calc(100% - (var(--mm-page-gutter) * 2)),
-    var(--mm-works-content-max)
+    var(--mm-works-rail-inline, 84rem)
   );
   min-height: 100%;
   margin-inline: auto;
-  gap: var(--mm-works-page-gap);
-  padding-block: var(--mm-works-page-padding-block);
+  gap: var(--mm-works-page-gap, 1.85rem);
+  padding-block: var(--mm-works-page-padding-block, 2.25rem);
+}
+
+html[data-mm-js='true']
+.mm-works-index[data-mm-works-publication='pending'] {
+  visibility: hidden;
 }
 
 .mm-works-index .mm-page__header {
-  gap: var(--mm-works-header-gap);
+  gap: var(--mm-works-header-gap, 0.55rem);
   max-width: none;
 }
 
 .mm-works-index .mm-page-title {
-  font-size: var(--mm-works-title-size);
+  font-size: var(--mm-works-title-size, 2.8rem);
 }
 
 .mm-project-grid {
   display: grid;
+  width: 100%;
   min-width: 0;
-  gap: var(--mm-works-grid-gap);
+  gap: var(--mm-works-grid-gap, 1rem);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -60,7 +66,7 @@
   display: grid;
   align-content: start;
   min-width: 0;
-  padding: var(--mm-works-card-padding);
+  padding: var(--mm-works-card-padding, 0.85rem);
 }
 
 .mm-project-card-metadata__context {
@@ -95,11 +101,12 @@
 
 .mm-project-card-metadata__title {
   min-width: 0;
-  font-size: var(--mm-works-card-title-size);
+  font-size: var(--mm-works-card-title-size, 1.05rem);
   font-weight: var(--mm-font-weight-bold);
   line-height: var(--mm-line-height-heading);
   letter-spacing: var(--mm-letter-spacing-heading);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .mm-project-card-metadata__roles {

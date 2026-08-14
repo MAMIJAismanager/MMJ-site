@@ -8,9 +8,9 @@
 
 .mm-works-query {
   display: grid;
-  gap: var(--mm-works-query-gap);
+  gap: var(--mm-works-query-gap, 0.9rem);
   max-width: none;
-  padding: var(--mm-works-query-padding);
+  padding: var(--mm-works-query-padding, 0.9rem);
   border: 1px solid var(--mm-color-border);
   border-radius: var(--mm-radius-medium);
   background: var(--mm-color-surface-subtle);
@@ -32,7 +32,7 @@
 .mm-works-query__filters {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--mm-works-query-gap);
+  gap: var(--mm-works-query-gap, 0.9rem);
 }
 
 .mm-works-query__label {
@@ -44,7 +44,7 @@
 .mm-works-query__control,
 .mm-works-query__button,
 .mm-works-query__reset {
-  min-height: var(--mm-works-query-control-height);
+  min-height: var(--mm-works-query-control-height, 2.75rem);
   border: 1px solid var(--mm-color-border-strong);
   border-radius: var(--mm-radius-small);
   font: inherit;
@@ -155,6 +155,7 @@
 
 .mm-works-pagination {
   display: flex;
+  width: 100%;
   min-width: 0;
   justify-content: center;
 }
