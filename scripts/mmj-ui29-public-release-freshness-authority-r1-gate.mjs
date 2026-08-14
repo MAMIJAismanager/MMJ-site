@@ -12,6 +12,7 @@ const [
   pagesWorkflow,
   emitter,
   verifier,
+  publicBoundaryGate,
   packageText,
 ] = await Promise.all([
   read('shared/release/public-release-contract.ts'),
@@ -20,6 +21,7 @@ const [
   read('.github/workflows/pages.yml'),
   read('scripts/mmj-ui29-public-release-manifest-emit.mjs'),
   read('scripts/mmj-ui29-public-release-manifest-verify.mjs'),
+  read('scripts/public-boundary-gate.mjs'),
   read('package.json'),
 ])
 
@@ -93,6 +95,11 @@ for (const token of [
   assert.ok(emitter.includes(token), `manifest emitter missing: ${token}`)
 }
 assert.ok(verifier.includes('PASS_MMJ_PUBLIC_RELEASE_MANIFEST_VERIFY'))
+assert.ok(
+  publicBoundaryGate.includes("'shared/release/public-release-contract.ts'"),
+  'public release contract must be explicitly allowlisted by public boundary',
+)
+console.log('PASS_PUBLIC_RELEASE_CONTRACT_BOUNDARY_ALLOWLIST_CLOSURE')
 
 const gateName = 'gate:public-release-freshness-authority-r1'
 const gateCommand = 'node --experimental-strip-types scripts/mmj-ui29-public-release-freshness-authority-r1-test.mjs && node scripts/mmj-ui29-public-release-freshness-authority-r1-gate.mjs'

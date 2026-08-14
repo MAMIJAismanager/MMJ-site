@@ -26,6 +26,7 @@ const allowedShared = new Set([
   'shared/query/works-pagination.ts',
   'shared/query/works-project-query.ts',
   'shared/query/works-query-state.ts',
+  'shared/release/public-release-contract.ts',
   'shared/resolver/media-delivery-config.ts',
   'shared/resolver/media-resolution.ts',
   'shared/resolver/accessible-description-resolution.ts',
