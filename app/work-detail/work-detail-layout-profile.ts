@@ -35,11 +35,12 @@ export interface WorkDetailLayoutInput {
 
 export interface WorkDetailLayoutProfile {
   readonly mode: WorkDetailLayoutMode
+  readonly composition: 'stack' | 'split'
   readonly density: WorkDetailDensity
   readonly coreViewportFit: boolean
   readonly titlePx: number
   readonly sectionTitlePx: number
-  readonly copyColumnPx: number
+  readonly copyColumnPx: number | null
   readonly compositionGapPx: number
   readonly sectionGapPx: number
   readonly contentMaxPx: number
@@ -93,11 +94,12 @@ export function resolveWorkDetailLayoutProfile(
   if (width === 0 || height === 0) {
     return Object.freeze({
       mode: 'document-flow',
+      composition: 'stack',
       density: 'compact',
       coreViewportFit: false,
       titlePx: 36,
       sectionTitlePx: 20,
-      copyColumnPx: 0,
+      copyColumnPx: null,
       compositionGapPx: 24,
       sectionGapPx: 20,
       contentMaxPx: 1184,
@@ -112,11 +114,12 @@ export function resolveWorkDetailLayoutProfile(
     const mediaMaxBlockPx = Math.round(clamp(height * 0.56, 300, 520))
     return Object.freeze({
       mode: 'mobile-stack',
+      composition: 'stack',
       density: 'compact',
       coreViewportFit: false,
       titlePx,
       sectionTitlePx: 18,
-      copyColumnPx: 0,
+      copyColumnPx: null,
       compositionGapPx: 24,
       sectionGapPx: 14,
       contentMaxPx: Math.max(288, width - 32),
@@ -136,11 +139,12 @@ export function resolveWorkDetailLayoutProfile(
     const mediaMaxBlockPx = Math.round(clamp(height * 0.62, 360, 620))
     return Object.freeze({
       mode: 'compact-stack',
+      composition: 'stack',
       density: 'compact',
       coreViewportFit: false,
       titlePx,
       sectionTitlePx: 20,
-      copyColumnPx: 0,
+      copyColumnPx: null,
       compositionGapPx: 28,
       sectionGapPx: 18,
       contentMaxPx: Math.round(clamp(width - 64, 720, 1184)),
@@ -177,6 +181,7 @@ export function resolveWorkDetailLayoutProfile(
 
   return Object.freeze({
     mode,
+    composition: 'split',
     density,
     coreViewportFit: true,
     titlePx,

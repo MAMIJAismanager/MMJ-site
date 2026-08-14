@@ -103,6 +103,8 @@ useSeoMeta({
     :data-mm-work-slug="project.slug"
     :data-mm-work-id="project.id"
     :data-mm-work-detail-layout="layoutProfile.mode"
+    :data-mm-work-detail-composition="layoutProfile.composition"
+    :data-mm-work-detail-copy-column="layoutProfile.copyColumnPx ?? 'natural'"
     :data-mm-work-detail-density="layoutProfile.density"
     :data-mm-work-detail-core-fit="layoutProfile.coreViewportFit ? 'true' : 'false'"
     :style="layoutStyle"

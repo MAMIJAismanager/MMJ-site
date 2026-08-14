@@ -37,9 +37,14 @@ export function useWorkDetailLayoutProfile(
 
   const observeViewport = (): void => {
     frameHandle = null
+    const visualViewport = window.visualViewport
     viewport.value = Object.freeze({
-      width: Math.max(0, Math.round(window.innerWidth)),
-      height: Math.max(0, Math.round(window.innerHeight)),
+      width: Math.max(0, Math.round(
+        visualViewport?.width ?? window.innerWidth,
+      )),
+      height: Math.max(0, Math.round(
+        visualViewport?.height ?? window.innerHeight,
+      )),
     })
   }
 
@@ -51,10 +56,19 @@ export function useWorkDetailLayoutProfile(
   onMounted(() => {
     observeViewport()
     window.addEventListener('resize', scheduleObservation, { passive: true })
+    window.visualViewport?.addEventListener(
+      'resize',
+      scheduleObservation,
+      { passive: true },
+    )
   })
 
   onBeforeUnmount(() => {
     window.removeEventListener('resize', scheduleObservation)
+    window.visualViewport?.removeEventListener(
+      'resize',
+      scheduleObservation,
+    )
     if (frameHandle !== null) {
       window.cancelAnimationFrame(frameHandle)
       frameHandle = null
@@ -67,17 +81,30 @@ export function useWorkDetailLayoutProfile(
     primaryMedia: options.primaryMedia,
   }))
 
-  const style = computed<CSSProperties>(() => ({
-    '--mm-work-detail-title-size': `${profile.value.titlePx}px`,
-    '--mm-work-detail-section-title-size': `${profile.value.sectionTitlePx}px`,
-    '--mm-work-detail-copy-column': `${profile.value.copyColumnPx}px`,
-    '--mm-work-detail-core-gap': `${profile.value.compositionGapPx}px`,
-    '--mm-work-detail-section-gap': `${profile.value.sectionGapPx}px`,
-    '--mm-work-detail-content-max': `${profile.value.contentMaxPx}px`,
-    '--mm-work-detail-media-max-inline': `${profile.value.mediaMaxInlinePx}px`,
-    '--mm-work-detail-media-max-block': `${profile.value.mediaMaxBlockPx}px`,
-    '--mm-work-detail-core-padding-block': `${profile.value.corePaddingBlockPx}px`,
-  }))
+  const style = computed<CSSProperties>(() => {
+    const current = profile.value
+    const output: CSSProperties = {
+      '--mm-work-detail-title-size': `${current.titlePx}px`,
+      '--mm-work-detail-section-title-size': `${current.sectionTitlePx}px`,
+      '--mm-work-detail-core-gap': `${current.compositionGapPx}px`,
+      '--mm-work-detail-section-gap': `${current.sectionGapPx}px`,
+      '--mm-work-detail-content-max': `${current.contentMaxPx}px`,
+      '--mm-work-detail-media-max-inline': `${current.mediaMaxInlinePx}px`,
+      '--mm-work-detail-media-max-block': `${current.mediaMaxBlockPx}px`,
+      '--mm-work-detail-core-padding-block': `${current.corePaddingBlockPx}px`,
+    }
+
+    if (
+      current.composition === 'split'
+      && current.copyColumnPx !== null
+      && current.copyColumnPx > 0
+    ) {
+      output['--mm-work-detail-copy-column'] =
+        `${current.copyColumnPx}px`
+    }
+
+    return Object.freeze(output)
+  })
 
   return Object.freeze({
     profile,

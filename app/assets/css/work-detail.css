@@ -51,7 +51,11 @@
 .mm-work-detail-header {
   display: grid;
   gap: var(--mm-space-3);
-  max-width: var(--mm-work-detail-copy-column, var(--mm-copy-max));
+  width: 100%;
+  max-width: min(
+    100%,
+    var(--mm-work-detail-copy-column, var(--mm-copy-max))
+  );
 }
 
 .mm-work-detail-header__eyebrow,
@@ -73,7 +77,8 @@
   font-weight: var(--mm-font-weight-bold);
   line-height: 1.08;
   letter-spacing: var(--mm-letter-spacing-heading);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .mm-work-asset-frame__context,
