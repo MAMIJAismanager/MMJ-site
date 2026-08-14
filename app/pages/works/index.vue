@@ -124,7 +124,6 @@ let placementRevision = 0
 const worksPhysicalFitKey = computed(() => [
   `viewport:${worksViewportRevision.value}`,
   `mode:${worksLayoutCandidate.value.mode}`,
-  `density:${worksLayoutCandidate.value.cardDensity}`,
   `page:${evaluation.value.currentPage}`,
   `pages:${evaluation.value.pageCount}`,
   `title:${activeGatewayCategory.value?.title ?? '작업'}`,
@@ -272,6 +271,14 @@ function resetWorksQuery(): void {
     :data-mm-works-reference-fit-phase="worksReferenceFit.phase"
     :data-mm-works-reference-fit-pass="worksReferenceFit.pass"
     :data-mm-works-hard-reference="worksReferenceFit.hardReference ? 'true' : 'false'"
+    :data-mm-works-viewport-width="worksViewport?.width ?? 0"
+    :data-mm-works-viewport-height="worksViewport?.height ?? 0"
+    :data-mm-works-row0-meta-max="worksPhysicalFitReceipt.row0MetadataMaxPx"
+    :data-mm-works-row1-meta-max="worksPhysicalFitReceipt.row1MetadataMaxPx"
+    :data-mm-works-pagination-bottom="worksPhysicalFitReceipt.paginationBottomPx"
+    :data-mm-works-visible-bottom="worksPhysicalFitReceipt.visualViewportBottomPx"
+    :data-mm-works-scroll-overflow="worksPhysicalFitReceipt.overflowObserved ? 'true' : 'false'"
+    :data-mm-works-pagination-clipped="worksPhysicalFitReceipt.paginationClipped ? 'true' : 'false'"
     :style="worksLayoutStyle"
   >
     <header
@@ -361,6 +368,12 @@ function resetWorksQuery(): void {
         ref="projectGridReader"
         :projects="pageProjects"
         :layout="worksLayoutProfile"
+        :solved-inline-px="
+          worksReferenceFit.hardReference
+          && worksReferenceFit.contentInlinePx > 0
+            ? worksReferenceFit.contentInlinePx
+            : null
+        "
         @detail-activate="handleDetailActivation"
       />
 

@@ -5,6 +5,10 @@ export interface WorksViewportFrameElements {
 
 export interface WorksViewportFrameMetrics {
   readonly viewportBlockPx: number
+  readonly visualViewportInlinePx: number
+  readonly visualViewportBlockPx: number
+  readonly visualViewportTopPx: number
+  readonly visualViewportBottomPx: number
   readonly siteHeaderBlockPx: number
   readonly mainAvailableBlockPx: number
   readonly mainClientBlockPx: number
@@ -33,18 +37,37 @@ export function readWorksViewportFrameMetrics(
   const frame = resolveWorksViewportFrameElements(pageElement)
   if (frame === null) return null
 
-  const viewportBlockPx = Math.max(0, window.innerHeight)
+  const visualViewport = window.visualViewport
+  const visualViewportInlinePx = Math.max(
+    0,
+    visualViewport?.width ?? window.innerWidth,
+  )
+  const visualViewportBlockPx = Math.max(
+    0,
+    visualViewport?.height ?? window.innerHeight,
+  )
+  const visualViewportTopPx = Math.max(
+    0,
+    visualViewport?.offsetTop ?? 0,
+  )
+  const visualViewportBottomPx = (
+    visualViewportTopPx + visualViewportBlockPx
+  )
   const siteHeaderBlockPx = Math.max(
     0,
     frame.siteHeaderElement.getBoundingClientRect().height,
   )
 
   return Object.freeze({
-    viewportBlockPx,
+    viewportBlockPx: visualViewportBlockPx,
+    visualViewportInlinePx,
+    visualViewportBlockPx,
+    visualViewportTopPx,
+    visualViewportBottomPx,
     siteHeaderBlockPx,
     mainAvailableBlockPx: Math.max(
       0,
-      viewportBlockPx - siteHeaderBlockPx,
+      visualViewportBlockPx - siteHeaderBlockPx,
     ),
     mainClientBlockPx: Math.max(0, frame.mainElement.clientHeight),
     mainScrollBlockPx: Math.max(0, frame.mainElement.scrollHeight),

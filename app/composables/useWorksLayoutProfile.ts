@@ -41,9 +41,23 @@ let resizeFrame: number | null = null
 let publishViewport: (() => void) | null = null
 
 function readViewport(): WorksViewportSnapshot {
+  const visualViewport = window.visualViewport
+  const visualWidth = Math.max(
+    1,
+    visualViewport?.width ?? window.innerWidth,
+  )
+  const visualHeight = Math.max(
+    1,
+    visualViewport?.height ?? window.innerHeight,
+  )
+
   return Object.freeze({
-    width: Math.max(1, Math.round(window.innerWidth)),
-    height: Math.max(1, Math.round(window.innerHeight)),
+    width: Math.max(1, Math.round(visualWidth)),
+    height: Math.max(1, Math.round(visualHeight)),
+    layoutWidth: Math.max(1, Math.round(window.innerWidth)),
+    layoutHeight: Math.max(1, Math.round(window.innerHeight)),
+    visualOffsetTop: Math.max(0, visualViewport?.offsetTop ?? 0),
+    visualOffsetLeft: Math.max(0, visualViewport?.offsetLeft ?? 0),
   })
 }
 
@@ -63,6 +77,11 @@ function retainViewportObserver(publish: () => void): void {
   publishViewport = publish
   publishViewport()
   window.addEventListener('resize', scheduleViewportPublish, { passive: true })
+  window.visualViewport?.addEventListener(
+    'resize',
+    scheduleViewportPublish,
+    { passive: true },
+  )
 }
 
 function releaseViewportObserver(): void {
@@ -70,6 +89,10 @@ function releaseViewportObserver(): void {
   if (observerConsumers !== 0) return
 
   window.removeEventListener('resize', scheduleViewportPublish)
+  window.visualViewport?.removeEventListener(
+    'resize',
+    scheduleViewportPublish,
+  )
   if (resizeFrame !== null) {
     window.cancelAnimationFrame(resizeFrame)
     resizeFrame = null
@@ -144,9 +167,10 @@ export function useWorksLayoutProfile() {
       '--mm-works-card-title-size': `${tokens.cardTitleRem}rem`,
       '--mm-works-fit-available-block': `${profile.value.viewportFit.availableBlockPx}px`,
       '--mm-works-fit-required-block': `${profile.value.viewportFit.requiredBlockPx}px`,
-      '--mm-works-pagination-reserved-block': `${profile.value.viewportFit.paginationReservedBlockPx}px`,
+      '--mm-works-pagination-reserved-block': `${referenceFit.value.paginationReservedBlockPx}px`,
       '--mm-works-reference-fit-pass': `${referenceFit.value.pass}`,
       '--mm-works-reference-fit-content-inline': `${referenceFit.value.contentInlinePx}px`,
+      '--mm-works-reference-fit-card-inline': `${referenceFit.value.cardInlinePx}px`,
     })
   })
 
@@ -158,6 +182,10 @@ export function useWorksLayoutProfile() {
         previous !== null
         && previous.width === next.width
         && previous.height === next.height
+        && previous.layoutWidth === next.layoutWidth
+        && previous.layoutHeight === next.layoutHeight
+        && previous.visualOffsetTop === next.visualOffsetTop
+        && previous.visualOffsetLeft === next.visualOffsetLeft
       ) {
         return
       }

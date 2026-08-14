@@ -51,6 +51,10 @@ export type WorksViewportFitAdmission =
 export interface WorksViewportSnapshot {
   readonly width: number
   readonly height: number
+  readonly layoutWidth?: number
+  readonly layoutHeight?: number
+  readonly visualOffsetTop?: number
+  readonly visualOffsetLeft?: number
 }
 
 export interface WorksLayoutTokens {
@@ -456,11 +460,19 @@ export function resolveWorksLayoutProfile(
   )
     ? referenceFit.tokens
     : candidateBaseTokens
-  const cardDensity: WorksCardDensity = compactCandidate
+  const solvedDensity = referenceFit?.hardReference === true
+    ? referenceFit.density
+    : null
+  const cardDensity: WorksCardDensity = (
+    solvedDensity === 'compact'
+    || solvedDensity === 'tight'
+  )
     ? 'compact'
-    : wide && referenceScale > 1.05
-      ? 'relaxed'
-      : 'reference'
+    : compactCandidate
+      ? 'compact'
+      : wide && referenceScale > 1.05
+        ? 'relaxed'
+        : 'reference'
   const physicalFitPhase = physicalFit?.phase ?? 'unmeasured'
   const viewportLocked = physicalFitPhase === 'admitted-locked'
 

@@ -22,6 +22,7 @@ import ProjectCard from './ProjectCard.vue'
 interface ProjectGridProps {
   readonly projects: readonly ProjectCardView[]
   readonly layout: WorksLayoutProfile
+  readonly solvedInlinePx?: number | null
 }
 
 defineProps<ProjectGridProps>()
@@ -38,6 +39,7 @@ function readCardPhysicalReceipts(): readonly WorksCardPhysicalReceipt[] {
     const receipt = reader.readPhysicalReceipt()
     if (receipt !== null) receipts.push(receipt)
   }
+  receipts.sort((left, right) => left.index - right.index)
   return Object.freeze(receipts)
 }
 
@@ -58,6 +60,11 @@ defineExpose({
     :style="{
       gridTemplateColumns:
         `repeat(${layout.columnCount}, minmax(0, 1fr))`,
+      width: solvedInlinePx === null || solvedInlinePx === undefined
+        ? '100%'
+        : `min(100%, ${solvedInlinePx}px)`,
+      justifySelf: 'center',
+      marginInline: 'auto',
     }"
   >
     <li

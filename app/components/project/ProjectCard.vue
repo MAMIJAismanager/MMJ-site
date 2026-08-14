@@ -48,12 +48,13 @@ function readPhysicalReceipt(): WorksCardPhysicalReceipt | null {
   const element = cardElement.value
   if (!(element instanceof HTMLElement)) return null
 
+  const rect = element.getBoundingClientRect()
+
   return Object.freeze({
     projectId: props.project.id,
-    cardBlockPx: Math.max(
-      element.clientHeight,
-      element.getBoundingClientRect().height,
-    ),
+    index: props.index,
+    cardInlinePx: Math.max(element.clientWidth, rect.width),
+    cardBlockPx: Math.max(element.clientHeight, rect.height),
     metadataBlockPx: metadataReader.value?.readMetadataBlockPx() ?? 0,
   })
 }
