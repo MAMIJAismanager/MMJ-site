@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+
 import {
   isEligibleSameTabDetailActivation,
 } from '~/utils/navigation-restoration'
@@ -14,6 +16,9 @@ import type {
 import type {
   WorksCardDensity,
 } from '~/works/works-layout-profile'
+import type {
+  WorksCardPhysicalReceipt,
+} from '~/works/works-card-physical'
 
 import ProjectCardMedia from './ProjectCardMedia.vue'
 import ProjectCardMetadata from './ProjectCardMetadata.vue'
@@ -26,11 +31,36 @@ interface ProjectCardProps {
 
 type NuxtNavigate = (event?: MouseEvent) => Promise<unknown>
 
+interface ProjectCardMetadataReader {
+  readMetadataBlockPx(): number
+}
+
 const props = defineProps<ProjectCardProps>()
 
 const emit = defineEmits<{
   detailActivate: [payload: ProjectDetailActivationPayload]
 }>()
+
+const cardElement = ref<HTMLElement | null>(null)
+const metadataReader = ref<ProjectCardMetadataReader | null>(null)
+
+function readPhysicalReceipt(): WorksCardPhysicalReceipt | null {
+  const element = cardElement.value
+  if (!(element instanceof HTMLElement)) return null
+
+  return Object.freeze({
+    projectId: props.project.id,
+    cardBlockPx: Math.max(
+      element.clientHeight,
+      element.getBoundingClientRect().height,
+    ),
+    metadataBlockPx: metadataReader.value?.readMetadataBlockPx() ?? 0,
+  })
+}
+
+defineExpose({
+  readPhysicalReceipt,
+})
 
 function onDetailActivate(event: MouseEvent): void {
   emit('detailActivate', {
@@ -51,6 +81,7 @@ function onControlledNuxtFallback(
 
 <template>
   <article
+    ref="cardElement"
     class="mm-project-card"
     data-mm-project-card
     :data-mm-project-card-density="density"
@@ -73,7 +104,10 @@ function onControlledNuxtFallback(
           :cover="project.cover"
           :index="index"
         />
-        <ProjectCardMetadata :project="project" />
+        <ProjectCardMetadata
+          ref="metadataReader"
+          :project="project"
+        />
       </a>
     </NuxtLink>
   </article>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+
 import type {
   ProjectDetailActivationPayload,
 } from '~/types/navigation-restoration'
@@ -10,6 +12,10 @@ import type {
 import type {
   WorksLayoutProfile,
 } from '~/works/works-layout-profile'
+import type {
+  WorksCardPhysicalReader,
+  WorksCardPhysicalReceipt,
+} from '~/works/works-card-physical'
 
 import ProjectCard from './ProjectCard.vue'
 
@@ -23,6 +29,21 @@ defineProps<ProjectGridProps>()
 const emit = defineEmits<{
   detailActivate: [payload: ProjectDetailActivationPayload]
 }>()
+
+const cardReaders = ref<WorksCardPhysicalReader[]>([])
+
+function readCardPhysicalReceipts(): readonly WorksCardPhysicalReceipt[] {
+  const receipts: WorksCardPhysicalReceipt[] = []
+  for (const reader of cardReaders.value) {
+    const receipt = reader.readPhysicalReceipt()
+    if (receipt !== null) receipts.push(receipt)
+  }
+  return Object.freeze(receipts)
+}
+
+defineExpose({
+  readCardPhysicalReceipts,
+})
 </script>
 
 <template>
@@ -47,6 +68,7 @@ const emit = defineEmits<{
       :data-mm-project-slug="project.slug"
     >
       <ProjectCard
+        ref="cardReaders"
         :project="project"
         :index="index"
         :density="layout.cardDensity"

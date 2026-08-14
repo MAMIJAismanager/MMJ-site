@@ -53,6 +53,10 @@ import type {
 import type {
   WorksSort,
 } from '~~/shared/query/works-query-state'
+import type {
+  WorksProjectGridPhysicalReader,
+  WorksCardPhysicalReceipt,
+} from '~/works/works-card-physical'
 
 const WORKS_SEO = Object.freeze({
   title: '작업 | 매미: 著',
@@ -96,10 +100,13 @@ const queryMeasureElement = ref<HTMLElement | null>(null)
 const summaryMeasureElement = ref<HTMLElement | null>(null)
 const gridMeasureElement = ref<HTMLElement | null>(null)
 const paginationMeasureElement = ref<HTMLElement | null>(null)
+const projectGridReader = ref<WorksProjectGridPhysicalReader | null>(null)
 
 const {
+  viewport: worksViewport,
   viewportRevision: worksViewportRevision,
   candidate: worksLayoutCandidate,
+  referenceFit: worksReferenceFit,
   profile: worksLayoutProfile,
   ready: worksLayoutReady,
   style: worksLayoutStyle,
@@ -118,7 +125,6 @@ const worksPhysicalFitKey = computed(() => [
   `viewport:${worksViewportRevision.value}`,
   `mode:${worksLayoutCandidate.value.mode}`,
   `density:${worksLayoutCandidate.value.cardDensity}`,
-  `content:${worksLayoutCandidate.value.tokens.contentMaxRem}`,
   `page:${evaluation.value.currentPage}`,
   `pages:${evaluation.value.pageCount}`,
   `title:${activeGatewayCategory.value?.title ?? '작업'}`,
@@ -133,12 +139,18 @@ const worksPhysicalFitEnabled = computed(() => (
   && worksLayoutCandidate.value.lockEligible
 ))
 
+function readVisibleCardPhysicalReceipts(): readonly WorksCardPhysicalReceipt[] {
+  return projectGridReader.value?.readCardPhysicalReceipts()
+    ?? Object.freeze([])
+}
+
 const {
   receipt: worksPhysicalFitReceipt,
 } = useWorksPhysicalFitAdmission({
   enabled: worksPhysicalFitEnabled,
   fitKey: worksPhysicalFitKey,
   candidate: worksLayoutCandidate,
+  viewport: worksViewport,
   viewportRevision: worksViewportRevision,
   elements: {
     page: pageElement,
@@ -148,6 +160,7 @@ const {
     grid: gridMeasureElement,
     pagination: paginationMeasureElement,
   },
+  readCardPhysicalReceipts: readVisibleCardPhysicalReceipts,
 })
 
 function mobileMenuContextTargetExists(): boolean {
@@ -256,6 +269,9 @@ function resetWorksQuery(): void {
     :data-mm-works-fit-available-block="worksPhysicalFitReceipt.availableBlockPx"
     :data-mm-works-fit-spare-block="worksPhysicalFitReceipt.spareBlockPx"
     :data-mm-works-pagination-placement="worksLayoutProfile.paginationPlacement"
+    :data-mm-works-reference-fit-phase="worksReferenceFit.phase"
+    :data-mm-works-reference-fit-pass="worksReferenceFit.pass"
+    :data-mm-works-hard-reference="worksReferenceFit.hardReference ? 'true' : 'false'"
     :style="worksLayoutStyle"
   >
     <header
@@ -342,6 +358,7 @@ function resetWorksQuery(): void {
 
       <ProjectGrid
         v-else-if="pageProjects.length > 0"
+        ref="projectGridReader"
         :projects="pageProjects"
         :layout="worksLayoutProfile"
         @detail-activate="handleDetailActivation"

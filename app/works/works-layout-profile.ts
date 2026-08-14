@@ -2,6 +2,9 @@ import type {
   WorksPhysicalFitPhase,
   WorksPhysicalFitReceipt,
 } from './works-physical-fit'
+import type {
+  WorksReferenceFitSolution,
+} from './works-reference-fit-solver'
 
 export const WORKS_REFERENCE_VIEWPORT = Object.freeze({
   width: 1920,
@@ -119,17 +122,17 @@ function referenceTokens(
   verticalScale: number,
 ): WorksLayoutTokens {
   return freezeTokens({
-    contentMaxRem: round(clamp(92 * referenceScale, 68, 108)),
-    pagePaddingBlockRem: round(clamp(0.8 * verticalScale, 0.5, 1.05)),
-    pageGapRem: round(clamp(0.68 * verticalScale, 0.45, 0.85)),
-    headerGapRem: round(clamp(0.38 * verticalScale, 0.24, 0.5)),
-    titleRem: round(clamp(2.7 * referenceScale, 2.05, 3.15)),
-    queryGapRem: round(clamp(0.75 * referenceScale, 0.55, 0.95)),
-    queryPaddingRem: round(clamp(0.72 * referenceScale, 0.55, 0.9)),
-    queryControlHeightRem: round(clamp(2.5 * referenceScale, 2.25, 2.7)),
-    gridGapRem: round(clamp(0.78 * referenceScale, 0.55, 1)),
-    cardPaddingRem: round(clamp(0.72 * referenceScale, 0.52, 0.9)),
-    cardTitleRem: round(clamp(1.02 * referenceScale, 0.84, 1.15)),
+    contentMaxRem: round(clamp(84 * referenceScale, 64, 102)),
+    pagePaddingBlockRem: round(clamp(0.62 * verticalScale, 0.48, 0.85)),
+    pageGapRem: round(clamp(0.5 * verticalScale, 0.38, 0.7)),
+    headerGapRem: round(clamp(0.3 * verticalScale, 0.22, 0.42)),
+    titleRem: round(clamp(2.4 * referenceScale, 1.98, 2.8)),
+    queryGapRem: round(clamp(0.58 * referenceScale, 0.44, 0.78)),
+    queryPaddingRem: round(clamp(0.5 * referenceScale, 0.4, 0.7)),
+    queryControlHeightRem: round(clamp(2.35 * referenceScale, 2.2, 2.55)),
+    gridGapRem: round(clamp(0.58 * referenceScale, 0.44, 0.78)),
+    cardPaddingRem: round(clamp(0.5 * referenceScale, 0.43, 0.68)),
+    cardTitleRem: round(clamp(0.92 * referenceScale, 0.84, 1.05)),
   })
 }
 
@@ -328,6 +331,7 @@ export const WORKS_PENDING_LAYOUT_PROFILE = freezeProfile({
 export function resolveWorksLayoutProfile(
   viewport: WorksViewportSnapshot,
   physicalFit: WorksPhysicalFitReceipt | null = null,
+  referenceFit: WorksReferenceFitSolution | null = null,
 ): WorksLayoutProfile {
   const width = Math.max(1, Math.round(viewport.width))
   const height = Math.max(1, Math.round(viewport.height))
@@ -433,7 +437,7 @@ export function resolveWorksLayoutProfile(
   const candidateAdmission = compactCandidate
     ? 'compact' as const
     : 'reference' as const
-  const candidateTokens = compactCandidate
+  const candidateBaseTokens = compactCandidate
     ? deriveReferenceCandidateTokens(
         height,
         compactReferenceTokens(referenceScale, verticalScale),
@@ -446,6 +450,12 @@ export function resolveWorksLayoutProfile(
         wide && referenceScale > 1.05 ? 76 : 70,
         64,
       )
+  const candidateTokens = (
+    referenceFit?.hardReference === true
+    && referenceFit.tokens !== null
+  )
+    ? referenceFit.tokens
+    : candidateBaseTokens
   const cardDensity: WorksCardDensity = compactCandidate
     ? 'compact'
     : wide && referenceScale > 1.05

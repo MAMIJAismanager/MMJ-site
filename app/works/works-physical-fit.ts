@@ -11,9 +11,11 @@ export type WorksPhysicalFitPhase =
   | 'not-applicable'
   | 'unmeasured'
   | 'measuring-natural'
+  | 'solving-reference'
   | 'admitted-locked'
   | 'rejected-flow'
   | 'revoked-flow'
+  | 'invalid-reference'
 
 export interface WorksPhysicalMeasurementSnapshot {
   readonly fitKey: string
@@ -22,9 +24,16 @@ export interface WorksPhysicalMeasurementSnapshot {
   readonly viewportBlockPx: number
   readonly siteHeaderBlockPx: number
   readonly mainAvailableBlockPx: number
+  readonly mainClientBlockPx?: number
+  readonly mainScrollBlockPx?: number
+
+  readonly documentClientBlockPx?: number
+  readonly documentScrollBlockPx?: number
+  readonly rootFontPx?: number
 
   readonly pageClientBlockPx: number
   readonly pageScrollBlockPx: number
+  readonly currentContentInlinePx?: number
 
   readonly headerBlockPx: number
   readonly queryBlockPx: number
@@ -34,6 +43,8 @@ export interface WorksPhysicalMeasurementSnapshot {
   readonly gridScrollBlockPx: number
 
   readonly paginationBlockPx: number
+  readonly maxMetadataBlockPx?: number
+  readonly visibleCardCount?: number
 
   readonly gridBottomPx: number
   readonly paginationTopPx: number | null
@@ -81,6 +92,23 @@ function collisionObserved(
   )
 }
 
+function optionalOverflow(
+  scrollBlockPx: number | undefined,
+  clientBlockPx: number | undefined,
+): boolean {
+  if (
+    scrollBlockPx === undefined
+    || clientBlockPx === undefined
+  ) {
+    return false
+  }
+
+  return (
+    scrollBlockPx
+    > clientBlockPx + WORKS_PHYSICAL_STABILITY_EPSILON_PX
+  )
+}
+
 function receiptFromSnapshot(
   snapshot: WorksPhysicalMeasurementSnapshot,
   phase: WorksPhysicalFitPhase,
@@ -90,7 +118,10 @@ function receiptFromSnapshot(
   collision: boolean,
 ): WorksPhysicalFitReceipt {
   const availableBlockPx = round(snapshot.mainAvailableBlockPx)
-  const requiredBlockPx = round(snapshot.pageScrollBlockPx)
+  const requiredBlockPx = round(Math.max(
+    snapshot.pageScrollBlockPx,
+    snapshot.mainScrollBlockPx ?? 0,
+  ))
 
   return Object.freeze({
     fitKey: snapshot.fitKey,
@@ -163,6 +194,32 @@ export function createMeasuringWorksPhysicalFitReceipt(
   )
 }
 
+export function createSolvingWorksPhysicalFitReceipt(
+  snapshot: WorksPhysicalMeasurementSnapshot,
+): WorksPhysicalFitReceipt {
+  return receiptFromSnapshot(
+    snapshot,
+    'solving-reference',
+    false,
+    false,
+    true,
+    collisionObserved(snapshot),
+  )
+}
+
+export function createInvalidWorksPhysicalFitReceipt(
+  snapshot: WorksPhysicalMeasurementSnapshot,
+): WorksPhysicalFitReceipt {
+  return receiptFromSnapshot(
+    snapshot,
+    'invalid-reference',
+    false,
+    false,
+    true,
+    collisionObserved(snapshot),
+  )
+}
+
 function comparableMeasurementValues(
   snapshot: WorksPhysicalMeasurementSnapshot,
 ): readonly number[] {
@@ -170,14 +227,22 @@ function comparableMeasurementValues(
     snapshot.viewportBlockPx,
     snapshot.siteHeaderBlockPx,
     snapshot.mainAvailableBlockPx,
+    snapshot.mainClientBlockPx ?? -1,
+    snapshot.mainScrollBlockPx ?? -1,
+    snapshot.documentClientBlockPx ?? -1,
+    snapshot.documentScrollBlockPx ?? -1,
+    snapshot.rootFontPx ?? -1,
     snapshot.pageClientBlockPx,
     snapshot.pageScrollBlockPx,
+    snapshot.currentContentInlinePx ?? -1,
     snapshot.headerBlockPx,
     snapshot.queryBlockPx,
     snapshot.summaryBlockPx,
     snapshot.gridClientBlockPx,
     snapshot.gridScrollBlockPx,
     snapshot.paginationBlockPx,
+    snapshot.maxMetadataBlockPx ?? -1,
+    snapshot.visibleCardCount ?? -1,
     snapshot.gridBottomPx,
     snapshot.paginationTopPx ?? -1,
   ])
@@ -215,9 +280,22 @@ export function resolveWorksNaturalPhysicalFit(
     snapshot.gridScrollBlockPx
     > snapshot.gridClientBlockPx + WORKS_PHYSICAL_STABILITY_EPSILON_PX
   )
-  const requiredBlockPx = snapshot.pageScrollBlockPx
+  const mainOverflow = optionalOverflow(
+    snapshot.mainScrollBlockPx,
+    snapshot.mainClientBlockPx,
+  )
+  const documentOverflow = optionalOverflow(
+    snapshot.documentScrollBlockPx,
+    snapshot.documentClientBlockPx,
+  )
+  const requiredBlockPx = Math.max(
+    snapshot.pageScrollBlockPx,
+    snapshot.mainScrollBlockPx ?? 0,
+  )
   const admitted = (
     !gridOverflow
+    && !mainOverflow
+    && !documentOverflow
     && !collision
     && requiredBlockPx + WORKS_PHYSICAL_FIT_SAFETY_PX
       <= snapshot.mainAvailableBlockPx
@@ -228,7 +306,12 @@ export function resolveWorksNaturalPhysicalFit(
     admitted ? 'admitted-locked' : 'rejected-flow',
     admitted,
     false,
-    gridOverflow || requiredBlockPx > snapshot.mainAvailableBlockPx,
+    (
+      gridOverflow
+      || mainOverflow
+      || documentOverflow
+      || requiredBlockPx > snapshot.mainAvailableBlockPx
+    ),
     collision,
   )
 }
@@ -245,14 +328,28 @@ export function verifyWorksLockedPhysicalCommit(
     snapshot.gridScrollBlockPx
     > snapshot.gridClientBlockPx + WORKS_PHYSICAL_STABILITY_EPSILON_PX
   )
-  const admitted = !pageOverflow && !gridOverflow && !collision
+  const mainOverflow = optionalOverflow(
+    snapshot.mainScrollBlockPx,
+    snapshot.mainClientBlockPx,
+  )
+  const documentOverflow = optionalOverflow(
+    snapshot.documentScrollBlockPx,
+    snapshot.documentClientBlockPx,
+  )
+  const admitted = (
+    !pageOverflow
+    && !gridOverflow
+    && !mainOverflow
+    && !documentOverflow
+    && !collision
+  )
 
   return receiptFromSnapshot(
     snapshot,
     admitted ? 'admitted-locked' : 'revoked-flow',
     admitted,
     admitted,
-    pageOverflow || gridOverflow,
+    pageOverflow || gridOverflow || mainOverflow || documentOverflow,
     collision,
   )
 }

@@ -17,6 +17,11 @@ import {
   WORKS_PHYSICAL_FIT_STATE_KEY,
   createInitialWorksPhysicalFitReceipt,
 } from '~/works/works-physical-fit'
+import {
+  WORKS_REFERENCE_FIT_STATE_KEY,
+  createInitialWorksReferenceFitSolution,
+  isHardWorksReferenceViewport,
+} from '~/works/works-reference-fit-solver'
 
 import type {
   WorksViewportSnapshot,
@@ -24,6 +29,9 @@ import type {
 import type {
   WorksPhysicalFitReceipt,
 } from '~/works/works-physical-fit'
+import type {
+  WorksReferenceFitSolution,
+} from '~/works/works-reference-fit-solver'
 
 const WORKS_VIEWPORT_STATE_KEY = 'mmj-works-layout-viewport-r2'
 const WORKS_VIEWPORT_REVISION_STATE_KEY = 'mmj-works-layout-viewport-revision-r2'
@@ -86,11 +94,19 @@ export function useWorksLayoutProfile() {
     WORKS_PHYSICAL_FIT_ACTIVE_KEY_STATE_KEY,
     () => null,
   )
+  const referenceFit = useState<WorksReferenceFitSolution>(
+    WORKS_REFERENCE_FIT_STATE_KEY,
+    () => createInitialWorksReferenceFitSolution(),
+  )
 
   const candidate = computed(() => (
     viewport.value === null
       ? WORKS_PENDING_LAYOUT_PROFILE
-      : resolveWorksLayoutProfile(viewport.value, null)
+      : resolveWorksLayoutProfile(
+          viewport.value,
+          null,
+          referenceFit.value,
+        )
   ))
 
   const profile = computed(() => {
@@ -106,6 +122,7 @@ export function useWorksLayoutProfile() {
     return resolveWorksLayoutProfile(
       viewport.value,
       admittedPhysicalFit,
+      referenceFit.value,
     )
   })
 
@@ -128,6 +145,8 @@ export function useWorksLayoutProfile() {
       '--mm-works-fit-available-block': `${profile.value.viewportFit.availableBlockPx}px`,
       '--mm-works-fit-required-block': `${profile.value.viewportFit.requiredBlockPx}px`,
       '--mm-works-pagination-reserved-block': `${profile.value.viewportFit.paginationReservedBlockPx}px`,
+      '--mm-works-reference-fit-pass': `${referenceFit.value.pass}`,
+      '--mm-works-reference-fit-content-inline': `${referenceFit.value.contentInlinePx}px`,
     })
   })
 
@@ -151,6 +170,11 @@ export function useWorksLayoutProfile() {
         viewportRevision.value,
         'unmeasured',
       )
+      referenceFit.value = createInitialWorksReferenceFitSolution(
+        viewportRevision.value,
+        null,
+        isHardWorksReferenceViewport(next),
+      )
     })
   })
 
@@ -163,6 +187,7 @@ export function useWorksLayoutProfile() {
     viewportRevision,
     candidate,
     physicalFit,
+    referenceFit,
     profile,
     ready,
     style,

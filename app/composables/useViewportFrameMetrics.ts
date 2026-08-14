@@ -7,6 +7,8 @@ export interface WorksViewportFrameMetrics {
   readonly viewportBlockPx: number
   readonly siteHeaderBlockPx: number
   readonly mainAvailableBlockPx: number
+  readonly mainClientBlockPx: number
+  readonly mainScrollBlockPx: number
 }
 
 export function resolveWorksViewportFrameElements(
@@ -44,5 +46,7 @@ export function readWorksViewportFrameMetrics(
       0,
       viewportBlockPx - siteHeaderBlockPx,
     ),
+    mainClientBlockPx: Math.max(0, frame.mainElement.clientHeight),
+    mainScrollBlockPx: Math.max(0, frame.mainElement.scrollHeight),
   })
 }

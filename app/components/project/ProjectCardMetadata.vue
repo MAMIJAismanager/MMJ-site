@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+
 import type {
   ProjectCardView,
 } from '~~/shared/view/portfolio-project-view'
@@ -8,10 +10,28 @@ interface ProjectCardMetadataProps {
 }
 
 defineProps<ProjectCardMetadataProps>()
+
+const metadataElement = ref<HTMLElement | null>(null)
+
+function readMetadataBlockPx(): number {
+  const element = metadataElement.value
+  if (!(element instanceof HTMLElement)) return 0
+  return Math.max(
+    element.clientHeight,
+    element.getBoundingClientRect().height,
+  )
+}
+
+defineExpose({
+  readMetadataBlockPx,
+})
 </script>
 
 <template>
-  <div class="mm-project-card-metadata">
+  <div
+    ref="metadataElement"
+    class="mm-project-card-metadata"
+  >
     <div class="mm-project-card-metadata__context">
       <p class="mm-project-card-metadata__category">
         {{ project.category.label }}
