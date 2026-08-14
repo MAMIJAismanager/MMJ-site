@@ -14,6 +14,7 @@ import {
 
 import ProjectGrid from '~/components/project/ProjectGrid.vue'
 import WorksCompositionProbe from '~/components/project/WorksCompositionProbe.vue'
+import WorksMobileCompositionProbe from '~/components/project/WorksMobileCompositionProbe.vue'
 import WorksFilterBar from '~/components/works/WorksFilterBar.vue'
 import WorksPagination from '~/components/works/WorksPagination.vue'
 import WorksResultSummary from '~/components/works/WorksResultSummary.vue'
@@ -39,10 +40,17 @@ import {
 import {
   useWorksCompositionTransaction,
 } from '~/composables/useWorksCompositionTransaction'
+import {
+  useWorksMobileCompositionTransaction,
+} from '~/composables/useWorksMobileCompositionTransaction'
 
 import {
   findPortfolioGatewayCategory,
 } from '~~/shared/constants/portfolio-gateway-categories'
+import {
+  isWorksMobileViewport,
+  type WorksMobileProbeReceipt,
+} from '~/works/works-mobile-composition'
 
 import type {
   PortfolioGatewayCategoryId,
@@ -56,6 +64,10 @@ import type {
 
 interface WorksCompositionProbeReader {
   readProbeReceipt(): WorksCompositionProbeReceipt | null
+}
+
+interface WorksMobileCompositionProbeReader {
+  readProbeReceipt(): WorksMobileProbeReceipt | null
 }
 
 const WORKS_SEO = Object.freeze({
@@ -96,7 +108,10 @@ const {
 
 const pageElement = ref<HTMLElement | null>(null)
 const summaryMeasureElement = ref<HTMLElement | null>(null)
+const gridRailElement = ref<HTMLElement | null>(null)
 const compositionProbeReader = ref<WorksCompositionProbeReader | null>(null)
+const mobileCompositionProbeReader =
+  ref<WorksMobileCompositionProbeReader | null>(null)
 
 const {
   viewport: worksViewport,
@@ -157,16 +172,35 @@ const worksCompositionEnabled = computed(() => (
   && worksLayoutReady.value
 ))
 
+const worksMobileViewport = computed(() => (
+  worksViewport.value !== null
+  && isWorksMobileViewport(worksViewport.value)
+))
+
+const worksDesktopCompositionEnabled = computed(() => (
+  worksCompositionEnabled.value
+  && !worksMobileViewport.value
+))
+
+const worksMobileCompositionEnabled = computed(() => (
+  worksCompositionEnabled.value
+  && worksMobileViewport.value
+))
+
 function readProbeReceipt(): WorksCompositionProbeReceipt | null {
   return compositionProbeReader.value?.readProbeReceipt() ?? null
 }
 
+function readMobileProbeReceipt(): WorksMobileProbeReceipt | null {
+  return mobileCompositionProbeReader.value?.readProbeReceipt() ?? null
+}
+
 const {
-  published: worksPublishedComposition,
-  probeRequest: worksProbeRequest,
-  telemetry: worksCompositionTelemetry,
+  published: desktopPublishedComposition,
+  probeRequest: desktopProbeRequest,
+  telemetry: desktopCompositionTelemetry,
 } = useWorksCompositionTransaction({
-  enabled: worksCompositionEnabled,
+  enabled: worksDesktopCompositionEnabled,
   viewport: worksViewport,
   viewportRevision: worksViewportRevision,
   layout: worksLayoutProfile,
@@ -176,6 +210,51 @@ const {
   pageElement,
   summaryElement: summaryMeasureElement,
   readProbeReceipt,
+})
+
+const {
+  published: mobilePublishedComposition,
+  probeRequest: mobileProbeRequest,
+  telemetry: mobileCompositionTelemetry,
+} = useWorksMobileCompositionTransaction({
+  enabled: worksMobileCompositionEnabled,
+  viewport: worksViewport,
+  layout: worksLayoutProfile,
+  projects: pageProjects,
+  currentPage: computed(() => evaluation.value.currentPage),
+  pageCount: computed(() => evaluation.value.pageCount),
+  railElement: gridRailElement,
+  readProbeReceipt: readMobileProbeReceipt,
+})
+
+const worksPublishedComposition = computed(() => (
+  worksMobileViewport.value
+    ? mobilePublishedComposition.value
+    : desktopPublishedComposition.value
+))
+
+const worksCompositionTelemetry = computed(() => (
+  worksMobileViewport.value
+    ? mobileCompositionTelemetry.value
+    : desktopCompositionTelemetry.value
+))
+
+const worksPublishedCardInlinePx = computed(() => (
+  worksPublishedComposition.value?.commit?.cardInlinePx ?? 0
+))
+
+const worksPublishedGridInlinePx = computed(() => {
+  const commit = worksPublishedComposition.value?.commit
+  return commit?.mode === 'single-viewport'
+    ? commit.gridInlinePx
+    : 0
+})
+
+const worksPublishedMobileColumns = computed(() => {
+  const composition = worksPublishedComposition.value?.composition
+  return composition?.kind === 'mobile-committed'
+    ? composition.columnCount
+    : undefined
 })
 
 function submitSearch(value: string | null): void {
@@ -229,14 +308,16 @@ function resetWorksQuery(): void {
     :data-mm-works-query-placement="worksQueryPlacement"
     :data-mm-works-layout-ready="worksLayoutReady ? 'true' : 'false'"
     :data-mm-works-layout-mode="worksLayoutProfile.mode"
+    :data-mm-works-mobile-authority="worksMobileViewport ? 'measure-admit-r5-m1' : undefined"
     :data-mm-works-composition-phase="worksCompositionTelemetry.phase"
     :data-mm-works-composition-probe-count="worksCompositionTelemetry.probeCount"
     :data-mm-works-visible-commit-count="worksCompositionTelemetry.visibleCommitCount"
     :data-mm-works-stale-draft-reject-count="worksCompositionTelemetry.staleDraftRejectCount"
     :data-mm-works-composition-kind="worksPublishedComposition?.composition.kind ?? 'pending'"
+    :data-mm-works-mobile-columns="worksPublishedMobileColumns"
     :data-mm-works-commit-id="worksPublishedComposition?.composition.commitId"
-    :data-mm-works-card-inline="worksPublishedComposition?.commit?.cardInlinePx ?? 0"
-    :data-mm-works-grid-inline="worksPublishedComposition?.commit?.gridInlinePx ?? 0"
+    :data-mm-works-card-inline="worksPublishedCardInlinePx"
+    :data-mm-works-grid-inline="worksPublishedGridInlinePx"
     :data-mm-works-composition-failure="worksCompositionTelemetry.lastFailureReason"
     :style="worksLayoutStyle"
   >
@@ -305,9 +386,15 @@ function resetWorksQuery(): void {
     <WorksCompositionProbe
       ref="compositionProbeReader"
       :projects="pageProjects"
-      :request="worksProbeRequest"
+      :request="desktopProbeRequest"
       :current-page="evaluation.currentPage"
       :page-count="evaluation.pageCount"
+    />
+
+    <WorksMobileCompositionProbe
+      ref="mobileCompositionProbeReader"
+      :projects="pageProjects"
+      :request="mobileProbeRequest"
     />
 
     <div
@@ -322,8 +409,9 @@ function resetWorksQuery(): void {
 
     <div
       v-else-if="pageProjects.length > 0"
+      ref="gridRailElement"
       data-mm-works-composition-stage="projects"
-      style="min-width: 0"
+      style="min-width: 0; width: 100%"
     >
       <ProjectGrid
         v-if="worksPublishedComposition !== null"

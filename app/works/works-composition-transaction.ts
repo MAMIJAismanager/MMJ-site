@@ -8,6 +8,9 @@ import type {
 import type {
   WorksCompositionCommit,
 } from './works-composition-solver'
+import type {
+  WorksMobileCompositionCommit,
+} from './works-mobile-composition'
 
 export type WorksCompositionPhase =
   | 'idle'
@@ -32,6 +35,15 @@ export type WorksGridComposition =
       readonly commitId: string
     }
   | {
+      readonly kind: 'mobile-committed'
+      readonly columnCount: 1 | 2
+      readonly cardDensity: WorksCardDensity
+      readonly gridGapRem: number
+      readonly cardPaddingRem: number
+      readonly cardTitleRem: number
+      readonly commitId: string
+    }
+  | {
       readonly kind: 'flow'
       readonly columnCount: 1 | 2 | 3 | 4
       readonly cardDensity: WorksCardDensity
@@ -44,7 +56,7 @@ export interface WorksPublishedComposition {
   readonly projects: readonly ProjectCardView[]
   readonly currentPage: number
   readonly pageCount: number
-  readonly commit: WorksCompositionCommit | null
+  readonly commit: WorksCompositionCommit | WorksMobileCompositionCommit | null
 }
 
 export interface WorksCompositionTelemetry {
@@ -116,3 +128,41 @@ export function createCommittedPublishedComposition(
     commit,
   })
 }
+
+export function worksMobileCompositionCommitId(
+  commit: WorksMobileCompositionCommit,
+): string {
+  return [
+    'works-r5-m1-mobile',
+    `${commit.columns}col`,
+    Math.round(commit.railInlinePx),
+    Math.round(commit.cardInlinePx),
+    commit.probeCount,
+  ].join('-')
+}
+
+export function createMobilePublishedComposition(
+  key: string,
+  projects: readonly ProjectCardView[],
+  currentPage: number,
+  pageCount: number,
+  commit: WorksMobileCompositionCommit,
+): WorksPublishedComposition {
+  return Object.freeze({
+    key,
+    composition: Object.freeze({
+      kind: 'mobile-committed',
+      columnCount: commit.columns,
+      cardDensity: commit.cardDensity,
+      gridGapRem: commit.gridGapRem,
+      cardPaddingRem: commit.cardPaddingRem,
+      cardTitleRem: commit.cardTitleRem,
+      commitId: worksMobileCompositionCommitId(commit),
+    }),
+    projects: Object.freeze([...projects]),
+    currentPage,
+    pageCount,
+    commit,
+  })
+}
+

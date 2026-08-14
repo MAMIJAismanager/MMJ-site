@@ -34,6 +34,17 @@ const gridStyle = computed<Readonly<Record<string, string>>>(() => {
     })
   }
 
+  if (composition.kind === 'mobile-committed') {
+    return Object.freeze({
+      gridTemplateColumns:
+        `repeat(${composition.columnCount}, minmax(0, 1fr))`,
+      width: '100%',
+      '--mm-works-grid-gap': `${composition.gridGapRem}rem`,
+      '--mm-works-card-padding': `${composition.cardPaddingRem}rem`,
+      '--mm-works-card-title-size': `${composition.cardTitleRem}rem`,
+    })
+  }
+
   return Object.freeze({
     gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
     width: `${composition.inlinePx}px`,
