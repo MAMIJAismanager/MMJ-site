@@ -17,8 +17,36 @@
 
 .mm-global-audio-dock__inner {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.75rem;
   align-items: center;
+}
+
+.mm-global-audio-dock__identity {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+  min-inline-size: 0;
+}
+
+.mm-global-audio-dock__artwork {
+  display: grid;
+  place-items: center;
+  inline-size: clamp(3.5rem, 12vw, 4rem);
+  aspect-ratio: 1;
+  overflow: hidden;
+}
+
+.mm-global-audio-dock__artwork picture,
+.mm-global-audio-dock__artwork img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.mm-global-audio-dock__artwork img {
+  object-fit: contain;
 }
 
 .mm-global-audio-dock__track,
@@ -35,6 +63,7 @@
 }
 
 .mm-global-audio-dock__timeline {
+  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 0.625rem;
@@ -71,7 +100,15 @@
 
 @media (min-width: 48rem) {
   .mm-global-audio-dock__inner {
-    grid-template-columns: minmax(10rem, 0.8fr) auto minmax(14rem, 1.6fr) auto minmax(7rem, 0.5fr);
+    grid-template-columns: minmax(12rem, 0.9fr) auto minmax(14rem, 1.6fr) auto minmax(7rem, 0.5fr);
+  }
+
+  .mm-global-audio-dock__artwork {
+    inline-size: 5rem;
+  }
+
+  .mm-global-audio-dock__timeline {
+    grid-column: auto;
   }
 }
 

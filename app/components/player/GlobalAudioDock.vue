@@ -10,6 +10,7 @@ import {
 import { storeToRefs } from 'pinia'
 
 import { useCrossMediaArbitration } from '~/composables/useCrossMediaArbitration'
+import ResponsiveImage from '~/components/media/ResponsiveImage.vue'
 import { usePlayerStore } from '~/stores/player'
 import {
   audioRuntimeErrorMessage,
@@ -17,11 +18,15 @@ import {
   mapAudioMediaErrorCode,
   parseAudioEpoch,
   readBufferedUntilSeconds,
+  selectPlayableAudioSource,
 } from '~/utils/global-audio-runtime'
 
 import type {
   CrossMediaAudioRegistration,
 } from '~/types/cross-media-arbitration'
+import {
+  PlayerSourceAdmissionError,
+} from '~~/shared/resolver/player-source-admission'
 import type {
   PlayerRuntimeErrorCode,
   PlayerSeekRequest,
@@ -40,6 +45,7 @@ const {
   pendingSeek,
   pendingTransport,
   phase,
+  sourceAdmission,
   trackEpoch,
   volume,
 } = storeToRefs(player)
@@ -53,6 +59,7 @@ let disposed = false
 let arbitrationRegistration: CrossMediaAudioRegistration | null = null
 
 const hasTrack = computed(() => currentTrack.value !== null)
+const artworkPlan = computed(() => currentTrack.value?.artworkPlan ?? null)
 const isPlayingIntent = computed(() => (
   phase.value === 'playing' || phase.value === 'play-requested'
 ))
@@ -200,19 +207,22 @@ function executeTransport(
     return
   }
 
-  const consumed = consumedTransport.get(audio) ?? new Set<number>()
-  if (consumed.has(request.requestId)) return
-  consumed.add(request.requestId)
-  consumedTransport.set(audio, consumed)
-
   const track = currentTrack.value
+  const admission = sourceAdmission.value
+  if (track === null || admission === null) return
   if (
-    track === null
-    || audio.getAttribute('src') !== track.source.url
+    admission.trackEpoch !== request.trackEpoch
+    || !track.sources.includes(admission.source)
+    || audio.getAttribute('src') !== admission.source.url
   ) {
     fixedRuntimeError(request.trackEpoch, 'invalid-runtime-observation')
     return
   }
+
+  const consumed = consumedTransport.get(audio) ?? new Set<number>()
+  if (consumed.has(request.requestId)) return
+  consumed.add(request.requestId)
+  consumedTransport.set(audio, consumed)
 
   if (request.kind === 'pause') {
     audio.pause()
@@ -315,10 +325,41 @@ function executeSeek(
   }
 }
 
+function admitCurrentTrackSource(audio: HTMLAudioElement): boolean {
+  const track = currentTrack.value
+  const epoch = trackEpoch.value
+  if (track === null) return false
+  if (sourceAdmission.value?.trackEpoch === epoch) return true
+
+  try {
+    const admission = selectPlayableAudioSource(
+      track,
+      epoch,
+      mediaType => audio.canPlayType(mediaType),
+    )
+    player.admitSource(admission)
+    return true
+  } catch (error) {
+    if (
+      error instanceof PlayerSourceAdmissionError
+      && error.code === 'no-playable-audio-source'
+    ) {
+      fixedRuntimeError(epoch, 'no-playable-audio-source')
+      return false
+    }
+    fixedRuntimeError(epoch, 'invalid-runtime-observation')
+    return false
+  }
+}
+
 function initializeAudio(audio: HTMLAudioElement | null): void {
   if (audio === null) return
   audio.volume = volume.value
   audio.muted = muted.value
+  if (currentTrack.value !== null && sourceAdmission.value === null) {
+    admitCurrentTrackSource(audio)
+    return
+  }
   const request = pendingTransport.value
   if (request !== null) executeTransport(audio, request)
   const seek = pendingSeek.value
@@ -365,6 +406,16 @@ watch(audioElement, (current, previous) => {
 })
 
 watch(
+  sourceAdmission,
+  async admission => {
+    if (admission === null) return
+    await nextTick()
+    initializeAudio(audioElement.value)
+  },
+  { flush: 'post' },
+)
+
+watch(
   pendingTransport,
   request => {
     const audio = audioElement.value
@@ -402,6 +453,7 @@ watch(trackEpoch, async () => {
 
 onMounted(() => {
   arbitrationRegistration = arbitration.registerAudio(arbitrationEndpoint)
+  initializeAudio(audioElement.value)
 })
 
 onBeforeUnmount(() => {
@@ -426,7 +478,7 @@ onBeforeUnmount(() => {
       data-mm-global-audio-element
       :data-mm-audio-epoch="trackEpoch"
       preload="metadata"
-      :src="currentTrack?.source.url"
+      :src="sourceAdmission?.source.url ?? undefined"
       @loadedmetadata="observeMetadata"
       @durationchange="observeMetadata"
       @timeupdate="observeTime"
@@ -446,9 +498,19 @@ onBeforeUnmount(() => {
       aria-label="전역 오디오 플레이어"
     >
       <div class="mm-global-audio-dock__inner mm-shell-frame">
-        <p class="mm-global-audio-dock__track">
-          {{ currentTrack?.label }}
-        </p>
+        <div class="mm-global-audio-dock__identity">
+          <div
+            v-if="artworkPlan !== null"
+            class="mm-global-audio-dock__artwork"
+            data-mm-global-audio-artwork
+            aria-hidden="true"
+          >
+            <ResponsiveImage :plan="artworkPlan" />
+          </div>
+          <p class="mm-global-audio-dock__track">
+            {{ currentTrack?.label }}
+          </p>
+        </div>
 
         <button
           class="mm-global-audio-dock__button"

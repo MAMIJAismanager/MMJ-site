@@ -5,11 +5,15 @@ import type {
   AssetId,
   ProjectId,
 } from './domain-identifiers'
+import type {
+  ResponsiveImageRenderPlan,
+} from './responsive-image'
 
 export interface PlayerTrackSource {
   readonly renditionId: string
   readonly url: string
   readonly mediaType: AssetMediaTypeFor<'audio'>
+  readonly byteSize: number
   readonly declaredDurationMs: number
 }
 
@@ -17,7 +21,26 @@ export interface PlayerTrack {
   readonly trackId: AssetId
   readonly projectId: ProjectId
   readonly label: string
+  readonly sources: readonly PlayerTrackSource[]
+  readonly defaultSource: PlayerTrackSource
+  readonly declaredDurationMs: number
+  readonly artworkPlan: ResponsiveImageRenderPlan | null
+}
+
+export type PlayerSourceCapability =
+  | 'probably'
+  | 'maybe'
+
+export type PlayerSourceAdmissionReason =
+  | 'default-supported'
+  | 'mp3-compatibility-fallback'
+  | 'ordered-supported-fallback'
+
+export interface PlayerSourceAdmission {
+  readonly trackEpoch: number
   readonly source: PlayerTrackSource
+  readonly capability: PlayerSourceCapability
+  readonly reason: PlayerSourceAdmissionReason
 }
 
 export type PlayerPhase =
@@ -60,6 +83,7 @@ export type PlayerRuntimeErrorCode =
   | 'network'
   | 'decode'
   | 'source-not-supported'
+  | 'no-playable-audio-source'
   | 'play-rejected'
   | 'invalid-runtime-observation'
   | 'unknown-media-error'
@@ -70,9 +94,10 @@ export interface PlayerRuntimeError {
 }
 
 export interface PlayerStoreState {
-  readonly schemaVersion: 1
+  readonly schemaVersion: 2
   readonly currentTrack: PlayerTrack | null
   readonly trackEpoch: number
+  readonly sourceAdmission: PlayerSourceAdmission | null
   readonly phase: PlayerPhase
   readonly currentTimeSeconds: number
   readonly durationSeconds: number | null
@@ -92,6 +117,10 @@ export type PlayerStateTransition =
     }>
   | Readonly<{
       kind: 'clear-track'
+    }>
+  | Readonly<{
+      kind: 'admit-source'
+      admission: PlayerSourceAdmission
     }>
   | Readonly<{
       kind: 'request-play'

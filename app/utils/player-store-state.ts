@@ -27,6 +27,10 @@ export type PlayerStoreStateErrorCode =
   | 'player-invalid-buffered-time'
   | 'player-invalid-runtime-error'
   | 'player-observation-without-track'
+  | 'player-source-admission-not-track-member'
+  | 'player-source-admission-conflict'
+  | 'player-source-admission-invalid-capability'
+  | 'player-source-admission-invalid-reason'
 
 export class PlayerStoreStateError extends Error {
   override readonly name = 'PlayerStoreStateError'
@@ -162,6 +166,7 @@ function makeRuntimeError(
     'network',
     'decode',
     'source-not-supported',
+    'no-playable-audio-source',
     'play-rejected',
     'invalid-runtime-observation',
     'unknown-media-error',
@@ -179,9 +184,10 @@ function makeRuntimeError(
 
 export function createInitialPlayerStoreState(): PlayerStoreState {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     currentTrack: null,
     trackEpoch: 0,
+    sourceAdmission: null,
     phase: 'idle',
     currentTimeSeconds: 0,
     durationSeconds: null,
@@ -216,6 +222,7 @@ export function reducePlayerStoreState(
           'player-track-epoch-exhausted',
           'trackEpoch',
         ),
+        sourceAdmission: null,
         phase: 'loading',
         currentTimeSeconds: 0,
         durationSeconds: null,
@@ -236,6 +243,7 @@ export function reducePlayerStoreState(
           'player-track-epoch-exhausted',
           'trackEpoch',
         ),
+        sourceAdmission: null,
         phase: 'idle',
         currentTimeSeconds: 0,
         durationSeconds: null,
@@ -243,6 +251,41 @@ export function reducePlayerStoreState(
         pendingTransport: null,
         pendingSeek: null,
         error: null,
+      }
+    }
+
+    case 'admit-source': {
+      const admission = transition.admission
+      if (validateCurrentEpoch(state, admission.trackEpoch) === 'stale') return state
+      const track = state.currentTrack
+      if (track === null || !track.sources.includes(admission.source)) {
+        fail('player-source-admission-not-track-member', 'sourceAdmission.source')
+      }
+      if (admission.capability !== 'probably' && admission.capability !== 'maybe') {
+        fail('player-source-admission-invalid-capability', 'sourceAdmission.capability')
+      }
+      if (
+        admission.reason !== 'default-supported'
+        && admission.reason !== 'mp3-compatibility-fallback'
+        && admission.reason !== 'ordered-supported-fallback'
+      ) {
+        fail('player-source-admission-invalid-reason', 'sourceAdmission.reason')
+      }
+      const existing = state.sourceAdmission
+      if (existing !== null) {
+        if (
+          existing.trackEpoch === admission.trackEpoch
+          && existing.source === admission.source
+          && existing.capability === admission.capability
+          && existing.reason === admission.reason
+        ) {
+          return state
+        }
+        fail('player-source-admission-conflict', 'sourceAdmission')
+      }
+      return {
+        ...state,
+        sourceAdmission: Object.freeze({ ...admission }),
       }
     }
 

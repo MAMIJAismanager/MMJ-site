@@ -39,7 +39,7 @@ const GATEWAY_CATEGORIES = new Set([
 ])
 const IMAGE_MEDIA_TYPES = new Set(['image/avif', 'image/webp', 'image/jpeg', 'image/png'])
 const VIDEO_MEDIA_TYPES = new Set(['video/webm', 'video/mp4'])
-const AUDIO_MEDIA_TYPES = new Set(['audio/mpeg', 'audio/mp4', 'audio/ogg', 'audio/wav'])
+const AUDIO_MEDIA_TYPES = new Set(['audio/mpeg', 'audio/mp4', 'audio/ogg', 'audio/wav', 'audio/flac'])
 const PURPOSES = {
   image: new Set(['primary', 'thumbnail', 'download']),
   video: new Set(['primary', 'preview', 'download']),

@@ -7,24 +7,36 @@ import {
 } from '../schema/domain-identifiers'
 import type {
   PlayerTrack,
+  PlayerTrackSource,
 } from '../types/player-store'
 import type {
   ResolvedAudioInlinePlan,
+  ResolvedAudioSource,
 } from '../types/resolved-media'
 import type {
   ProjectId,
 } from '../types/domain-identifiers'
+import type {
+  ResponsiveImageRenderPlan,
+} from '../types/responsive-image'
 
 export type PlayerTrackPlanningErrorCode =
   | 'player-track-kind-mismatch'
+  | 'player-track-empty-source-set'
   | 'player-track-fallback-source-not-member'
   | 'player-track-invalid-project-id'
   | 'player-track-invalid-asset-id'
   | 'player-track-invalid-label'
   | 'player-track-invalid-rendition-id'
+  | 'player-track-duplicate-rendition-id'
+  | 'player-track-duplicate-media-type'
   | 'player-track-invalid-media-type'
   | 'player-track-invalid-url'
+  | 'player-track-invalid-byte-size'
   | 'player-track-invalid-duration'
+  | 'player-track-mixed-duration'
+  | 'player-track-artwork-plan-missing'
+  | 'player-track-artwork-identity-mismatch'
   | 'player-track-generation-conflict'
 
 export class PlayerTrackPlanningError extends Error {
@@ -43,11 +55,13 @@ export interface PlayerTrackPlanningAuthority {
   resolve(
     audioPlan: ResolvedAudioInlinePlan,
     projectId: ProjectId,
+    artworkPlan: ResponsiveImageRenderPlan | null,
   ): PlayerTrack
 }
 
 interface CachedTrack {
   readonly source: ResolvedAudioInlinePlan
+  readonly artworkPlan: ResponsiveImageRenderPlan | null
   readonly output: PlayerTrack
 }
 
@@ -62,20 +76,21 @@ function fail(
 function validateHttpsUrl(
   value: unknown,
   ownerId: string,
+  path: string,
 ): string {
   if (
     typeof value !== 'string'
     || value.length === 0
     || value !== value.trim()
   ) {
-    fail('player-track-invalid-url', 'audioPlan.fallbackSource.url', ownerId)
+    fail('player-track-invalid-url', path, ownerId)
   }
 
   let parsed: URL
   try {
     parsed = new URL(value)
   } catch {
-    fail('player-track-invalid-url', 'audioPlan.fallbackSource.url', ownerId)
+    fail('player-track-invalid-url', path, ownerId)
   }
 
   if (
@@ -84,20 +99,104 @@ function validateHttpsUrl(
     || parsed.username.length > 0
     || parsed.password.length > 0
   ) {
-    fail('player-track-invalid-url', 'audioPlan.fallbackSource.url', ownerId)
+    fail('player-track-invalid-url', path, ownerId)
   }
 
   return value
 }
 
+function validateSource(
+  source: ResolvedAudioSource,
+  ownerId: string,
+  index: number,
+): PlayerTrackSource {
+  const path = `audioPlan.sources[${index}]`
+
+  if (
+    typeof source.renditionId !== 'string'
+    || source.renditionId.length === 0
+    || source.renditionId !== source.renditionId.trim()
+  ) {
+    fail(
+      'player-track-invalid-rendition-id',
+      `${path}.renditionId`,
+      ownerId,
+    )
+  }
+
+  if (!isAssetMediaTypeFor('audio', source.mediaType)) {
+    fail(
+      'player-track-invalid-media-type',
+      `${path}.mediaType`,
+      ownerId,
+    )
+  }
+
+  if (!Number.isSafeInteger(source.byteSize) || source.byteSize <= 0) {
+    fail(
+      'player-track-invalid-byte-size',
+      `${path}.byteSize`,
+      ownerId,
+    )
+  }
+
+  const durationMs = source.metadata?.durationMs
+  if (!Number.isSafeInteger(durationMs) || durationMs <= 0) {
+    fail(
+      'player-track-invalid-duration',
+      `${path}.metadata.durationMs`,
+      ownerId,
+    )
+  }
+
+  return Object.freeze({
+    renditionId: source.renditionId,
+    url: validateHttpsUrl(source.url, ownerId, `${path}.url`),
+    mediaType: source.mediaType,
+    byteSize: source.byteSize,
+    declaredDurationMs: durationMs,
+  })
+}
+
+function validateArtworkPlan(
+  audioPlan: ResolvedAudioInlinePlan,
+  artworkPlan: ResponsiveImageRenderPlan | null,
+  ownerId: string,
+): void {
+  const artwork = audioPlan.media.artwork
+  if (artwork === null) {
+    if (artworkPlan !== null) {
+      fail(
+        'player-track-artwork-identity-mismatch',
+        'artworkPlan',
+        ownerId,
+      )
+    }
+    return
+  }
+
+  if (artworkPlan === null) {
+    fail('player-track-artwork-plan-missing', 'artworkPlan', ownerId)
+  }
+
+  if (artworkPlan.assetId !== artwork.id) {
+    fail(
+      'player-track-artwork-identity-mismatch',
+      'artworkPlan.assetId',
+      ownerId,
+    )
+  }
+}
+
 export function createPlayerTrackPlanningAuthority(): PlayerTrackPlanningAuthority {
-  const outputByPlan = new WeakMap<ResolvedAudioInlinePlan, Map<string, PlayerTrack>>()
+  const outputByPlan = new WeakMap<ResolvedAudioInlinePlan, Map<string, CachedTrack>>()
   const ownerByIdentity = new Map<string, CachedTrack>()
 
   return Object.freeze({
     resolve(
       audioPlan: ResolvedAudioInlinePlan,
       projectId: ProjectId,
+      artworkPlan: ResponsiveImageRenderPlan | null,
     ): PlayerTrack {
       if (!isProjectId(projectId)) {
         fail('player-track-invalid-project-id', 'projectId', String(projectId))
@@ -128,6 +227,10 @@ export function createPlayerTrackPlanningAuthority(): PlayerTrackPlanningAuthori
         fail('player-track-invalid-label', 'audioPlan.media.label', media.id)
       }
 
+      if (plan.sources.length === 0) {
+        fail('player-track-empty-source-set', 'audioPlan.sources', media.id)
+      }
+
       if (!plan.sources.includes(plan.fallbackSource)) {
         fail(
           'player-track-fallback-source-not-member',
@@ -136,66 +239,95 @@ export function createPlayerTrackPlanningAuthority(): PlayerTrackPlanningAuthori
         )
       }
 
-      const source = plan.fallbackSource
-      if (
-        typeof source.renditionId !== 'string'
-        || source.renditionId.length === 0
-        || source.renditionId !== source.renditionId.trim()
-      ) {
+      validateArtworkPlan(plan, artworkPlan, media.id)
+
+      const sources = Object.freeze(
+        plan.sources.map((source, index) => validateSource(source, media.id, index)),
+      )
+
+      const renditionIds = new Set<string>()
+      const mediaTypes = new Set<string>()
+      const declaredDurationMs = sources[0]!.declaredDurationMs
+
+      for (let index = 0; index < sources.length; index += 1) {
+        const source = sources[index]!
+        if (renditionIds.has(source.renditionId)) {
+          fail(
+            'player-track-duplicate-rendition-id',
+            `audioPlan.sources[${index}].renditionId`,
+            media.id,
+          )
+        }
+        renditionIds.add(source.renditionId)
+
+        if (mediaTypes.has(source.mediaType)) {
+          fail(
+            'player-track-duplicate-media-type',
+            `audioPlan.sources[${index}].mediaType`,
+            media.id,
+          )
+        }
+        mediaTypes.add(source.mediaType)
+
+        if (source.declaredDurationMs !== declaredDurationMs) {
+          fail(
+            'player-track-mixed-duration',
+            `audioPlan.sources[${index}].declaredDurationMs`,
+            media.id,
+          )
+        }
+      }
+
+      const fallbackIndex = plan.sources.indexOf(plan.fallbackSource)
+      const defaultSource = sources[fallbackIndex]
+      if (defaultSource === undefined) {
         fail(
-          'player-track-invalid-rendition-id',
-          'audioPlan.fallbackSource.renditionId',
+          'player-track-fallback-source-not-member',
+          'audioPlan.fallbackSource',
           media.id,
         )
       }
 
-      if (!isAssetMediaTypeFor('audio', source.mediaType)) {
-        fail(
-          'player-track-invalid-media-type',
-          'audioPlan.fallbackSource.mediaType',
-          media.id,
-        )
-      }
-
-      const durationMs = source.metadata?.durationMs
-      if (
-        !Number.isSafeInteger(durationMs)
-        || durationMs <= 0
-      ) {
-        fail(
-          'player-track-invalid-duration',
-          'audioPlan.fallbackSource.metadata.durationMs',
-          media.id,
-        )
-      }
-
-      const url = validateHttpsUrl(source.url, media.id)
       const identity = `${media.id}\u0000${projectId}`
       const existingOwner = ownerByIdentity.get(identity)
-      if (existingOwner !== undefined && existingOwner.source !== plan) {
+      if (
+        existingOwner !== undefined
+        && (
+          existingOwner.source !== plan
+          || existingOwner.artworkPlan !== artworkPlan
+        )
+      ) {
         fail('player-track-generation-conflict', 'audioPlan', media.id)
       }
 
       const projectCache = outputByPlan.get(plan)
-      const existingOutput = projectCache?.get(projectId)
-      if (existingOutput !== undefined) return existingOutput
+      const existingCached = projectCache?.get(projectId)
+      if (existingCached !== undefined) {
+        if (existingCached.artworkPlan !== artworkPlan) {
+          fail('player-track-generation-conflict', 'artworkPlan', media.id)
+        }
+        return existingCached.output
+      }
 
       const output: PlayerTrack = Object.freeze({
         trackId: media.id,
         projectId,
         label: media.label,
-        source: Object.freeze({
-          renditionId: source.renditionId,
-          url,
-          mediaType: source.mediaType,
-          declaredDurationMs: durationMs,
-        }),
+        sources,
+        defaultSource,
+        declaredDurationMs,
+        artworkPlan,
       })
 
-      const nextProjectCache = projectCache ?? new Map<string, PlayerTrack>()
-      nextProjectCache.set(projectId, output)
+      const cached = Object.freeze({
+        source: plan,
+        artworkPlan,
+        output,
+      })
+      const nextProjectCache = projectCache ?? new Map<string, CachedTrack>()
+      nextProjectCache.set(projectId, cached)
       if (projectCache === undefined) outputByPlan.set(plan, nextProjectCache)
-      ownerByIdentity.set(identity, Object.freeze({ source: plan, output }))
+      ownerByIdentity.set(identity, cached)
       return output
     },
   })

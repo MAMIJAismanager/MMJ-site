@@ -11,6 +11,9 @@ import {
   createPlayerTrackPlanningAuthority,
 } from '~~/shared/resolver/player-track'
 import {
+  createGlobalAudioArtworkOptions,
+} from '~~/shared/resolver/player-artwork-options'
+import {
   createWorkDetailVideoPosterOptions,
   MM_WORK_DETAIL_IMAGE_SIZES,
 } from '~~/shared/resolver/work-detail-presentation-plan'
@@ -146,5 +149,11 @@ export function resolvePortfolioAudioTrack(
     delivery as Extract<PortfolioMediaDelivery, { status: 'bound' }>,
   )
   const audioPlan = authority.resolveInlinePlan(asset, 'primary')
-  return playerTrackPlanner.resolve(audioPlan, projectId)
+  const artworkPlan = asset.artwork === null
+    ? null
+    : responsiveImagePlanner.resolve(
+        authority.resolveInlinePlan(asset.artwork, 'primary'),
+        createGlobalAudioArtworkOptions(),
+      )
+  return playerTrackPlanner.resolve(audioPlan, projectId, artworkPlan)
 }

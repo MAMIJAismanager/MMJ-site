@@ -6,6 +6,7 @@ import {
 import type {
   PlayerPauseReason,
   PlayerRuntimeErrorCode,
+  PlayerSourceAdmission,
   PlayerStateTransition,
   PlayerStoreState,
   PlayerTrack,
@@ -25,8 +26,8 @@ export const usePlayerStore = defineStore('player', {
     hasTrack: state => state.currentTrack !== null,
     currentTrackId: state => state.currentTrack?.trackId ?? null,
     currentProjectId: state => state.currentTrack?.projectId ?? null,
-    sourceUrl: state => state.currentTrack?.source.url ?? null,
-    sourceMediaType: state => state.currentTrack?.source.mediaType ?? null,
+    sourceUrl: state => state.sourceAdmission?.source.url ?? null,
+    sourceMediaType: state => state.sourceAdmission?.source.mediaType ?? null,
     isPlaying: state => state.phase === 'playing',
     isTransportPending: state => state.pendingTransport !== null,
     isSeekPending: state => state.pendingSeek !== null,
@@ -61,6 +62,10 @@ export const usePlayerStore = defineStore('player', {
 
     clearTrack(): boolean {
       return this.apply({ kind: 'clear-track' })
+    },
+
+    admitSource(admission: PlayerSourceAdmission): boolean {
+      return this.apply({ kind: 'admit-source', admission })
     },
 
     requestPlay(): boolean {

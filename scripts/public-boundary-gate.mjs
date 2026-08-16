@@ -31,6 +31,8 @@ const allowedShared = new Set([
   'shared/resolver/media-resolution.ts',
   'shared/resolver/accessible-description-resolution.ts',
   'shared/resolver/media-renderability.ts',
+  'shared/resolver/player-artwork-options.ts',
+  'shared/resolver/player-source-admission.ts',
   'shared/resolver/player-track.ts',
   'shared/resolver/work-detail-presentation-plan.ts',
   'shared/resolver/portfolio-project-view-resolver.ts',

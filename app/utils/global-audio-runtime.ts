@@ -61,6 +61,8 @@ export function audioRuntimeErrorMessage(
       return '오디오 데이터를 재생 가능한 형태로 해석하지 못했습니다.'
     case 'source-not-supported':
       return '이 브라우저에서 지원하지 않는 오디오 형식입니다.'
+    case 'no-playable-audio-source':
+      return '이 브라우저에서 재생 가능한 오디오 버전을 찾지 못했습니다.'
     case 'play-rejected':
       return '브라우저가 오디오 재생 요청을 거부했습니다.'
     case 'invalid-runtime-observation':
@@ -128,6 +130,8 @@ export function parseAudioEpoch(value: string | undefined): number {
   }
   return parsed
 }
+
+export { selectPlayableAudioSource } from '~~/shared/resolver/player-source-admission'
 
 export function decideAudioTrackAction(
   currentTrack: PlayerTrack | null,

@@ -14,6 +14,9 @@ import {
   createPlayerTrackPlanningAuthority,
 } from './player-track'
 import {
+  createGlobalAudioArtworkOptions,
+} from './player-artwork-options'
+import {
   createPortfolioProjectViewResolver,
 } from './portfolio-project-view-resolver'
 import {
@@ -361,6 +364,7 @@ export function admitPortfolioWorkDetailPresentations(
       return
     }
 
+    let playerArtworkPlan: ResponsiveImageRenderPlan | null = null
     if (asset.artwork !== null) {
       resolveInformativeImage(
         project,
@@ -370,6 +374,25 @@ export function admitPortfolioWorkDetailPresentations(
         'primary-audio-artwork',
         'primary',
         receipts,
+      )
+      const playerArtworkInlinePlan = plan(
+        project,
+        asset.artwork,
+        asset.id,
+        'audio-artwork',
+        'media-resolution',
+        () => mediaResolution.resolveInlinePlan(asset.artwork!, 'primary'),
+      )
+      playerArtworkPlan = plan(
+        project,
+        asset.artwork,
+        asset.id,
+        'audio-artwork',
+        'responsive-image',
+        () => responsiveImage.resolve(
+          playerArtworkInlinePlan,
+          createGlobalAudioArtworkOptions(),
+        ),
       )
     }
 
@@ -388,7 +411,7 @@ export function admitPortfolioWorkDetailPresentations(
       null,
       'primary',
       'audio-track',
-      () => audioTrack.resolve(audioPlan, project.id),
+      () => audioTrack.resolve(audioPlan, project.id, playerArtworkPlan),
     )
     record(receipts, asset, null, 'primary', 'audio-track')
   }

@@ -139,6 +139,12 @@ export const AUDIO_ASSET_MEDIA_TYPE_REGISTRY = [
     kind: 'audio',
     order: 40,
   },
+  {
+    token: 'audio/flac',
+    extensions: ['flac'],
+    kind: 'audio',
+    order: 50,
+  },
 ] as const
 
 export const ASSET_MEDIA_TYPE_REGISTRY = [
