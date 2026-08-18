@@ -1,4 +1,4 @@
-﻿import { lstat, readFile, readdir, stat } from 'node:fs/promises'
+import { lstat, readFile, readdir, stat } from 'node:fs/promises'
 import { extname, relative, resolve, sep } from 'node:path'
 
 import {
@@ -355,4 +355,3 @@ console.log(JSON.stringify({
   sharedAllowlistCount: allowedShared.size,
   ui29BuildFileCount: requiredUi29BuildFiles.size,
 }))
-

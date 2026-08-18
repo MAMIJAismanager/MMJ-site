@@ -68,7 +68,9 @@
     "gate:generation-bound-dispatch-authority-05": "node --experimental-strip-types scripts/mmj-ui29-generation-bound-dispatch-authority-05-test.mjs && node scripts/mmj-ui29-dispatch-authority-test.mjs && node scripts/mmj-ui29-generation-bound-dispatch-authority-05-gate.mjs && npm run gate:portfolio-reconciliation-run-identity-r1",
     "gate:supersession-without-silent-drop-06": "node --experimental-strip-types scripts/mmj-ui29-supersession-without-silent-drop-06-test.mjs && node scripts/mmj-ui29-supersession-without-silent-drop-06-gate.mjs && npm run gate:generation-bound-dispatch-authority-05",
     "test:push-dispatch-single-convergence-authority-07": "node --experimental-strip-types scripts/mmj-ui29-push-dispatch-single-convergence-authority-07-test.mjs",
-    "gate:push-dispatch-single-convergence-authority-07": "node --experimental-strip-types scripts/mmj-ui29-push-dispatch-single-convergence-authority-07-test.mjs && node scripts/mmj-ui29-push-dispatch-single-convergence-authority-07-gate.mjs && npm run gate:supersession-without-silent-drop-06"
+    "gate:push-dispatch-single-convergence-authority-07": "node --experimental-strip-types scripts/mmj-ui29-push-dispatch-single-convergence-authority-07-test.mjs && node scripts/mmj-ui29-push-dispatch-single-convergence-authority-07-gate.mjs && npm run gate:supersession-without-silent-drop-06",
+    "test:r07-source-observation-async-convergence-closure-r1": "node scripts/mmj-ui29-r07-source-observation-async-convergence-closure-r1-gate.mjs",
+    "gate:r07-source-observation-async-convergence-closure-r1": "npm run verify:boundary && node scripts/mmj-ui29-r07-source-observation-async-convergence-closure-r1-gate.mjs && npm run gate:push-dispatch-single-convergence-authority-07"
   },
   "dependencies": {
     "@pinia/nuxt": "0.11.2",
@@ -113,6 +115,7 @@
   "releases": {
     "mmjPublicationGenerationBoundDispatchAuthority05Release": "MMJ-PUBLICATION-GENERATION-BOUND-DISPATCH-AUTHORITY-05",
     "mmjPublicationSupersessionWithoutSilentDrop06PublicRelease": "MMJ-PUBLICATION-SUPERSESSION-WITHOUT-SILENT-DROP-06",
-    "mmjPublicationPushDispatchSingleConvergenceAuthority07PublicRelease": "MMJ-PUBLICATION-PUSH-DISPATCH-SINGLE-CONVERGENCE-AUTHORITY-07"
+    "mmjPublicationPushDispatchSingleConvergenceAuthority07PublicRelease": "MMJ-PUBLICATION-PUSH-DISPATCH-SINGLE-CONVERGENCE-AUTHORITY-07",
+    "mmjPublicationR07SourceObservationAsyncConvergenceClosureR1PublicRelease": "MMJ-PUBLICATION-R07-SOURCE-OBSERVATION-ASYNC-CONVERGENCE-CLOSURE-R1"
   }
 }
