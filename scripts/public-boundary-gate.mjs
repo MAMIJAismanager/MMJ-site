@@ -1,4 +1,4 @@
-import { lstat, readFile, readdir, stat } from 'node:fs/promises'
+﻿import { lstat, readFile, readdir, stat } from 'node:fs/promises'
 import { extname, relative, resolve, sep } from 'node:path'
 
 import {
@@ -89,6 +89,30 @@ const allowedWorkflowSecretNames = new Set([
 const allowedBuildScriptSecretReferences = new Map([
   [
     'scripts/mmj-ui29-build-receipt.mjs',
+    new Set([
+      'MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET',
+    ]),
+  ],
+  [
+    'scripts/mmj-ui29-public-convergence-receipt.mjs',
+    new Set([
+      'MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET',
+    ]),
+  ],
+  [
+    'scripts/mmj-ui29-public-source-observation.mjs',
+    new Set([
+      'MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET',
+    ]),
+  ],
+  [
+    'scripts/mmj-ui29-public-convergence-supersession-receipt.mjs',
+    new Set([
+      'MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET',
+    ]),
+  ],
+  [
+    'scripts/mmj-ui29-supersession-receipt.mjs',
     new Set([
       'MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET',
     ]),
@@ -331,3 +355,4 @@ console.log(JSON.stringify({
   sharedAllowlistCount: allowedShared.size,
   ui29BuildFileCount: requiredUi29BuildFiles.size,
 }))
+
