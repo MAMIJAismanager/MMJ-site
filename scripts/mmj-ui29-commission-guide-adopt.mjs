@@ -26,6 +26,8 @@ const root = process.cwd()
 const generated = resolve(root, 'generated')
 const origin = resolveOrigin(process.env.MMJ_COMMISSION_GUIDE_HANDOFF_ORIGIN ?? process.env.MMJ_PORTFOLIO_HANDOFF_ORIGIN)
 const deadline = Date.now() + 60_000
+const adoptionMode = process.env.MMJ_COMMISSION_GUIDE_ADOPTION_MODE || 'current-head'
+if (!['current-head', 'convergence-generation'].includes(adoptionMode)) fail('E_MMJ_COMMISSION_ADOPTION_MODE_INVALID', 'MMJ_COMMISSION_GUIDE_ADOPTION_MODE must be current-head or convergence-generation.')
 const targetNames = [
   'commission-guide.snapshot.json',
   'commission-guide.handoff.json',
@@ -90,7 +92,7 @@ function parse(bytes, stage) {
   try { return JSON.parse(bytes.toString('utf8')) } catch { fail('E_MMJ_COMMISSION_HANDOFF_INVALID', `${stage} response is not valid JSON.`) }
 }
 
-async function transaction() {
+async function currentHeadTransaction() {
   const headAResponse = await fetchBytes('/api/v1/public/commission-guide/head', 64 * 1024, 'head')
   const headA = validateCommissionHead(parse(headAResponse.bytes, 'head'))
   const receiptResponse = await fetchBytes(`/api/v1/public/commission-guide/receipts/${encodeURIComponent(headA.handoffReceiptId)}`, 256 * 1024, 'receipt')
@@ -116,6 +118,47 @@ async function transaction() {
     if (headA[field] !== headB[field]) fail('E_MMJ_COMMISSION_HEAD_UNSTABLE', `Commission head changed at ${field}.`, { before: headA[field], after: headB[field] })
   }
   return { head: headA, receipt, snapshotBytes: snapshotResponse.bytes, receiptBytes: receiptResponse.bytes }
+}
+
+
+async function convergenceGenerationTransaction() {
+  const publicationVersionId = String(process.env.MMJ_COMMISSION_PUBLICATION_VERSION_ID || '')
+  const snapshotDigest = String(process.env.MMJ_COMMISSION_EXPECTED_SNAPSHOT_DIGEST || '')
+  const contentDigest = String(process.env.MMJ_COMMISSION_CONTENT_DIGEST || '')
+  const handoffReceiptId = String(process.env.MMJ_COMMISSION_HANDOFF_RECEIPT_ID || '')
+  const sourceWorkbookRevision = Number(process.env.MMJ_COMMISSION_SOURCE_WORKBOOK_REVISION)
+  const publicationHeadRevision = Number(process.env.MMJ_COMMISSION_PUBLICATION_HEAD_REVISION)
+  if (!/^cgv_[a-f0-9]{28}$/.test(publicationVersionId) || !/^[a-f0-9]{64}$/.test(snapshotDigest) || !/^[a-f0-9]{64}$/.test(contentDigest) || !/^cgh_[a-f0-9]{26}$/.test(handoffReceiptId) || !Number.isSafeInteger(sourceWorkbookRevision) || sourceWorkbookRevision < 1 || !Number.isSafeInteger(publicationHeadRevision) || publicationHeadRevision < 0) {
+    fail('E_MMJ_COMMISSION_CONVERGENCE_GENERATION_INVALID', 'Commission convergence generation environment is invalid.')
+  }
+  const receiptResponse = await fetchBytes(`/api/v1/public/commission-guide/receipts/${encodeURIComponent(handoffReceiptId)}`, 256 * 1024, 'receipt')
+  const receiptRaw = parse(receiptResponse.bytes, 'receipt')
+  const head = validateCommissionHead({
+    schemaVersion: 1,
+    contract: 'mmj-public-commission-guide-head-v1',
+    guideId: 'default',
+    publicationVersionId,
+    snapshotDigest,
+    contentDigest,
+    handoffReceiptId,
+    sourceWorkbookRevision,
+    publicationHeadRevision,
+    publishedAt: String(receiptRaw.createdAt || ''),
+    producerRelease: String(receiptRaw.producerRelease || ''),
+  })
+  const receipt = validateCommissionReceipt(receiptRaw, head)
+  const query = new URLSearchParams({ publicationVersionId, handoffReceiptId, snapshotDigest })
+  const snapshotResponse = await fetchBytes(`/api/v1/public/commission-guide?${query}`, 8 * 1024 * 1024, 'snapshot')
+  const actualDigest = sha256(snapshotResponse.bytes)
+  if (actualDigest !== snapshotDigest || actualDigest !== receipt.snapshotDigest) fail('E_MMJ_COMMISSION_SNAPSHOT_DIGEST_MISMATCH', 'Commission convergence snapshot raw-byte digest mismatch.', { expected: snapshotDigest, actual: actualDigest })
+  const etag = snapshotResponse.response.headers.get('etag')?.replace(/^W\//, '')
+  const versionHeader = snapshotResponse.response.headers.get('x-mmj-commission-publication-version')
+  const receiptHeader = snapshotResponse.response.headers.get('x-mmj-commission-handoff-receipt')
+  if (etag !== `"${snapshotDigest}"` || versionHeader !== publicationVersionId || receiptHeader !== handoffReceiptId) fail('E_MMJ_COMMISSION_SNAPSHOT_HEADER_MISMATCH', 'Commission convergence snapshot response headers do not match generation.')
+  const snapshot = parse(snapshotResponse.bytes, 'snapshot')
+  const validated = validateCommissionSnapshot(snapshot, head)
+  if (validated.contentDigest !== contentDigest || validated.contentDigest !== receipt.contentDigest) fail('E_MMJ_COMMISSION_SNAPSHOT_DIGEST_MISMATCH', 'Commission convergence content digest mismatch.')
+  return { head, receipt, snapshotBytes: snapshotResponse.bytes, receiptBytes: receiptResponse.bytes }
 }
 
 async function adopt(input) {
@@ -149,6 +192,7 @@ async function adopt(input) {
       sourceDigest: portfolioHandoff.sourceDigest,
       projectCount: portfolio.projectCount,
       assetCount: portfolio.assetCount,
+      ...(portfolio.generation ? { generation: portfolio.generation } : {}),
     },
     commissionGuide: commissionIdentity,
   })
@@ -192,7 +236,7 @@ async function adopt(input) {
 
 const adopted = await runCommissionHandoffTransactionWithRetry({
   deadline,
-  transaction: async () => adopt(await transaction()),
+  transaction: async () => adopt(await (adoptionMode === 'convergence-generation' ? convergenceGenerationTransaction() : currentHeadTransaction())),
 })
 
 console.log(JSON.stringify({
@@ -204,4 +248,5 @@ console.log(JSON.stringify({
   handoffReceiptDigest: adopted.commissionIdentity.handoffReceiptDigest,
   releaseId: adopted.manifest.releaseId,
   runtimeCmsFetch: 'absent',
+  adoptionMode,
 }))

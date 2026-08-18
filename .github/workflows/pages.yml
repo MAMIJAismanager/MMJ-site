@@ -1,14 +1,10 @@
 name: Deploy MMJ Site to GitHub Pages
+run-name: mmj-converge:${{ github.event.client_payload.convergenceKey }}
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
   repository_dispatch:
     types:
-      - mmj_portfolio_promoted
-      - mmj-public-commission-guide-published
+      - mmj_public_converge
 
 permissions:
   contents: read
@@ -17,54 +13,70 @@ permissions:
 
 concurrency:
   group: github-pages
-  queue: max
+  cancel-in-progress: false
 
 env:
   TZ: UTC
   LANG: C.UTF-8
   LC_ALL: C.UTF-8
   SOURCE_DATE_EPOCH: '1784378700'
-  MMJ_BUILD_ID: mmj-github-pages-production
-  MMJ_PUBLIC_RELEASE_REQUIRED: '1'
-  MMJ_PUBLIC_RELEASE_REVISION: ${{ github.sha }}
+  MMJ_BUILD_ID: mmj-github-pages-production-convergence
   MMJ_BUILD_ENVIRONMENT_CLASS: production
+  MMJ_PUBLIC_RELEASE_REQUIRED: '1'
+  MMJ_PUBLIC_CONVERGENCE_REQUIRED: '1'
+  MMJ_PUBLIC_RELEASE_REVISION: ${{ github.event.client_payload.source.commitSha }}
   MMJ_PORTFOLIO_HANDOFF_ORIGIN: https://cms.mamajing.work
   MMJ_COMMISSION_GUIDE_HANDOFF_ORIGIN: https://cms.mamajing.work
   NUXT_APP_BASE_URL: /
   NUXT_PUBLIC_MMJ_MEDIA_BASE_URL: https://media.mamajing.work
   NUXT_PUBLIC_MMJ_CONTACT_FORM_ENDPOINT: https://formspree.io/f/mrpzbjbv
   MMJ_CANONICAL_PUBLIC_URL: https://mamajing.work
-  MMJ_CMS_BUILD_RECEIPT_ENDPOINT: https://cms.mamajing.work/api/v1/internal/portfolio-build-receipts
 
-  MMJ_DELIVERY_KEY: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && github.event.client_payload.deliveryKey || '' }}
-  MMJ_COLLECTION_VERSION_ID: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && github.event.client_payload.collectionVersionId || '' }}
-  MMJ_EXPECTED_SNAPSHOT_DIGEST: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && github.event.client_payload.snapshotDigest || '' }}
-  MMJ_HANDOFF_RECEIPT_ID: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && github.event.client_payload.handoffReceiptId || '' }}
-  MMJ_PROJECT_COUNT: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && format('{0}', github.event.client_payload.projectCount) || '' }}
-  MMJ_ASSET_COUNT: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && format('{0}', github.event.client_payload.assetCount) || '' }}
-  MMJ_SOURCE_WORKBOOK_REVISION: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && format('{0}', github.event.client_payload.sourceWorkbookRevision) || '' }}
-  MMJ_COLLECTION_HEAD_REVISION: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && format('{0}', github.event.client_payload.collectionHeadRevision) || '' }}
-  MMJ_ISSUED_AT: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && github.event.client_payload.issuedAt || '' }}
+  MMJ_CMS_PUBLIC_CONVERGENCE_BUILD_RECEIPT_ENDPOINT: https://cms.mamajing.work/api/v1/internal/public-convergence-build-receipts
+  MMJ_CMS_PUBLIC_CONVERGENCE_SUPERSESSION_RECEIPT_ENDPOINT: https://cms.mamajing.work/api/v1/internal/public-convergence-supersession-receipts
 
-  MMJ_COMMISSION_SCHEMA_VERSION: '1'
-  MMJ_COMMISSION_CONTENT_KIND: commission-guide
-  MMJ_COMMISSION_DELIVERY_KEY: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' && github.event.client_payload.deliveryKey || '' }}
-  MMJ_COMMISSION_GUIDE_ID: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' && github.event.client_payload.guideId || 'default' }}
-  MMJ_COMMISSION_PUBLICATION_VERSION_ID: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' && github.event.client_payload.publicationVersionId || '' }}
-  MMJ_COMMISSION_EXPECTED_SNAPSHOT_DIGEST: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' && github.event.client_payload.snapshotDigest || '' }}
-  MMJ_COMMISSION_HANDOFF_RECEIPT_ID: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' && github.event.client_payload.handoffReceiptId || '' }}
-  MMJ_COMMISSION_SOURCE_WORKBOOK_REVISION: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' && format('{0}', github.event.client_payload.sourceWorkbookRevision) || '' }}
-  MMJ_COMMISSION_PUBLICATION_HEAD_REVISION: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' && format('{0}', github.event.client_payload.publicationHeadRevision) || '' }}
-  MMJ_COMMISSION_ISSUED_AT: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' && github.event.client_payload.issuedAt || '' }}
+  MMJ_PUBLIC_CONVERGENCE_KEY: ${{ github.event.client_payload.convergenceKey }}
+  MMJ_PUBLIC_CONVERGENCE_REVISION: ${{ github.event.client_payload.convergenceRevision }}
+  MMJ_PUBLIC_CONVERGENCE_DIGEST: ${{ github.event.client_payload.convergenceDigest }}
+  MMJ_PUBLIC_CONVERGENCE_ISSUED_AT: ${{ github.event.client_payload.issuedAt }}
+
+  MMJ_PUBLIC_SOURCE_REPOSITORY: ${{ github.event.client_payload.source.repository }}
+  MMJ_PUBLIC_SOURCE_REF: ${{ github.event.client_payload.source.ref }}
+  MMJ_PUBLIC_SOURCE_COMMIT_SHA: ${{ github.event.client_payload.source.commitSha }}
+
+  MMJ_PORTFOLIO_EVENT_ACTIVE: '0'
+  MMJ_PORTFOLIO_ADOPTION_MODE: dispatch-generation
+  MMJ_DISPATCH_SCHEMA_VERSION: '2'
+  MMJ_DISPATCH_GENERATION_CONTRACT: ${{ github.event.client_payload.portfolio.generationContract }}
+  MMJ_DISPATCH_GENERATION_DIGEST: ${{ github.event.client_payload.portfolio.generationDigest }}
+  MMJ_DELIVERY_KEY: ${{ github.event.client_payload.portfolio.deliveryKey }}
+  MMJ_COLLECTION_VERSION_ID: ${{ github.event.client_payload.portfolio.collectionVersionId }}
+  MMJ_EXPECTED_SNAPSHOT_DIGEST: ${{ github.event.client_payload.portfolio.snapshotDigest }}
+  MMJ_HANDOFF_RECEIPT_ID: ${{ github.event.client_payload.portfolio.handoffReceiptId }}
+  MMJ_PROJECT_COUNT: ${{ github.event.client_payload.portfolio.projectCount }}
+  MMJ_ASSET_COUNT: ${{ github.event.client_payload.portfolio.assetCount }}
+  MMJ_SOURCE_WORKBOOK_REVISION: ${{ github.event.client_payload.portfolio.sourceWorkbookRevision }}
+  MMJ_COLLECTION_HEAD_REVISION: ${{ github.event.client_payload.portfolio.collectionHeadRevision }}
+  MMJ_ISSUED_AT: ${{ github.event.client_payload.portfolio.issuedAt }}
+
+  MMJ_COMMISSION_GUIDE_ADOPTION_MODE: convergence-generation
+  MMJ_COMMISSION_GUIDE_ID: ${{ github.event.client_payload.commission.guideId }}
+  MMJ_COMMISSION_PUBLICATION_VERSION_ID: ${{ github.event.client_payload.commission.publicationVersionId }}
+  MMJ_COMMISSION_EXPECTED_SNAPSHOT_DIGEST: ${{ github.event.client_payload.commission.snapshotDigest }}
+  MMJ_COMMISSION_CONTENT_DIGEST: ${{ github.event.client_payload.commission.contentDigest }}
+  MMJ_COMMISSION_HANDOFF_RECEIPT_ID: ${{ github.event.client_payload.commission.handoffReceiptId }}
+  MMJ_COMMISSION_SOURCE_WORKBOOK_REVISION: ${{ github.event.client_payload.commission.sourceWorkbookRevision }}
+  MMJ_COMMISSION_PUBLICATION_HEAD_REVISION: ${{ github.event.client_payload.commission.publicationHeadRevision }}
+  MMJ_COMMISSION_ISSUED_AT: ${{ github.event.client_payload.commission.issuedAt }}
 
 jobs:
   build:
     runs-on: ubuntu-24.04
-
     steps:
-      - name: Checkout full Git history
+      - name: Checkout exact convergence source revision
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
+          ref: ${{ github.event.client_payload.source.commitSha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -80,42 +92,34 @@ jobs:
       - name: Install dependencies without lifecycle scripts
         run: npm ci --ignore-scripts
 
+      - name: Verify immutable public convergence generation
+        run: node scripts/mmj-ui29-public-convergence-input-verify.mjs preflight
+
+      - name: Report public convergence build started
+        id: convergence-started-receipt
+        continue-on-error: true
+        env:
+          MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET: ${{ secrets.MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET }}
+        run: node scripts/mmj-ui29-public-convergence-receipt.mjs started
+
+      - name: Warn if CMS convergence started receipt delivery is pending
+        if: ${{ steps.convergence-started-receipt.outcome != 'success' }}
+        run: echo "::warning::CMS public convergence started receipt was not acknowledged. Public build continues."
+
       - name: Verify MMJ-UI29-A source closure
         run: npm run verify:mmj-ui29-static
 
       - name: Run MMJ-UI29-A contract tests
         run: npm run test:mmj-ui29
 
-      - name: Verify portfolio dispatch against current CMS head
-        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' }}
-        run: node scripts/mmj-ui29-dispatch-input-verify.mjs preflight
-
-      - name: Verify commission dispatch against current CMS head
-        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' }}
-        run: node scripts/mmj-ui29-commission-dispatch-input-verify.mjs preflight
-
-      - name: Report portfolio build started
-        id: portfolio-started-receipt
-        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' }}
-        continue-on-error: true
-        env:
-          MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET: ${{ secrets.MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET }}
-        run: node scripts/mmj-ui29-build-receipt.mjs started
-
-      - name: Warn if CMS started receipt delivery is pending
-        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && steps.portfolio-started-receipt.outcome != 'success' }}
-        run: echo "::warning::CMS started receipt callback did not complete. Public build continues."
-
-      - name: Adopt sealed CMS public content
+      - name: Adopt exact sealed CMS public convergence content
         run: npm run sync:public-content
 
-      - name: Verify adopted portfolio dispatch identity
-        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' }}
-        run: node scripts/mmj-ui29-dispatch-input-verify.mjs post-adopt
+      - name: Seal public convergence provenance
+        run: node scripts/mmj-ui29-public-convergence-provenance.mjs
 
-      - name: Verify adopted commission dispatch identity
-        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj-public-commission-guide-published' }}
-        run: node scripts/mmj-ui29-commission-dispatch-input-verify.mjs post-adopt
+      - name: Verify adopted public convergence generation
+        run: node scripts/mmj-ui29-public-convergence-input-verify.mjs post-adopt
 
       - name: Run approved lifecycle scripts
         run: npm rebuild
@@ -129,8 +133,7 @@ jobs:
       - name: Verify aggregate public release
         run: npm run verify:public-release
 
-      - name: Emit portfolio public deployment receipt
-        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' }}
+      - name: Emit convergence-bound public deployment receipt
         run: node scripts/mmj-ui29-publish-release-receipt.mjs
 
       - name: Generate static site without a second network fetch
@@ -144,94 +147,121 @@ jobs:
         with:
           path: .output/public
 
-  deploy:
+  deployment-admission:
     needs: build
     runs-on: ubuntu-24.04
     outputs:
-      page_url: ${{ steps.deployment.outputs.page_url }}
+      deploy: ${{ steps.convergence-admission.outputs.deploy }}
+      state: ${{ steps.convergence-admission.outputs.state }}
+      relation: ${{ steps.convergence-admission.outputs.relation }}
+      reason: ${{ steps.convergence-admission.outputs.reason }}
+      observed_current_convergence_key: ${{ steps.convergence-admission.outputs.observed_current_convergence_key }}
+      observed_current_convergence_digest: ${{ steps.convergence-admission.outputs.observed_current_convergence_digest }}
+      observed_current_convergence_revision: ${{ steps.convergence-admission.outputs.observed_current_convergence_revision }}
+    steps:
+      - name: Checkout exact convergence authority tooling
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.client_payload.source.commitSha }}
+          fetch-depth: 1
+          persist-credentials: false
 
+      - name: Set up Node for deployment admission
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.18.0'
+
+      - name: Resolve current public convergence Pages write authority
+        id: convergence-admission
+        run: node scripts/mmj-ui29-public-convergence-deployment-admission.mjs
+
+  deploy:
+    needs:
+      - build
+      - deployment-admission
+    if: ${{ needs.build.result == 'success' && needs.deployment-admission.outputs.deploy == 'true' }}
+    runs-on: ubuntu-24.04
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+      convergence_deployed: ${{ steps.deployment.outcome == 'success' && 'true' || 'false' }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
       - name: Deploy GitHub Pages
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e
 
-      - name: Checkout portfolio receipt script after deployment commit
-        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' }}
+  convergence-success-receipt:
+    needs: deploy
+    if: ${{ needs.deploy.result == 'success' && needs.deploy.outputs.convergence_deployed == 'true' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact convergence receipt tooling
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
+          ref: ${{ github.event.client_payload.source.commitSha }}
           fetch-depth: 1
           persist-credentials: false
-
-      - name: Set up Node for portfolio success receipt
-        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' }}
+      - name: Set up Node for success receipt
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22.18.0'
-
-      - name: Report portfolio deployment committed
-        id: portfolio-success-receipt
-        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' }}
+      - name: Report public convergence deployment committed
         continue-on-error: true
         env:
           MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET: ${{ secrets.MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET }}
           MMJ_DEPLOYMENT_ID: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
-          MMJ_DEPLOYMENT_URL: ${{ steps.deployment.outputs.page_url }}
-        run: node scripts/mmj-ui29-build-receipt.mjs succeeded
+          MMJ_DEPLOYMENT_URL: ${{ needs.deploy.outputs.page_url }}
+        run: node scripts/mmj-ui29-public-convergence-receipt.mjs succeeded
 
-      - name: Warn if CMS success receipt delivery is pending
-        if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && steps.portfolio-success-receipt.outcome != 'success' }}
-        run: echo "::warning::GitHub Pages deployment committed, but CMS success receipt delivery did not complete. Public deployment remains successful."
-
-  portfolio-observe:
-    needs: deploy
-    if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && needs.deploy.result == 'success' }}
+  convergence-supersession-receipt:
+    needs:
+      - build
+      - deployment-admission
+    if: ${{ always() && needs.build.result == 'success' && needs.deployment-admission.result == 'success' && needs.deployment-admission.outputs.state == 'withheld' && needs.deployment-admission.outputs.relation == 'historical' }}
     runs-on: ubuntu-24.04
-
     steps:
-      - name: Checkout propagation observer
+      - name: Checkout exact convergence supersession tooling
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
+          ref: ${{ github.event.client_payload.source.commitSha }}
           fetch-depth: 1
           persist-credentials: false
-
-      - name: Set up Node for propagation observation
+      - name: Set up Node for supersession receipt
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22.18.0'
+      - name: Report public convergence deployment withheld
+        env:
+          MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET: ${{ secrets.MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET }}
+          MMJ_CONVERGENCE_OBSERVED_CURRENT_KEY: ${{ needs.deployment-admission.outputs.observed_current_convergence_key }}
+          MMJ_CONVERGENCE_OBSERVED_CURRENT_DIGEST: ${{ needs.deployment-admission.outputs.observed_current_convergence_digest }}
+          MMJ_CONVERGENCE_OBSERVED_CURRENT_REVISION: ${{ needs.deployment-admission.outputs.observed_current_convergence_revision }}
+        run: node scripts/mmj-ui29-public-convergence-supersession-receipt.mjs
 
-      - name: Observe canonical deployment propagation
-        run: node scripts/mmj-ui29-public-deployment-probe.mjs --observe
-
-  portfolio-failure-receipt:
+  convergence-failure-receipt:
     needs:
       - build
+      - deployment-admission
       - deploy
-    if: ${{ always() && github.event_name == 'repository_dispatch' && github.event.action == 'mmj_portfolio_promoted' && (needs.build.result == 'failure' || needs.deploy.result == 'failure') }}
+    if: ${{ always() && (needs.build.result == 'failure' || (needs.deployment-admission.outputs.deploy == 'true' && needs.deploy.result == 'failure')) }}
     runs-on: ubuntu-24.04
-
     steps:
-      - name: Checkout failure receipt script
+      - name: Checkout exact convergence failure receipt tooling
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
+          ref: ${{ github.event.client_payload.source.commitSha }}
           fetch-depth: 1
           persist-credentials: false
-
       - name: Set up Node for failure receipt
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22.18.0'
-
-      - name: Report portfolio build or deployment failed
+      - name: Report public convergence build or deployment failed
         env:
           MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET: ${{ secrets.MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET }}
-          MMJ_GITHUB_EVENT_ACTION: ${{ github.event.action }}
-          MMJ_BUILD_JOB_RESULT: ${{ needs.build.result }}
-          MMJ_DEPLOY_JOB_RESULT: ${{ needs.deploy.result }}
-          MMJ_BUILD_ERROR_CODE: E_PUBLIC_BUILD_FAILED
-          MMJ_BUILD_ERROR_MESSAGE: MMJ GitHub Pages build or deployment failed.
-          MMJ_BUILD_ERROR_PHASE: github-pages-build-or-deploy
-        run: node scripts/mmj-ui29-failure-receipt.mjs
+          MMJ_BUILD_ERROR_CODE: E_PUBLIC_CONVERGENCE_BUILD_FAILED
+          MMJ_BUILD_ERROR_MESSAGE: MMJ public convergence build or admitted deployment failed.
+          MMJ_BUILD_ERROR_PHASE: github-pages-convergence-build-or-deploy
+        run: node scripts/mmj-ui29-public-convergence-receipt.mjs failed

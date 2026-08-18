@@ -21,11 +21,20 @@ import {
   portfolioRequestTimeoutMs,
   runPortfolioHandoffTransactionWithRetry,
 } from './lib/mmj-ui29-portfolio-handoff-retry-authority.mjs'
+import {
+  assertPortfolioDispatchGenerationAuthority,
+  assertPortfolioDispatchGenerationInput,
+  readPortfolioDispatchGenerationEnvironment,
+} from './lib/mmj-ui29-portfolio-dispatch-generation.mjs'
 
 const root = process.cwd()
 const generated = resolve(root, 'generated')
 const origin = resolveOrigin(process.env.MMJ_PORTFOLIO_HANDOFF_ORIGIN)
 const totalDeadline = Date.now() + 60_000
+const adoptionMode = process.env.MMJ_PORTFOLIO_ADOPTION_MODE || 'current-head'
+if (!['current-head', 'dispatch-generation'].includes(adoptionMode)) {
+  fail('E_MMJ_UI29_PORTFOLIO_ADOPTION_MODE_INVALID', 'MMJ_PORTFOLIO_ADOPTION_MODE must be current-head or dispatch-generation.')
+}
 const targetNames = [
   'portfolio.snapshot.json',
   'portfolio.routes.json',
@@ -145,7 +154,7 @@ async function fetchJson(path, maximum, stage) {
   }
 }
 
-async function transaction() {
+async function currentHeadTransaction() {
   const headAResponse = await fetchJson('/api/v1/public/portfolio-snapshot/head', 64 * 1024, 'head')
   const headA = validateHead(headAResponse.value)
   const receiptResponse = await fetchJson(`/api/v1/public/portfolio-snapshot/receipts/${encodeURIComponent(headA.handoffReceiptId)}`, 2 * 1024 * 1024, 'receipt')
@@ -187,7 +196,79 @@ async function transaction() {
   const headBResponse = await fetchJson('/api/v1/public/portfolio-snapshot/head', 64 * 1024, 'head-repeat')
   const headB = validateHead(headBResponse.value)
   validateHeadStability(headA, headB)
-  return { head: headA, receipt, snapshotBytes: snapshotResponse.bytes, receiptBytes: receiptResponse.bytes, routes }
+  return { head: headA, receipt, snapshotBytes: snapshotResponse.bytes, receiptBytes: receiptResponse.bytes, routes, generation: null }
+}
+
+async function dispatchGenerationTransaction() {
+  let input
+  try { input = assertPortfolioDispatchGenerationInput(readPortfolioDispatchGenerationEnvironment(process.env)) }
+  catch (error) { fail('E_MMJ_UI29_DISPATCH_GENERATION_INPUT_INVALID', 'Dispatch generation environment is invalid.', { cause: error?.message ?? String(error) }) }
+
+  const generationPath = `/api/v1/public/portfolio-snapshot/dispatch-generations/${encodeURIComponent(input.deliveryKey)}`
+  const generationAResponse = await fetchJson(generationPath, 128 * 1024, 'generation')
+  let authorityA
+  try { authorityA = assertPortfolioDispatchGenerationAuthority(generationAResponse.value, input) }
+  catch (error) { fail('E_MMJ_UI29_DISPATCH_GENERATION_MISMATCH', 'Dispatch generation authority does not match the repository dispatch payload.', { cause: error?.message ?? String(error) }) }
+
+  const receiptResponse = await fetchJson(`/api/v1/public/portfolio-snapshot/receipts/${encodeURIComponent(input.handoffReceiptId)}`, 2 * 1024 * 1024, 'receipt')
+  const receipt = validateReceipt(receiptResponse.value)
+  const receiptChecks = [
+    ['receiptId', receipt.receiptId, input.handoffReceiptId],
+    ['collectionVersionId', receipt.collectionVersionId, input.collectionVersionId],
+    ['snapshotDigest', receipt.snapshotDigest, input.snapshotDigest],
+    ['projectCount', receipt.projectCount, input.projectCount],
+    ['assetCount', receipt.assetCount, input.assetCount],
+    ['collectionHeadGeneration', receipt.collectionHeadGeneration, input.collectionHeadRevision],
+  ]
+  const receiptMismatches = receiptChecks.filter(([, actual, expected]) => String(actual) !== String(expected))
+  if (receiptMismatches.length) fail('E_MMJ_UI29_DISPATCH_GENERATION_RECEIPT_MISMATCH', 'Exact handoff receipt does not match dispatch generation.', { mismatches: receiptMismatches })
+
+  const snapshotQuery = new URLSearchParams({
+    collectionVersionId: input.collectionVersionId,
+    handoffReceiptId: input.handoffReceiptId,
+    snapshotDigest: input.snapshotDigest,
+  })
+  const snapshotResponse = await fetchJson(`/api/v1/public/portfolio-snapshot?${snapshotQuery}`, 32 * 1024 * 1024, 'snapshot')
+  const etag = snapshotResponse.response.headers.get('etag')
+  const collectionHeader = snapshotResponse.response.headers.get('x-mmj-portfolio-collection-version')
+  const receiptHeader = snapshotResponse.response.headers.get('x-mmj-portfolio-handoff-receipt')
+  if (etag?.replace(/^W\//, '') !== `"${input.snapshotDigest}"` || collectionHeader !== input.collectionVersionId || receiptHeader !== input.handoffReceiptId) {
+    fail('E_MMJ_UI29_SNAPSHOT_HEADER_MISMATCH', 'Exact generation snapshot headers do not match dispatch generation.', { etag, collectionHeader, receiptHeader })
+  }
+  const actualSnapshotDigest = sha256(snapshotResponse.bytes)
+  if (actualSnapshotDigest !== input.snapshotDigest || actualSnapshotDigest !== receipt.snapshotDigest) {
+    fail('E_MMJ_UI29_SNAPSHOT_DIGEST_MISMATCH', 'Exact generation snapshot raw-byte digest mismatch.', { expectedDigest: input.snapshotDigest, actualDigest: actualSnapshotDigest })
+  }
+  const { routes } = validateSnapshot(snapshotResponse.value, receipt)
+
+  const generationBResponse = await fetchJson(generationPath, 128 * 1024, 'generation-repeat')
+  let authorityB
+  try { authorityB = assertPortfolioDispatchGenerationAuthority(generationBResponse.value, input) }
+  catch (error) { fail('E_MMJ_UI29_DISPATCH_GENERATION_UNSTABLE', 'Dispatch generation authority changed during adoption.', { cause: error?.message ?? String(error) }) }
+  if (authorityA.generation.generationDigest !== authorityB.generation.generationDigest) {
+    fail('E_MMJ_UI29_DISPATCH_GENERATION_UNSTABLE', 'Dispatch generation digest changed during adoption.')
+  }
+
+  const head = {
+    collectionVersionId: receipt.collectionVersionId,
+    generation: receipt.collectionHeadGeneration,
+    snapshotDigest: receipt.snapshotDigest,
+    sourceDigest: receipt.sourceDigest,
+    sourceHeadSetDigest: receipt.sourceHeadSetDigest,
+    handoffReceiptId: receipt.receiptId,
+    publicationCutoff: receipt.publicationCutoff,
+    projectCount: receipt.projectCount,
+    assetCount: receipt.assetCount,
+    routeCount: receipt.routeCount,
+  }
+  const generation = Object.freeze({
+    deliveryKey: input.deliveryKey,
+    generationContract: input.generationContract,
+    generationDigest: input.generationDigest,
+    sourceWorkbookRevision: input.sourceWorkbookRevision,
+    collectionHeadRevision: input.collectionHeadRevision,
+  })
+  return { head, receipt, snapshotBytes: snapshotResponse.bytes, receiptBytes: receiptResponse.bytes, routes, generation }
 }
 
 async function adopt(input) {
@@ -201,6 +282,7 @@ async function adopt(input) {
     head: input.head,
     receipt: input.receipt,
     handoffReceiptDigest,
+    generation: input.generation,
   })
   const buildInputLockBytes = Buffer.from(prettyJson(buildInputLock), 'utf8')
   const publicReleaseManifest = createPublicReleaseManifest({
@@ -267,7 +349,7 @@ async function adopt(input) {
 
 const transactionResult = await runPortfolioHandoffTransactionWithRetry({
   deadline: totalDeadline,
-  transaction,
+  transaction: adoptionMode === 'dispatch-generation' ? dispatchGenerationTransaction : currentHeadTransaction,
 })
 const adopted = await adopt(transactionResult)
 

@@ -14,6 +14,7 @@ export const PRODUCER_RELEASE = '0.7.9-mmj-portfolio-empty-closure-r1'
 export const SNAPSHOT_CONTRACT = 'mmj-public-portfolio-collection-v1'
 export const HANDOFF_CONTRACT = 'mmj-static-build-handoff-receipt-v1'
 export const BUILD_INPUT_LOCK_CONTRACT = 'mmj-ui29-build-input-lock-v1'
+export const BUILD_INPUT_LOCK_V2_CONTRACT = 'mmj-ui29-build-input-lock-v2'
 export const ROUTE_MANIFEST_CONTRACT = 'mmj-ui29-generated-route-manifest-v1'
 export const PUBLIC_RELEASE_MANIFEST_CONTRACT = 'mmj-ui29-public-release-manifest-v1'
 
@@ -557,9 +558,7 @@ export async function computeProducerRevision(root) {
 }
 
 export function createBuildInputLock(input) {
-  return Object.freeze({
-    schemaVersion: 1,
-    contract: BUILD_INPUT_LOCK_CONTRACT,
+  const base = {
     upstreamOrigin: input.upstreamOrigin,
     collectionVersionId: input.head.collectionVersionId,
     collectionHeadGeneration: input.head.generation,
@@ -575,6 +574,18 @@ export function createBuildInputLock(input) {
     routeArrayDigest: input.receipt.routesDigest,
     producerRelease: PRODUCER_RELEASE,
     adoptedAt: input.receipt.createdAt,
+  }
+  if (!input.generation) return Object.freeze({ schemaVersion: 1, contract: BUILD_INPUT_LOCK_CONTRACT, ...base })
+  return Object.freeze({
+    schemaVersion: 2,
+    contract: BUILD_INPUT_LOCK_V2_CONTRACT,
+    adoptionMode: 'dispatch-generation',
+    deliveryKey: input.generation.deliveryKey,
+    generationContract: input.generation.generationContract,
+    generationDigest: input.generation.generationDigest,
+    sourceWorkbookRevision: input.generation.sourceWorkbookRevision,
+    collectionHeadRevision: input.generation.collectionHeadRevision,
+    ...base,
   })
 }
 
@@ -617,13 +628,26 @@ function validateRouteManifest(value, expectedSnapshotDigest, expectedRoutes) {
 
 function validateBuildInputLock(value, input) {
   const code = 'E_MMJ_UI29_GENERATED_STAGE_INVALID'
-  exactKeys(value, [
+  const v2 = value?.schemaVersion === 2
+  exactKeys(value, v2 ? [
+    'schemaVersion', 'contract', 'adoptionMode', 'deliveryKey', 'generationContract',
+    'generationDigest', 'sourceWorkbookRevision', 'collectionHeadRevision',
+    'upstreamOrigin', 'collectionVersionId', 'collectionHeadGeneration', 'snapshotDigest',
+    'sourceDigest', 'sourceHeadSetDigest', 'handoffReceiptId', 'handoffReceiptDigest',
+    'publicationCutoff', 'projectCount', 'assetCount', 'routeCount', 'routeArrayDigest',
+    'producerRelease', 'adoptedAt',
+  ] : [
     'schemaVersion', 'contract', 'upstreamOrigin', 'collectionVersionId',
     'collectionHeadGeneration', 'snapshotDigest', 'sourceDigest', 'sourceHeadSetDigest',
     'handoffReceiptId', 'handoffReceiptDigest', 'publicationCutoff', 'projectCount',
     'assetCount', 'routeCount', 'routeArrayDigest', 'producerRelease', 'adoptedAt',
   ], '$buildInputLock', code)
-  if (value.schemaVersion !== 1 || value.contract !== BUILD_INPUT_LOCK_CONTRACT) fail(code, 'Build input lock contract mismatch.')
+  if (v2) {
+    if (value.contract !== BUILD_INPUT_LOCK_V2_CONTRACT || value.adoptionMode !== 'dispatch-generation') fail(code, 'Build input lock v2 contract mismatch.')
+    if (!input.generation) fail(code, 'Build input lock generation context is missing.')
+  } else if (value.schemaVersion !== 1 || value.contract !== BUILD_INPUT_LOCK_CONTRACT) {
+    fail(code, 'Build input lock contract mismatch.')
+  }
   const expected = createBuildInputLock(input)
   if (!equalJson(value, expected)) fail(code, 'Build input lock identity mismatch.')
 }
@@ -638,7 +662,11 @@ function validatePublicReleaseManifest(value, input) {
     if (value.contract !== 'mmj-ui29-public-release-manifest-v2') fail(code, 'Public release manifest v2 contract mismatch.')
     string(value.releaseId, '$publicReleaseManifest.releaseId', code, { pattern: RELEASE_ID })
     if (value.producerRevision !== input.producerRevision) fail(code, 'Public release manifest producer revision mismatch.')
-    exactKeys(value.portfolio, [
+    exactKeys(value.portfolio, input.generation ? [
+      'snapshotDigest', 'routesDigest', 'handoffReceiptDigest',
+      'buildInputLockDigest', 'collectionVersionId', 'handoffReceiptId',
+      'sourceDigest', 'projectCount', 'assetCount', 'generation',
+    ] : [
       'snapshotDigest', 'routesDigest', 'handoffReceiptDigest',
       'buildInputLockDigest', 'collectionVersionId', 'handoffReceiptId',
       'sourceDigest', 'projectCount', 'assetCount',
@@ -653,6 +681,7 @@ function validatePublicReleaseManifest(value, input) {
       sourceDigest: input.sourceDigest,
       projectCount: input.projectCount,
       assetCount: input.assetCount,
+      ...(input.generation ? { generation: input.generation } : {}),
     }
     if (!equalJson(value.portfolio, expectedPortfolio)) fail(code, 'Public release manifest portfolio identity mismatch.')
     exactKeys(value.commissionGuide, [
@@ -860,11 +889,19 @@ export async function verifyGeneratedArtifactSet(directory, sourceRoot, options 
     assetCount: receipt.assetCount,
     routeCount: receipt.routeCount,
   }
+  const generation = lockValue?.schemaVersion === 2 ? Object.freeze({
+    deliveryKey: lockValue.deliveryKey,
+    generationContract: lockValue.generationContract,
+    generationDigest: lockValue.generationDigest,
+    sourceWorkbookRevision: lockValue.sourceWorkbookRevision,
+    collectionHeadRevision: lockValue.collectionHeadRevision,
+  }) : null
   validateBuildInputLock(lockValue, {
     upstreamOrigin: lockValue.upstreamOrigin,
     head: headLike,
     receipt,
     handoffReceiptDigest,
+    generation,
   })
   validatePublicReleaseManifest(manifestValue, {
     snapshotDigest,
@@ -879,6 +916,7 @@ export async function verifyGeneratedArtifactSet(directory, sourceRoot, options 
     handoffReceiptId: receipt.receiptId,
     sourceDigest: receipt.sourceDigest,
     buildInputLockDigest: lockDigest,
+    generation,
   })
   if (options.expectedOrigin && lockValue.upstreamOrigin !== options.expectedOrigin) fail('E_MMJ_UI29_GENERATED_STAGE_INVALID', 'Build input origin mismatch.')
   return Object.freeze({
@@ -896,6 +934,7 @@ export async function verifyGeneratedArtifactSet(directory, sourceRoot, options 
     receipt,
     lock: lockValue,
     manifest: manifestValue,
+    generation,
   })
 }
 

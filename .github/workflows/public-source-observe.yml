@@ -1,0 +1,32 @@
+name: Observe MMJ Public Source Revision
+run-name: mmj-source-observe:${{ github.sha }}
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  observe-source:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source observation tooling
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.18.0'
+      - name: Report verified source revision to CMS
+        env:
+          MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET: ${{ secrets.MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET }}
+          MMJ_CMS_PUBLIC_SOURCE_OBSERVATION_ENDPOINT: https://cms.mamajing.work/api/v1/internal/public-source-revision-observations
+          MMJ_SOURCE_BEFORE_SHA: ${{ github.event.before }}
+          MMJ_SOURCE_AFTER_SHA: ${{ github.event.after }}
+          MMJ_SOURCE_PUSH_FORCED: ${{ github.event.forced }}
+        run: node scripts/mmj-ui29-public-source-observation.mjs

@@ -111,30 +111,65 @@ for (const retiredWorkflow of [
 ]) if (await exists(retiredWorkflow)) fail(`retired parallel deployment workflow remains: ${retiredWorkflow}`)
 
 const pagesWorkflow = await read('.github/workflows/pages.yml')
-for (const token of [
-  'repository_dispatch:',
-  'mmj_portfolio_promoted',
-  'mmj-public-commission-guide-published',
-  'group: github-pages',
-  'mmj-ui29-dispatch-input-verify.mjs preflight',
-  'mmj-ui29-dispatch-input-verify.mjs post-adopt',
-  'mmj-ui29-commission-dispatch-input-verify.mjs preflight',
-  'mmj-ui29-commission-dispatch-input-verify.mjs post-adopt',
-  'actions/upload-pages-artifact@',
-  'actions/deploy-pages@',
-  'path: .output/public',
-  'portfolio-observe:',
-  'portfolio-failure-receipt:',
-  'Report portfolio deployment committed',
-]) if (!pagesWorkflow.includes(token)) fail(`GitHub Pages single deployment authority drift: ${token}`)
-const portfolioReceiptRebuild = pagesWorkflow.indexOf('npm rebuild')
-const portfolioReceiptEmit = pagesWorkflow.indexOf('node scripts/mmj-ui29-publish-release-receipt.mjs')
-const portfolioReceiptGenerate = pagesWorkflow.indexOf('npm run generate:local')
-if (!(portfolioReceiptRebuild >= 0 && portfolioReceiptRebuild < portfolioReceiptEmit && portfolioReceiptEmit < portfolioReceiptGenerate)) fail('portfolio receipt-before-generate lifecycle drift')
-const pagesDeployCommit = pagesWorkflow.indexOf('actions/deploy-pages@')
-const portfolioSuccessReceipt = pagesWorkflow.indexOf('node scripts/mmj-ui29-build-receipt.mjs succeeded')
-if (!(pagesDeployCommit >= 0 && pagesDeployCommit < portfolioSuccessReceipt)) fail('portfolio success receipt must follow GitHub Pages deployment commit')
-if (pagesWorkflow.includes('portfolio-finalize:')) fail('retired portfolio-finalize success barrier remains')
+const r07PublicConvergence = pagesWorkflow.includes('mmj_public_converge')
+if (r07PublicConvergence) {
+  for (const token of [
+    'repository_dispatch:',
+    'mmj_public_converge',
+    'group: github-pages',
+    'mmj-ui29-public-convergence-input-verify.mjs preflight',
+    'mmj-ui29-public-convergence-input-verify.mjs post-adopt',
+    'MMJ_PORTFOLIO_ADOPTION_MODE: dispatch-generation',
+    'MMJ_COMMISSION_GUIDE_ADOPTION_MODE: convergence-generation',
+    'actions/upload-pages-artifact@',
+    'actions/deploy-pages@',
+    'path: .output/public',
+    'deployment-admission:',
+    'convergence-success-receipt:',
+    'convergence-supersession-receipt:',
+    'convergence-failure-receipt:',
+  ]) if (!pagesWorkflow.includes(token)) fail(`GitHub Pages single convergence authority drift: ${token}`)
+  for (const forbidden of [
+    'mmj_portfolio_promoted',
+    'mmj-public-commission-guide-published',
+    '\n  push:',
+    '\n  workflow_dispatch:',
+    'mmj-ui29-build-receipt.mjs',
+    'mmj-ui29-supersession-receipt.mjs',
+  ]) if (pagesWorkflow.includes(forbidden)) fail(`GitHub Pages retired direct authority remains: ${forbidden}`)
+  const receiptRebuild = pagesWorkflow.indexOf('npm rebuild')
+  const receiptEmit = pagesWorkflow.indexOf('node scripts/mmj-ui29-publish-release-receipt.mjs')
+  const receiptGenerate = pagesWorkflow.indexOf('npm run generate:local')
+  if (!(receiptRebuild >= 0 && receiptRebuild < receiptEmit && receiptEmit < receiptGenerate)) fail('convergence receipt-before-generate lifecycle drift')
+  const pagesDeployCommit = pagesWorkflow.indexOf('actions/deploy-pages@')
+  const siteSuccessReceipt = pagesWorkflow.indexOf('node scripts/mmj-ui29-public-convergence-receipt.mjs succeeded')
+  if (!(pagesDeployCommit >= 0 && pagesDeployCommit < siteSuccessReceipt)) fail('site convergence success receipt must follow GitHub Pages deployment commit')
+} else {
+  for (const token of [
+    'repository_dispatch:',
+    'mmj_portfolio_promoted',
+    'mmj-public-commission-guide-published',
+    'group: github-pages',
+    'mmj-ui29-dispatch-input-verify.mjs preflight',
+    'mmj-ui29-dispatch-input-verify.mjs post-adopt',
+    'mmj-ui29-commission-dispatch-input-verify.mjs preflight',
+    'mmj-ui29-commission-dispatch-input-verify.mjs post-adopt',
+    'actions/upload-pages-artifact@',
+    'actions/deploy-pages@',
+    'path: .output/public',
+    'portfolio-observe:',
+    'portfolio-failure-receipt:',
+    'Report portfolio deployment committed',
+  ]) if (!pagesWorkflow.includes(token)) fail(`GitHub Pages single deployment authority drift: ${token}`)
+  const portfolioReceiptRebuild = pagesWorkflow.indexOf('npm rebuild')
+  const portfolioReceiptEmit = pagesWorkflow.indexOf('node scripts/mmj-ui29-publish-release-receipt.mjs')
+  const portfolioReceiptGenerate = pagesWorkflow.indexOf('npm run generate:local')
+  if (!(portfolioReceiptRebuild >= 0 && portfolioReceiptRebuild < portfolioReceiptEmit && portfolioReceiptEmit < portfolioReceiptGenerate)) fail('portfolio receipt-before-generate lifecycle drift')
+  const pagesDeployCommit = pagesWorkflow.indexOf('actions/deploy-pages@')
+  const portfolioSuccessReceipt = pagesWorkflow.indexOf('node scripts/mmj-ui29-build-receipt.mjs succeeded')
+  if (!(pagesDeployCommit >= 0 && pagesDeployCommit < portfolioSuccessReceipt)) fail('portfolio success receipt must follow GitHub Pages deployment commit')
+  if (pagesWorkflow.includes('portfolio-finalize:')) fail('retired portfolio-finalize success barrier remains')
+}
 
 const workflowNames = (await readdir(resolve(root, '.github/workflows'))).filter(name => /\.ya?ml$/i.test(name)).sort()
 let uploadPagesArtifactCount = 0
@@ -229,8 +264,9 @@ for (const required of ["cache: 'no-store'", "'cache-control': 'no-cache'", 'pub
 for (const forbidden of ['/api/v1/mutations', '/admin/bootstrap', 'authorization', 'session cookie', 'COMMISSION_GUIDE_MOCK']) if (commissionAdopt.toLowerCase().includes(forbidden.toLowerCase())) fail(`forbidden commission adoption signature: ${forbidden}`)
 
 const dispatchVerify = await read('scripts/mmj-ui29-dispatch-input-verify.mjs')
-if (!dispatchVerify.includes('/api/v1/public/portfolio-snapshot/dispatch-authority')) fail('current portfolio dispatch authority endpoint missing')
-for (const field of ['deliveryKey', 'sourceWorkbookRevision', 'collectionHeadRevision']) if (!dispatchVerify.includes(field)) fail(`portfolio dispatch authority parity field missing: ${field}`)
+const dispatchGeneration = await read('scripts/lib/mmj-ui29-portfolio-dispatch-generation.mjs')
+if (!dispatchVerify.includes('/api/v1/public/portfolio-snapshot/dispatch-generations/')) fail('immutable portfolio dispatch generation authority endpoint missing')
+for (const field of ['deliveryKey', 'sourceWorkbookRevision', 'collectionHeadRevision']) if (!dispatchGeneration.includes(field)) fail(`portfolio dispatch generation parity field missing: ${field}`)
 const commissionDispatchVerify = await read('scripts/mmj-ui29-commission-dispatch-input-verify.mjs')
 for (const token of ['/api/v1/public/commission-guide/dispatch-authority', 'publicationHeadRevision', 'post-adopt']) if (!commissionDispatchVerify.includes(token)) fail(`commission dispatch verifier drift: ${token}`)
 
