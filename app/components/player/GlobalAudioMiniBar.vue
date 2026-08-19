@@ -4,10 +4,20 @@ import { storeToRefs } from 'pinia'
 
 import AudioTimeline from '~/components/player/AudioTimeline.vue'
 import { useGlobalAudioQueue } from '~/composables/useGlobalAudioQueue'
+import {
+  useGlobalAudioSurfaceInitializer,
+} from '~/composables/useGlobalAudioSurfaceInitializer'
+import {
+  useGlobalAudioSurfaceStore,
+} from '~/stores/global-audio-surface'
 import { usePlayerStore } from '~/stores/player'
 import { formatPlayerTime } from '~/utils/global-audio-runtime'
 
 const player = usePlayerStore()
+const surface = useGlobalAudioSurfaceStore()
+
+useGlobalAudioSurfaceInitializer()
+
 const {
   bufferedUntilSeconds,
   currentTimeSeconds,
@@ -17,6 +27,14 @@ const {
   phase,
   volume,
 } = storeToRefs(player)
+
+const {
+  collapsed,
+  expanded,
+  initialization,
+  mode: surfaceMode,
+  userOverride,
+} = storeToRefs(surface)
 
 const {
   currentQueueEntry,
@@ -88,8 +106,8 @@ function updateVolume(event: Event): void {
   player.setVolume(input.valueAsNumber)
 }
 
-// R2 relay policy reads the authoritative Player Store phase and reuses the
-// same derived queue navigation path as the manual next-track control.
+// R2 relay policy remains playback/queue owned. Surface collapse state never
+// participates in next-track admission or transport decisions.
 watch(phase, (nextPhase, previousPhase) => {
   if (
     nextPhase !== 'ended'
@@ -108,114 +126,95 @@ watch(phase, (nextPhase, previousPhase) => {
     v-if="currentQueueEntry !== null"
     class="mm-global-audio-mini-bar"
     data-mm-global-audio-mini-bar
+    :data-mm-global-audio-surface-mode="surfaceMode"
+    :data-mm-global-audio-surface-initialization="initialization"
+    :data-mm-global-audio-surface-user-override="
+      userOverride ? 'true' : 'false'
+    "
     aria-label="전역 오디오 플레이어"
   >
-    <p
-      class="mm-global-audio-mini-bar__title"
-      aria-live="polite"
+    <button
+      class="mm-global-audio-mini-bar__collapsed-trigger"
+      type="button"
+      aria-label="오디오 플레이어 펼치기"
+      aria-controls="mm-global-audio-expanded-controls"
+      :aria-expanded="expanded"
+      :aria-hidden="expanded ? 'true' : undefined"
+      :tabindex="expanded ? -1 : 0"
+      @click="surface.expand"
     >
-      {{ currentQueueEntry.projectTitle }}
-    </p>
-
-    <div class="mm-global-audio-mini-bar__transport">
-      <button
-        class="mm-global-audio-mini-bar__icon-button"
-        type="button"
-        :disabled="previousEntry === null"
-        aria-label="이전 곡"
-        @click="playPrevious"
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        focusable="false"
       >
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M6 5.5h2.25v13H6zM18 6.2 9.5 12l8.5 5.8z" />
-        </svg>
-      </button>
+        <path d="M4.5 9.25v5.5h3.25L12 18V6L7.75 9.25z" />
+        <path
+          d="M15.25 9.25c1.45 1.45 1.45 4.05 0 5.5m2.4-7.9c2.8 2.8 2.8 7.5 0 10.3"
+          fill="none"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-width="1.7"
+        />
+      </svg>
+    </button>
 
+    <div
+      id="mm-global-audio-expanded-controls"
+      class="mm-global-audio-mini-bar__expanded"
+      :inert="collapsed"
+      :aria-hidden="collapsed ? 'true' : undefined"
+    >
       <button
-        class="mm-global-audio-mini-bar__icon-button mm-global-audio-mini-bar__icon-button--primary"
+        class="mm-global-audio-mini-bar__collapse-button"
         type="button"
-        :aria-label="isPlayingIntent ? '일시정지' : '재생'"
-        @click="togglePlayback"
+        aria-label="오디오 플레이어 최소화"
+        aria-controls="mm-global-audio-expanded-controls"
+        :aria-expanded="expanded"
+        @click="surface.collapse"
       >
         <svg
-          v-if="isPlayingIntent"
           viewBox="0 0 24 24"
           aria-hidden="true"
           focusable="false"
         >
-          <path d="M7 5.5h3.5v13H7zM13.5 5.5H17v13h-3.5z" />
-        </svg>
-        <svg
-          v-else
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <path d="M8 5.25 18 12 8 18.75z" />
+          <path d="M6 11h12v2H6z" />
         </svg>
       </button>
 
-      <button
-        class="mm-global-audio-mini-bar__icon-button"
-        type="button"
-        :disabled="nextEntry === null"
-        aria-label="다음 곡"
-        @click="playNext"
+      <p
+        class="mm-global-audio-mini-bar__title"
+        aria-live="polite"
       >
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M15.75 5.5H18v13h-2.25zM6 6.2l8.5 5.8L6 17.8z" />
-        </svg>
-      </button>
-    </div>
+        {{ currentQueueEntry.projectTitle }}
+      </p>
 
-    <div class="mm-global-audio-mini-bar__timeline-row">
-      <AudioTimeline
-        class="mm-global-audio-mini-bar__timeline"
-        :current-time-seconds="currentTimeSeconds"
-        :duration-seconds="presentationDurationSeconds"
-        :buffered-ratio="bufferedRatio"
-        :disabled="durationSeconds === null"
-        @seek="requestSeek"
-      />
-    </div>
-
-    <div class="mm-global-audio-mini-bar__meta-row">
-      <div class="mm-global-audio-mini-bar__time-group">
-        <span class="mm-global-audio-mini-bar__time">
-          {{ currentTimeLabel }}
-        </span>
-        <span
-          class="mm-global-audio-mini-bar__time-separator"
-          aria-hidden="true"
-        >
-          /
-        </span>
-        <span class="mm-global-audio-mini-bar__time">
-          {{ durationLabel }}
-        </span>
-      </div>
-
-      <div class="mm-global-audio-mini-bar__volume-group">
+      <div class="mm-global-audio-mini-bar__transport">
         <button
-          class="mm-global-audio-mini-bar__icon-button mm-global-audio-mini-bar__icon-button--volume"
+          class="mm-global-audio-mini-bar__icon-button"
           type="button"
-          :aria-label="muted ? '음소거 해제' : '음소거'"
-          :aria-pressed="muted"
-          @click="toggleMuted"
+          :disabled="previousEntry === null"
+          aria-label="이전 곡"
+          @click="playPrevious"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6 5.5h2.25v13H6zM18 6.2 9.5 12l8.5 5.8z" />
+          </svg>
+        </button>
+
+        <button
+          class="mm-global-audio-mini-bar__icon-button mm-global-audio-mini-bar__icon-button--primary"
+          type="button"
+          :aria-label="isPlayingIntent ? '일시정지' : '재생'"
+          @click="togglePlayback"
         >
           <svg
-            v-if="muted || volume === 0"
+            v-if="isPlayingIntent"
             viewBox="0 0 24 24"
             aria-hidden="true"
             focusable="false"
           >
-            <path d="M4.5 9.25v5.5h3.25L12 18V6L7.75 9.25z" />
-            <path
-              d="m15.25 9.25 4.5 5.5m0-5.5-4.5 5.5"
-              fill="none"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-width="1.8"
-            />
+            <path d="M7 5.5h3.5v13H7zM13.5 5.5H17v13h-3.5z" />
           </svg>
           <svg
             v-else
@@ -223,38 +222,112 @@ watch(phase, (nextPhase, previousPhase) => {
             aria-hidden="true"
             focusable="false"
           >
-            <path d="M4.5 9.25v5.5h3.25L12 18V6L7.75 9.25z" />
-            <path
-              d="M15.25 9.25c1.45 1.45 1.45 4.05 0 5.5m2.4-7.9c2.8 2.8 2.8 7.5 0 10.3"
-              fill="none"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-width="1.7"
-            />
+            <path d="M8 5.25 18 12 8 18.75z" />
           </svg>
         </button>
 
-        <input
-          class="mm-global-audio-mini-bar__volume"
-          type="range"
-          min="0"
-          max="1"
-          step="0.05"
-          :value="volume"
-          aria-label="오디오 볼륨"
-          :style="volumeStyle"
-          @input="updateVolume"
+        <button
+          class="mm-global-audio-mini-bar__icon-button"
+          type="button"
+          :disabled="nextEntry === null"
+          aria-label="다음 곡"
+          @click="playNext"
         >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M15.75 5.5H18v13h-2.25zM6 6.2l8.5 5.8L6 17.8z" />
+          </svg>
+        </button>
       </div>
-    </div>
 
-    <p
-      v-if="error !== null"
-      class="mm-global-audio-mini-bar__error"
-      role="status"
-    >
-      {{ error.message }}
-    </p>
+      <div class="mm-global-audio-mini-bar__timeline-row">
+        <AudioTimeline
+          class="mm-global-audio-mini-bar__timeline"
+          :current-time-seconds="currentTimeSeconds"
+          :duration-seconds="presentationDurationSeconds"
+          :buffered-ratio="bufferedRatio"
+          :disabled="durationSeconds === null"
+          @seek="requestSeek"
+        />
+      </div>
+
+      <div class="mm-global-audio-mini-bar__meta-row">
+        <div class="mm-global-audio-mini-bar__time-group">
+          <span class="mm-global-audio-mini-bar__time">
+            {{ currentTimeLabel }}
+          </span>
+          <span
+            class="mm-global-audio-mini-bar__time-separator"
+            aria-hidden="true"
+          >
+            /
+          </span>
+          <span class="mm-global-audio-mini-bar__time">
+            {{ durationLabel }}
+          </span>
+        </div>
+
+        <div class="mm-global-audio-mini-bar__volume-group">
+          <button
+            class="mm-global-audio-mini-bar__icon-button mm-global-audio-mini-bar__icon-button--volume"
+            type="button"
+            :aria-label="muted ? '음소거 해제' : '음소거'"
+            :aria-pressed="muted"
+            @click="toggleMuted"
+          >
+            <svg
+              v-if="muted || volume === 0"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M4.5 9.25v5.5h3.25L12 18V6L7.75 9.25z" />
+              <path
+                d="m15.25 9.25 4.5 5.5m0-5.5-4.5 5.5"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-width="1.8"
+              />
+            </svg>
+            <svg
+              v-else
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M4.5 9.25v5.5h3.25L12 18V6L7.75 9.25z" />
+              <path
+                d="M15.25 9.25c1.45 1.45 1.45 4.05 0 5.5m2.4-7.9c2.8 2.8 2.8 7.5 0 10.3"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-width="1.7"
+              />
+            </svg>
+          </button>
+
+          <input
+            class="mm-global-audio-mini-bar__volume"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            :value="volume"
+            aria-label="오디오 볼륨"
+            :style="volumeStyle"
+            @input="updateVolume"
+          >
+        </div>
+      </div>
+
+      <p
+        v-if="error !== null"
+        class="mm-global-audio-mini-bar__error"
+        role="status"
+      >
+        {{ error.message }}
+      </p>
+    </div>
   </section>
 </template>
 
