@@ -61,7 +61,7 @@ export interface ProjectTiming {
 }
 
 export interface ProjectAssetReferences {
-  readonly coverAssetId: AssetId
+  readonly coverAssetId: AssetId | null
   readonly backdropAssetId: AssetId | null
   readonly primaryAssetId: AssetId | null
   readonly galleryAssetIds: readonly AssetId[]

@@ -361,7 +361,7 @@ function validateAsset(value, index, objectKeys) {
   if (!renditionIds.includes(value.defaultRenditionId)) fail(code, `Default rendition is missing at ${pointer}.defaultRenditionId.`)
   if (kind === 'image') nullableString(value.altText, `${pointer}.altText`, code, { max: 500 })
   if (kind === 'video') string(value.posterAssetId, `${pointer}.posterAssetId`, code, { pattern: ASSET_ID })
-  if (kind === 'audio') string(value.artworkAssetId, `${pointer}.artworkAssetId`, code, { pattern: ASSET_ID })
+  if (kind === 'audio') nullableString(value.artworkAssetId, `${pointer}.artworkAssetId`, code, { pattern: ASSET_ID })
 }
 
 function validateProject(value, index) {
@@ -420,7 +420,7 @@ function validateProject(value, index) {
   if (array(value.externalLinks, `${pointer}.externalLinks`, code).length !== 0) fail(code, `Public external links must be empty at ${pointer}.externalLinks.`)
   if (array(value.relatedProjectIds, `${pointer}.relatedProjectIds`, code).length !== 0) fail(code, `Public related projects must be empty at ${pointer}.relatedProjectIds.`)
   exactKeys(value.assets, ['coverAssetId', 'backdropAssetId', 'primaryAssetId', 'galleryAssetIds'], `${pointer}.assets`, code)
-  string(value.assets.coverAssetId, `${pointer}.assets.coverAssetId`, code, { pattern: ASSET_ID })
+  nullableString(value.assets.coverAssetId, `${pointer}.assets.coverAssetId`, code, { pattern: ASSET_ID })
   if (value.assets.backdropAssetId !== null) fail(code, `Public backdrop must be null at ${pointer}.assets.backdropAssetId.`)
   string(value.assets.primaryAssetId, `${pointer}.assets.primaryAssetId`, code, { pattern: ASSET_ID })
   const gallery = array(value.assets.galleryAssetIds, `${pointer}.assets.galleryAssetIds`, code)
@@ -433,7 +433,7 @@ function validateProject(value, index) {
   exactKeys(value.seo, ['title', 'description', 'ogAssetId', 'indexable'], `${pointer}.seo`, code)
   string(value.seo.title, `${pointer}.seo.title`, code, { nonEmpty: true, max: 300 })
   string(value.seo.description, `${pointer}.seo.description`, code, { max: 600 })
-  string(value.seo.ogAssetId, `${pointer}.seo.ogAssetId`, code, { pattern: ASSET_ID })
+  nullableString(value.seo.ogAssetId, `${pointer}.seo.ogAssetId`, code, { pattern: ASSET_ID })
   boolean(value.seo.indexable, `${pointer}.seo.indexable`, code)
 }
 
@@ -453,6 +453,41 @@ export function validateSnapshot(value, expected = null) {
   assertUnique(projects.map(project => project.order), '$snapshot.projects.order', code)
   assertUnique(assets.map(asset => asset.id), '$snapshot.assets.id', code)
   const assetById = new Map(assets.map(asset => [asset.id, asset]))
+
+  const validateProjectVisualCompanion = (project, projectIndex) => {
+    const pointer = `$snapshot.projects[${projectIndex}]`
+    const primary = assetById.get(project.assets.primaryAssetId)
+    if (!primary) {
+      fail(code, `Referenced asset is missing at ${pointer}.assets.primaryAssetId.`, { assetId: project.assets.primaryAssetId })
+    }
+
+    const expectedCoverAssetId = primary.kind === 'image'
+      ? primary.id
+      : primary.kind === 'video'
+        ? primary.posterAssetId
+        : primary.artworkAssetId
+
+    if (project.assets.coverAssetId !== expectedCoverAssetId) {
+      fail(code, `Project cover companion differs from primary media authority at ${pointer}.assets.coverAssetId.`, {
+        projectId: project.id,
+        primaryAssetId: primary.id,
+        primaryKind: primary.kind,
+        companionAssetId: expectedCoverAssetId,
+        coverAssetId: project.assets.coverAssetId,
+      })
+    }
+    if (project.seo.ogAssetId !== expectedCoverAssetId) {
+      fail(code, `Project SEO OG companion differs from primary media authority at ${pointer}.seo.ogAssetId.`, {
+        projectId: project.id,
+        primaryAssetId: primary.id,
+        primaryKind: primary.kind,
+        companionAssetId: expectedCoverAssetId,
+        seoOgAssetId: project.seo.ogAssetId,
+      })
+    }
+  }
+  projects.forEach(validateProjectVisualCompanion)
+
   const reachable = new Set()
   const visit = (assetId, path, expectedKind = null, context = null) => {
     const asset = assetById.get(assetId)
@@ -483,7 +518,7 @@ export function validateSnapshot(value, expected = null) {
         context === null ? null : { ...context, intent: 'video-poster', requirePrimary: true },
       )
     }
-    if (asset.kind === 'audio') {
+    if (asset.kind === 'audio' && asset.artworkAssetId !== null) {
       visit(
         asset.artworkAssetId,
         `asset(${assetId}).artworkAssetId`,
@@ -495,15 +530,19 @@ export function validateSnapshot(value, expected = null) {
   projects.forEach((project, projectIndex) => {
     const route = `/works/${project.slug}`
     const context = (intent, requirePrimary) => ({ projectId: project.id, route, intent, requirePrimary })
-    visit(project.assets.coverAssetId, `$snapshot.projects[${projectIndex}].assets.coverAssetId`, 'image', context('cover', true))
     visit(project.assets.primaryAssetId, `$snapshot.projects[${projectIndex}].assets.primaryAssetId`, null, context('primary', true))
+    if (project.assets.coverAssetId !== null) {
+      visit(project.assets.coverAssetId, `$snapshot.projects[${projectIndex}].assets.coverAssetId`, 'image', context('cover', true))
+    }
     project.assets.galleryAssetIds.forEach((assetId, galleryIndex) => visit(
       assetId,
       `$snapshot.projects[${projectIndex}].assets.galleryAssetIds[${galleryIndex}]`,
       null,
       context('gallery', assetById.get(assetId)?.kind === 'image'),
     ))
-    visit(project.seo.ogAssetId, `$snapshot.projects[${projectIndex}].seo.ogAssetId`, 'image', context('seo-og', false))
+    if (project.seo.ogAssetId !== null) {
+      visit(project.seo.ogAssetId, `$snapshot.projects[${projectIndex}].seo.ogAssetId`, 'image', context('seo-og', false))
+    }
     project.post.mediaItems.forEach((item, itemIndex) => visit(
       item.assetId,
       `$snapshot.projects[${projectIndex}].post.mediaItems[${itemIndex}].assetId`,

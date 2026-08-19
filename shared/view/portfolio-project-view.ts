@@ -156,7 +156,7 @@ export type ResolvedAssetReference =
   | ResolvedAudioAssetReference
 
 export interface ProjectAssetCollectionView {
-  readonly cover: ResolvedImageAssetReference
+  readonly cover: ResolvedImageAssetReference | null
   readonly backdrop: ResolvedImageAssetReference | null
   readonly primary: ResolvedAssetReference | null
   readonly gallery: readonly ResolvedAssetReference[]
@@ -180,19 +180,19 @@ export interface ProjectPresentationBase {
 
 export interface ProjectCardView
   extends ProjectPresentationBase {
-  readonly cover: ResolvedImageAssetReference
+  readonly cover: ResolvedImageAssetReference | null
 }
 
 export interface ShowcaseProjectView
   extends ProjectPresentationBase {
-  readonly cover: ResolvedImageAssetReference
+  readonly cover: ResolvedImageAssetReference | null
   readonly backdrop: ResolvedImageAssetReference | null
   readonly primary: ResolvedAssetReference | null
 }
 
 export interface RelatedProjectView
   extends ProjectPresentationBase {
-  readonly cover: ResolvedImageAssetReference
+  readonly cover: ResolvedImageAssetReference | null
 }
 
 export interface ProjectSeoEditorialView {

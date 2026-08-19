@@ -779,13 +779,15 @@ export function createPortfolioProjectViewResolver(
   }
 
   for (const [projectIndex, project] of snapshot.projects.entries()) {
-    const cover = resolveProjectAsset(
-      project,
-      projectIndex,
-      project.assets.coverAssetId,
-      'assets.coverAssetId',
-      true,
-    ) as ResolvedImageAssetReference
+    const cover = project.assets.coverAssetId === null
+      ? null
+      : resolveProjectAsset(
+          project,
+          projectIndex,
+          project.assets.coverAssetId,
+          'assets.coverAssetId',
+          true,
+        ) as ResolvedImageAssetReference
 
     const backdrop = project.assets.backdropAssetId === null
       ? null

@@ -72,7 +72,8 @@
     "test:r07-source-observation-async-convergence-closure-r1": "node scripts/mmj-ui29-r07-source-observation-async-convergence-closure-r1-gate.mjs",
     "gate:r07-source-observation-async-convergence-closure-r1": "npm run verify:boundary && node scripts/mmj-ui29-r07-source-observation-async-convergence-closure-r1-gate.mjs && npm run gate:push-dispatch-single-convergence-authority-07",
     "gate:historical-producer-admission-exact-input-provenance-r1": "node scripts/mmj-ui29-public-contract-test.mjs && node scripts/mmj-ui29-historical-producer-admission-r1-gate.mjs",
-    "gate:public-r11-empty-comment-projection-parity-r1": "node scripts/mmj-ui29-public-contract-test.mjs && node scripts/mmj-ui29-public-r11-empty-comment-projection-parity-r1-gate.mjs"
+    "gate:public-r11-empty-comment-projection-parity-r1": "node scripts/mmj-ui29-public-contract-test.mjs && node scripts/mmj-ui29-public-r11-empty-comment-projection-parity-r1-gate.mjs",
+    "gate:public-r12-optional-audio-artwork-nullable-cover-parity-r1": "node scripts/mmj-ui29-public-contract-test.mjs && node --experimental-strip-types scripts/mmj-ui29-public-r12-optional-audio-artwork-nullable-cover-parity-r1-test.mjs && node scripts/mmj-ui29-public-r12-optional-audio-artwork-nullable-cover-parity-r1-gate.mjs"
   },
   "dependencies": {
     "@pinia/nuxt": "0.11.2",
@@ -119,5 +120,6 @@
     "mmjPublicationSupersessionWithoutSilentDrop06PublicRelease": "MMJ-PUBLICATION-SUPERSESSION-WITHOUT-SILENT-DROP-06",
     "mmjPublicationPushDispatchSingleConvergenceAuthority07PublicRelease": "MMJ-PUBLICATION-PUSH-DISPATCH-SINGLE-CONVERGENCE-AUTHORITY-07",
     "mmjPublicationR07SourceObservationAsyncConvergenceClosureR1PublicRelease": "MMJ-PUBLICATION-R07-SOURCE-OBSERVATION-ASYNC-CONVERGENCE-CLOSURE-R1"
-  }
+  },
+  "mmjPublicR12OptionalAudioArtworkNullableCoverParityR1Release": "MMJ-PUBLIC-R12-OPTIONAL-AUDIO-ARTWORK-AND-NULLABLE-COVER-PARITY-R1"
 }
