@@ -9,7 +9,7 @@ import {
 } from './lib/mmj-ui29-public-contract.mjs'
 
 const clone = value => structuredClone(value)
-const EXPECTED_PORTFOLIO_PRODUCER_RELEASE = '0.7.9-mmj-portfolio-empty-closure-r1'
+const EXPECTED_PORTFOLIO_PRODUCER_RELEASE = '0.7.21-mmj-immediate-publication-fast-lane-r14c'
 const LEGACY_PORTFOLIO_PRODUCER_RELEASE = '0.7.1-mmj-cms-worker-07-b'
 const sourceDigest = '1'.repeat(64)
 const snapshotDigest = '2'.repeat(64)
@@ -228,7 +228,7 @@ reject('legacy 0.7.1 receipt producer release denied', 'E_MMJ_UI29_RECEIPT_INVAL
   validateReceipt({ ...clone(receipt), producerRelease: LEGACY_PORTFOLIO_PRODUCER_RELEASE }, head)
 })
 reject('unknown future producer release denied', 'E_MMJ_UI29_HEAD_INVALID', () => {
-  validateHead({ ...clone(head), producerRelease: '0.7.10-mmj-portfolio-future' })
+  validateHead({ ...clone(head), producerRelease: '0.7.22-mmj-portfolio-future' })
 })
 pass('numeric route slug admitted while manifest route stays canonical', () => {
   const numericProject = { ...clone(project), slug: '231312' }

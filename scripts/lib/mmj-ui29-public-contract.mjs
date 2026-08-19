@@ -10,7 +10,7 @@ import {
 } from './mmj-ui29-shared-typescript-loader.mjs'
 
 export const UI29_RELEASE = 'MMJ-UI29-A'
-export const PRODUCER_RELEASE = '0.7.9-mmj-portfolio-empty-closure-r1'
+export const PRODUCER_RELEASE = '0.7.21-mmj-immediate-publication-fast-lane-r14c'
 export const SNAPSHOT_CONTRACT = 'mmj-public-portfolio-collection-v1'
 export const HANDOFF_CONTRACT = 'mmj-static-build-handoff-receipt-v1'
 export const BUILD_INPUT_LOCK_CONTRACT = 'mmj-ui29-build-input-lock-v1'
