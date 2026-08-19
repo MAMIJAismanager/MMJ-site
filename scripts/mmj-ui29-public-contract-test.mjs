@@ -303,6 +303,118 @@ reject('empty producer release denied', 'E_MMJ_UI29_RECEIPT_INVALID', () => {
 reject('arbitrary producer release denied', 'E_MMJ_UI29_HEAD_INVALID', () => {
   validateHead({ ...clone(head), producerRelease: 'not-a-producer-release' })
 })
+// MMJ-PUBLIC-R11-EMPTY-COMMENT-PROJECTION-PARITY-R1: BEGIN
+pass('canonical empty comment projection admitted', () => {
+  const value = clone(snapshot)
+  value.projects[0].summary = ''
+  value.projects[0].description = ''
+  value.projects[0].post.comment = ''
+  value.projects[0].seo.description = ''
+  validateSnapshot(value, receipt)
+})
+pass('empty summary admitted independently', () => {
+  const value = clone(snapshot)
+  value.projects[0].summary = ''
+  validateSnapshot(value, receipt)
+})
+pass('empty description admitted independently', () => {
+  const value = clone(snapshot)
+  value.projects[0].description = ''
+  validateSnapshot(value, receipt)
+})
+pass('empty post comment admitted independently', () => {
+  const value = clone(snapshot)
+  value.projects[0].post.comment = ''
+  validateSnapshot(value, receipt)
+})
+pass('empty SEO description admitted independently', () => {
+  const value = clone(snapshot)
+  value.projects[0].seo.description = ''
+  validateSnapshot(value, receipt)
+})
+reject('null summary remains denied', 'E_MMJ_UI29_SNAPSHOT_INVALID', () => {
+  const value = clone(snapshot)
+  value.projects[0].summary = null
+  validateSnapshot(value, receipt)
+})
+reject('null description remains denied', 'E_MMJ_UI29_SNAPSHOT_INVALID', () => {
+  const value = clone(snapshot)
+  value.projects[0].description = null
+  validateSnapshot(value, receipt)
+})
+reject('null post comment remains denied', 'E_MMJ_UI29_SNAPSHOT_INVALID', () => {
+  const value = clone(snapshot)
+  value.projects[0].post.comment = null
+  validateSnapshot(value, receipt)
+})
+reject('null SEO description remains denied', 'E_MMJ_UI29_SNAPSHOT_INVALID', () => {
+  const value = clone(snapshot)
+  value.projects[0].seo.description = null
+  validateSnapshot(value, receipt)
+})
+reject('missing summary remains denied', 'E_MMJ_UI29_SNAPSHOT_INVALID', () => {
+  const value = clone(snapshot)
+  delete value.projects[0].summary
+  validateSnapshot(value, receipt)
+})
+reject('missing description remains denied', 'E_MMJ_UI29_SNAPSHOT_INVALID', () => {
+  const value = clone(snapshot)
+  delete value.projects[0].description
+  validateSnapshot(value, receipt)
+})
+reject('missing post comment remains denied', 'E_MMJ_UI29_SNAPSHOT_INVALID', () => {
+  const value = clone(snapshot)
+  delete value.projects[0].post.comment
+  validateSnapshot(value, receipt)
+})
+reject('missing SEO description remains denied', 'E_MMJ_UI29_SNAPSHOT_INVALID', () => {
+  const value = clone(snapshot)
+  delete value.projects[0].seo.description
+  validateSnapshot(value, receipt)
+})
+reject('wrong-type summary remains denied', 'E_MMJ_UI29_SNAPSHOT_INVALID', () => {
+  const value = clone(snapshot)
+  value.projects[0].summary = 0
+  validateSnapshot(value, receipt)
+})
+reject('wrong-type description remains denied', 'E_MMJ_UI29_SNAPSHOT_INVALID', () => {
+  const value = clone(snapshot)
+  value.projects[0].description = []
+  validateSnapshot(value, receipt)
+})
+reject('wrong-type post comment remains denied', 'E_MMJ_UI29_SNAPSHOT_INVALID', () => {
+  const value = clone(snapshot)
+  value.projects[0].post.comment = {}
+  validateSnapshot(value, receipt)
+})
+reject('wrong-type SEO description remains denied', 'E_MMJ_UI29_SNAPSHOT_INVALID', () => {
+  const value = clone(snapshot)
+  value.projects[0].seo.description = false
+  validateSnapshot(value, receipt)
+})
+reject('empty title remains denied', 'E_MMJ_UI29_SNAPSHOT_INVALID', () => {
+  const value = clone(snapshot)
+  value.projects[0].title = ''
+  validateSnapshot(value, receipt)
+})
+reject('empty SEO title remains denied', 'E_MMJ_UI29_SNAPSHOT_INVALID', () => {
+  const value = clone(snapshot)
+  value.projects[0].seo.title = ''
+  validateSnapshot(value, receipt)
+})
+pass('empty comment validation preserves exact snapshot semantics', () => {
+  const value = clone(snapshot)
+  value.projects[0].summary = ''
+  value.projects[0].description = ''
+  value.projects[0].post.comment = ''
+  value.projects[0].seo.description = ''
+  const before = canonicalDigest(value)
+  validateSnapshot(value, receipt)
+  const after = canonicalDigest(value)
+  if (before !== after) throw new Error('validator mutated canonical empty comment snapshot')
+})
+// MMJ-PUBLIC-R11-EMPTY-COMMENT-PROJECTION-PARITY-R1: END
+
 pass('numeric route slug admitted while manifest route stays canonical', () => {
   const numericProject = { ...clone(project), slug: '231312' }
   const numericSnapshot = { ...clone(snapshot), projects: [numericProject] }

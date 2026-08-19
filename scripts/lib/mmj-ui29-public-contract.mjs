@@ -392,10 +392,10 @@ function validateProject(value, index) {
   if (value.timing.year !== null) integer(value.timing.year, `${pointer}.timing.year`, code, 1900)
   dateOnlyOrNull(value.timing.releaseDate, `${pointer}.timing.releaseDate`, code)
   nullableString(value.client, `${pointer}.client`, code, { max: 240 })
-  string(value.summary, `${pointer}.summary`, code, { nonEmpty: true, max: 2000 })
-  string(value.description, `${pointer}.description`, code, { nonEmpty: true, max: 12000 })
+  string(value.summary, `${pointer}.summary`, code, { max: 2000 })
+  string(value.description, `${pointer}.description`, code, { max: 12000 })
   exactKeys(value.post, ['comment', 'mediaItems', 'tags'], `${pointer}.post`, code)
-  string(value.post.comment, `${pointer}.post.comment`, code, { nonEmpty: true, max: 12000 })
+  string(value.post.comment, `${pointer}.post.comment`, code, { max: 12000 })
   const mediaItems = array(value.post.mediaItems, `${pointer}.post.mediaItems`, code)
   if (mediaItems.length < 1 || mediaItems.length > 4) fail(code, `Post media item count is invalid at ${pointer}.post.mediaItems.`)
   const positions = []
@@ -432,7 +432,7 @@ function validateProject(value, index) {
   integer(value.order, `${pointer}.order`, code, 0)
   exactKeys(value.seo, ['title', 'description', 'ogAssetId', 'indexable'], `${pointer}.seo`, code)
   string(value.seo.title, `${pointer}.seo.title`, code, { nonEmpty: true, max: 300 })
-  string(value.seo.description, `${pointer}.seo.description`, code, { nonEmpty: true, max: 600 })
+  string(value.seo.description, `${pointer}.seo.description`, code, { max: 600 })
   string(value.seo.ogAssetId, `${pointer}.seo.ogAssetId`, code, { pattern: ASSET_ID })
   boolean(value.seo.indexable, `${pointer}.seo.indexable`, code)
 }

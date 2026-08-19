@@ -70,7 +70,9 @@
     "test:push-dispatch-single-convergence-authority-07": "node --experimental-strip-types scripts/mmj-ui29-push-dispatch-single-convergence-authority-07-test.mjs",
     "gate:push-dispatch-single-convergence-authority-07": "node --experimental-strip-types scripts/mmj-ui29-push-dispatch-single-convergence-authority-07-test.mjs && node scripts/mmj-ui29-push-dispatch-single-convergence-authority-07-gate.mjs && npm run gate:supersession-without-silent-drop-06",
     "test:r07-source-observation-async-convergence-closure-r1": "node scripts/mmj-ui29-r07-source-observation-async-convergence-closure-r1-gate.mjs",
-    "gate:r07-source-observation-async-convergence-closure-r1": "npm run verify:boundary && node scripts/mmj-ui29-r07-source-observation-async-convergence-closure-r1-gate.mjs && npm run gate:push-dispatch-single-convergence-authority-07"
+    "gate:r07-source-observation-async-convergence-closure-r1": "npm run verify:boundary && node scripts/mmj-ui29-r07-source-observation-async-convergence-closure-r1-gate.mjs && npm run gate:push-dispatch-single-convergence-authority-07",
+    "gate:historical-producer-admission-exact-input-provenance-r1": "node scripts/mmj-ui29-public-contract-test.mjs && node scripts/mmj-ui29-historical-producer-admission-r1-gate.mjs",
+    "gate:public-r11-empty-comment-projection-parity-r1": "node scripts/mmj-ui29-public-contract-test.mjs && node scripts/mmj-ui29-public-r11-empty-comment-projection-parity-r1-gate.mjs"
   },
   "dependencies": {
     "@pinia/nuxt": "0.11.2",
