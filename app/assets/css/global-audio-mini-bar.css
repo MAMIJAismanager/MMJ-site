@@ -4,9 +4,12 @@
   inset-inline-end: max(var(--mm-page-gutter), env(safe-area-inset-right));
   z-index: 240;
   display: grid;
-  gap: 0.4rem;
-  width: min(26rem, calc(100vw - (var(--mm-page-gutter) * 2)));
-  padding: 0.55rem 0.7rem 0.65rem;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.45rem;
+  width: min(10.5rem, calc(100vw - (var(--mm-page-gutter) * 2)));
+  aspect-ratio: 1;
+  padding: 0.7rem;
   border: 1px solid color-mix(in srgb, var(--mm-color-on-surface) 10%, transparent);
   border-radius: var(--mm-radius-small);
   background: color-mix(in srgb, var(--mm-color-surface) 94%, transparent);
@@ -15,19 +18,28 @@
   backdrop-filter: blur(10px);
 }
 
-.mm-global-audio-mini-bar__topline {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+.mm-global-audio-mini-bar__transport,
+.mm-global-audio-mini-bar__volume-group,
+.mm-global-audio-mini-bar__time-group {
+  display: flex;
   align-items: center;
-  gap: var(--mm-space-2);
+}
+
+.mm-global-audio-mini-bar__transport {
+  align-self: stretch;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.mm-global-audio-mini-bar__volume-group {
+  justify-self: end;
+  gap: 0.1rem;
   min-width: 0;
 }
 
-.mm-global-audio-mini-bar__transport,
-.mm-global-audio-mini-bar__volume-group {
-  display: flex;
-  align-items: center;
-  gap: 0.15rem;
+.mm-global-audio-mini-bar__time-group {
+  gap: 0.2rem;
+  min-width: 0;
 }
 
 .mm-global-audio-mini-bar__icon-button {
@@ -52,9 +64,24 @@
   fill: currentColor;
 }
 
+.mm-global-audio-mini-bar__icon-button--primary {
+  width: 2.35rem;
+  height: 2.35rem;
+}
+
 .mm-global-audio-mini-bar__icon-button--primary svg {
-  width: 1.08rem;
-  height: 1.08rem;
+  width: 1.12rem;
+  height: 1.12rem;
+}
+
+.mm-global-audio-mini-bar__icon-button--volume {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.mm-global-audio-mini-bar__icon-button--volume svg {
+  width: 0.95rem;
+  height: 0.95rem;
 }
 
 .mm-global-audio-mini-bar__icon-button:disabled {
@@ -77,12 +104,35 @@
   font-size: var(--mm-font-size-small);
   font-weight: var(--mm-font-weight-semibold);
   line-height: 1.2;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.mm-global-audio-mini-bar__volume-group {
-  justify-self: end;
+.mm-global-audio-mini-bar__timeline-row {
+  display: block;
+  min-width: 0;
+}
+
+.mm-global-audio-mini-bar__meta-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.mm-global-audio-mini-bar__time,
+.mm-global-audio-mini-bar__time-separator {
+  color: var(--mm-color-on-surface-muted);
+  font-size: 0.625rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.mm-global-audio-mini-bar__time-separator {
+  opacity: 0.62;
 }
 
 .mm-global-audio-mini-bar__volume,
@@ -96,7 +146,7 @@
 }
 
 .mm-global-audio-mini-bar__volume {
-  width: 4.25rem;
+  width: 2.6rem;
 }
 
 .mm-global-audio-mini-bar__volume::-webkit-slider-runnable-track {
@@ -143,22 +193,6 @@
   background: var(--mm-color-on-surface);
 }
 
-.mm-global-audio-mini-bar__timeline-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--mm-space-2);
-  min-width: 0;
-}
-
-.mm-global-audio-mini-bar__time {
-  color: var(--mm-color-on-surface-muted);
-  font-size: 0.6875rem;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  white-space: nowrap;
-}
-
 .mm-global-audio-mini-bar .mm-audio-inline-player__seek {
   width: 100%;
 }
@@ -189,10 +223,16 @@
 }
 
 .mm-global-audio-mini-bar__error {
+  position: absolute;
+  inset-inline: 0.7rem;
+  inset-block-end: 0.45rem;
   margin: 0;
+  overflow: hidden;
   color: var(--mm-color-on-surface-muted);
-  font-size: var(--mm-font-size-caption);
-  line-height: var(--mm-line-height-meta);
+  font-size: 0.625rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (hover: hover) {
@@ -203,9 +243,7 @@
 
 @media (max-width: 47.999rem) {
   .mm-global-audio-mini-bar {
-    inset-inline-start: max(var(--mm-page-gutter), env(safe-area-inset-left));
-    inset-inline-end: max(var(--mm-page-gutter), env(safe-area-inset-right));
-    width: auto;
+    width: min(9.75rem, calc(100vw - (var(--mm-page-gutter) * 2)));
   }
 
   .mm-global-audio-mini-bar__volume {
