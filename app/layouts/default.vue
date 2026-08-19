@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import CrossMediaArbitrationProvider from '~/components/media/CrossMediaArbitrationProvider.vue'
 import GlobalAudioDock from '~/components/player/GlobalAudioDock.vue'
+import GlobalAudioMiniBar from '~/components/player/GlobalAudioMiniBar.vue'
 import SiteFooter from '~/components/shell/SiteFooter.vue'
 import SiteHeader from '~/components/shell/SiteHeader.vue'
 
@@ -77,6 +78,8 @@ const showsSiteFooter = computed(() => (
       </a>
 
       <SiteHeader />
+
+      <GlobalAudioMiniBar />
 
       <main
         id="main-content"

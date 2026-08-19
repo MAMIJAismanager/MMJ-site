@@ -8,6 +8,7 @@
 }
 
 .mm-global-audio-dock {
+  display: none;
   position: sticky;
   inset-block-end: 0;
   border-block-start: 1px solid var(--mm-color-border);
