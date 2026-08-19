@@ -612,7 +612,7 @@ export async function computeProducerRevision(root) {
   return sha256(Buffer.from(records.join(''), 'utf8'))
 }
 
-export function createBuildInputLock(input) {
+function validateObservedBuildInputProducerAuthority(input) {
   const code = 'E_MMJ_UI29_GENERATED_STAGE_INVALID'
   admitProducerRelease(input.receipt.producerRelease, '$buildInputLock.input.receipt.producerRelease', code, 'Receipt')
   if (!input.generation) {
@@ -624,6 +624,9 @@ export function createBuildInputLock(input) {
       })
     }
   }
+}
+
+function createBuildInputLockIdentity(input) {
   const base = {
     upstreamOrigin: input.upstreamOrigin,
     collectionVersionId: input.head.collectionVersionId,
@@ -653,6 +656,11 @@ export function createBuildInputLock(input) {
     collectionHeadRevision: input.generation.collectionHeadRevision,
     ...base,
   })
+}
+
+export function createBuildInputLock(input) {
+  validateObservedBuildInputProducerAuthority(input)
+  return createBuildInputLockIdentity(input)
 }
 
 export function createPublicReleaseManifest(input) {
@@ -714,7 +722,15 @@ function validateBuildInputLock(value, input) {
   } else if (value.schemaVersion !== 1 || value.contract !== BUILD_INPUT_LOCK_CONTRACT) {
     fail(code, 'Build input lock contract mismatch.')
   }
-  const expected = createBuildInputLock(input)
+  admitProducerRelease(input.receipt.producerRelease, '$buildInputLock.input.receipt.producerRelease', code, 'Receipt')
+  admitProducerRelease(value.producerRelease, '$buildInputLock.producerRelease', code, 'Build input lock')
+  if (value.producerRelease !== input.receipt.producerRelease) {
+    fail(code, 'Build input lock producer release does not match handoff receipt.', {
+      lockProducerRelease: value.producerRelease,
+      receiptProducerRelease: input.receipt.producerRelease,
+    })
+  }
+  const expected = createBuildInputLockIdentity(input)
   if (!equalJson(value, expected)) fail(code, 'Build input lock identity mismatch.')
 }
 
