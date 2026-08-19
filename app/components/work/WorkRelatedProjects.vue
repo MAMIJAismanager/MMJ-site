@@ -16,6 +16,7 @@ interface Props {
 defineProps<Props>()
 
 function relatedImagePlan(project: RelatedProjectView) {
+  if (project.cover === null) return null
   return resolvePortfolioImagePresentation(
     project.cover,
     'thumbnail',

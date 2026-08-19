@@ -8,7 +8,7 @@
   type WorksPageCompositionCommit,
   type WorksPageProbeReceipt,
   type WorksPageSolveInput,
-} from './works-page-composition.ts'
+} from './works-page-composition'
 
 interface WorksPageSolveState {
   readonly input: WorksPageSolveInput

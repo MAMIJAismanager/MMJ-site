@@ -12,24 +12,26 @@ import type {
 } from '~~/shared/view/portfolio-project-view'
 
 interface ProjectCardMediaProps {
-  readonly cover: ResolvedImageAssetReference
+  readonly cover: ResolvedImageAssetReference | null
   readonly index: number
 }
 
 const props = defineProps<ProjectCardMediaProps>()
 
 const imagePlan = computed(() => (
-  resolvePortfolioImagePresentation(
-    props.cover,
-    'thumbnail',
-    {
-      sizes: MM_PROJECT_CARD_IMAGE_SIZES,
-      accessibility: { mode: 'decorative' },
-      loading: props.index === 0 ? 'eager' : 'lazy',
-      fetchPriority: props.index === 0 ? 'high' : 'auto',
-      fit: 'cover',
-    },
-  )
+  props.cover === null
+    ? null
+    : resolvePortfolioImagePresentation(
+        props.cover,
+        'thumbnail',
+        {
+          sizes: MM_PROJECT_CARD_IMAGE_SIZES,
+          accessibility: { mode: 'decorative' },
+          loading: props.index === 0 ? 'eager' : 'lazy',
+          fetchPriority: props.index === 0 ? 'high' : 'auto',
+          fit: 'cover',
+        },
+      )
 ))
 </script>
 

@@ -1,8 +1,57 @@
-import {
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
+
+import ts from 'typescript'
+
+async function importSolverFixture() {
+  const temporaryDirectory = await mkdtemp(join(tmpdir(), 'mmj-works-r6-'))
+  try {
+    const compositionSource = await readFile(
+      new URL('../app/works/works-page-composition.ts', import.meta.url),
+      'utf8',
+    )
+    const solverSource = await readFile(
+      new URL('../app/works/works-page-composition-solver.ts', import.meta.url),
+      'utf8',
+    )
+    const compilerOptions = {
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.ESNext,
+    }
+    const compositionModule = ts.transpileModule(compositionSource, {
+      compilerOptions,
+      fileName: 'works-page-composition.ts',
+    }).outputText
+    const solverModule = ts.transpileModule(
+      solverSource.replace(
+        "from './works-page-composition'",
+        "from './works-page-composition.mjs'",
+      ),
+      {
+        compilerOptions,
+        fileName: 'works-page-composition-solver.ts',
+      },
+    ).outputText
+    await writeFile(
+      join(temporaryDirectory, 'works-page-composition.mjs'),
+      compositionModule,
+      'utf8',
+    )
+    const solverPath = join(temporaryDirectory, 'works-page-composition-solver.mjs')
+    await writeFile(solverPath, solverModule, 'utf8')
+    return await import(pathToFileURL(solverPath).href)
+  } finally {
+    await rm(temporaryDirectory, { recursive: true, force: true })
+  }
+}
+
+const {
   advanceWorksPageSolve,
   beginWorksPageSolve,
   createWorksPageCandidates,
-} from '../app/works/works-page-composition-solver.ts'
+} = await importSolverFixture()
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message)
