@@ -177,7 +177,7 @@ pass('decorative primary video poster skips description resolution', () => {
   assert(accessibility.mode === 'decorative', 'decorative accessibility drifted')
 })
 
-pass('fully unresolvable informative image fails', () => {
+pass('fully absent informative-intent image becomes decorative without synthesis', () => {
   const assetSource = clone(imageAsset)
   const projectSource = clone(baseProject)
   projectSource.description = '이미지'
@@ -185,13 +185,10 @@ pass('fully unresolvable informative image fails', () => {
   projectSource.post.comment = '이미지'
   const value = snapshot([assetSource], [projectSource])
   const { project, asset } = resolveView(value)
-  let caught = null
-  try {
-    authority.resolveWorkDetailAccessibleDescription(project, asset, 'primary-image')
-  } catch (error) {
-    caught = error
-  }
-  assert(caught?.code === 'accessible-description-unresolvable', 'unresolvable error code drifted')
+  const resolved = authority.resolveWorkDetailAccessibleDescription(project, asset, 'primary-image')
+  assert(resolved === null, 'canonical source absence did not resolve null')
+  const accessibility = authority.resolveWorkDetailImageAccessibility(project, asset, 'primary-image')
+  assert(accessibility.mode === 'decorative', 'canonical source absence did not become decorative')
 })
 
 pass('admission leaves canonical snapshot untouched', () => {
@@ -203,21 +200,22 @@ pass('admission leaves canonical snapshot untouched', () => {
   assert(JSON.stringify(value) === before, 'admission mutated canonical snapshot')
 })
 
-await passAsync('public contract maps only unresolvable accessibility failure', async () => {
+await passAsync('public contract admits canonical source absence as decorative', async () => {
   const projectSource = clone(baseProject)
-  projectSource.description = '이미지'
-  projectSource.summary = '사진'
-  projectSource.post.comment = '이미지'
-  let caught = null
-  try {
-    await validateAccessibleDescriptionResolutionAdmission(
-      snapshot([clone(imageAsset)], [projectSource]),
-      { sourceRoot: process.cwd() },
-    )
-  } catch (error) {
-    caught = error
-  }
-  assert(caught?.code === 'E_MMJ_PUBLIC_INFORMATIVE_IMAGE_DESCRIPTION_UNRESOLVABLE', 'public unresolvable mapping drifted')
+  projectSource.description = ''
+  projectSource.summary = ''
+  projectSource.post.comment = ''
+  const value = snapshot([clone(imageAsset)], [projectSource])
+  const before = JSON.stringify(value)
+  const receipts = await validateAccessibleDescriptionResolutionAdmission(
+    value,
+    { sourceRoot: process.cwd() },
+  )
+  assert(receipts.length >= 1, 'public absence admission emitted no receipt')
+  assert(receipts[0].context === 'primary-image', 'public absence context drifted')
+  assert(receipts[0].accessibilityMode === 'decorative', 'public absence did not admit decorative')
+  assert(receipts[0].provenance === null, 'public absence fabricated provenance')
+  assert(JSON.stringify(value) === before, 'public absence admission mutated snapshot')
 })
 
 await passAsync('public contract maps invalid explicit override separately', async () => {

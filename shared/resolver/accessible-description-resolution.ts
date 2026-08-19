@@ -36,7 +36,6 @@ export type AccessibleDescriptionResolutionFailureReason =
   | 'invalid-explicit-whitespace-only'
   | 'invalid-explicit-untrimmed'
   | 'invalid-explicit-control-character'
-  | 'unresolvable'
 
 export interface ResolvedAccessibleDescription {
   readonly text: string
@@ -65,8 +64,7 @@ export class AccessibleDescriptionResolutionError extends Error {
 
   constructor(
     readonly code:
-      | 'invalid-explicit-image-alt'
-      | 'accessible-description-unresolvable',
+      | 'invalid-explicit-image-alt',
     readonly assetId: string,
     readonly context: WorkDetailImageAccessibilityContext,
     readonly path: string,
@@ -283,13 +281,7 @@ export function resolveWorkDetailAccessibleDescription(
     if (candidate !== null) return candidate
   }
 
-  throw new AccessibleDescriptionResolutionError(
-    'accessible-description-unresolvable',
-    asset.id,
-    context,
-    `asset(${asset.id}).altText`,
-    'unresolvable',
-  )
+  return null
 }
 
 export function resolveWorkDetailImageAccessibility(
@@ -302,7 +294,7 @@ export function resolveWorkDetailImageAccessibility(
   }
   const resolved = resolveWorkDetailAccessibleDescription(project, asset, context)
   if (resolved === null) {
-    throw new Error(`Informative accessibility resolved null for ${asset.id}.`)
+    return Object.freeze({ mode: 'decorative' as const })
   }
   return Object.freeze({
     mode: 'informative' as const,
@@ -362,13 +354,28 @@ function admitContext(
     return
   }
 
-  let resolved: ResolvedAccessibleDescription
+  let resolved: ResolvedAccessibleDescription | null
   try {
-    const candidate = resolveWorkDetailAccessibleDescription(project, asset, context)
-    if (candidate === null) throw new Error(`Informative context resolved null for ${asset.id}.`)
-    resolved = candidate
+    resolved = resolveWorkDetailAccessibleDescription(project, asset, context)
   } catch (error) {
     admissionFailure(project, asset, ownerAssetId, context, relationPath, error)
+  }
+
+  if (resolved === null) {
+    receipts.push(Object.freeze({
+      projectId: project.id,
+      route: project.href,
+      assetId: asset.id,
+      ownerAssetId,
+      context,
+      relationPath,
+      accessibilityMode: 'decorative' as const,
+      provenance: null,
+      derived: false,
+      sourcePath: null,
+      candidateIndex: null,
+    }))
+    return
   }
 
   receipts.push(Object.freeze({
