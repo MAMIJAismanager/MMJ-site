@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import AudioTrackAction from '~/components/player/AudioTrackAction.vue'
+import AudioInlinePlayer from '~/components/player/AudioInlinePlayer.vue'
 import MediaFrame from '~/components/media/MediaFrame.vue'
 import VideoPlayer from '~/components/media/VideoPlayer.vue'
 import {
@@ -116,7 +116,6 @@ const videoPresentation = computed(() => {
   return resolvePortfolioVideoPresentation(props.asset)
 })
 
-
 const videoGeometryConstraint = computed<VideoGeometryConstraint | undefined>(() => {
   if (
     videoPresentation.value === null
@@ -171,7 +170,7 @@ const audioArtworkState = computed(() => {
       :state-label="`${kindLabel} 영역`"
     />
 
-    <AudioTrackAction
+    <AudioInlinePlayer
       v-if="audioTrack !== null"
       :track="audioTrack"
     />
