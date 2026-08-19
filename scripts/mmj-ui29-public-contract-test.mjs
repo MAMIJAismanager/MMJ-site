@@ -1,5 +1,6 @@
 import {
   canonicalDigest,
+  ADMITTED_PRODUCER_RELEASES,
   createBuildInputLock,
   PRODUCER_RELEASE,
   validateHead,
@@ -9,8 +10,11 @@ import {
 } from './lib/mmj-ui29-public-contract.mjs'
 
 const clone = value => structuredClone(value)
-const EXPECTED_PORTFOLIO_PRODUCER_RELEASE = '0.7.21-mmj-immediate-publication-fast-lane-r14c'
+const R14B_PRODUCER_RELEASE = '0.7.20-mmj-portfolio-legacy-optional-year-r14b'
+const R14C_PRODUCER_RELEASE = '0.7.21-mmj-immediate-publication-fast-lane-r14c'
 const LEGACY_PORTFOLIO_PRODUCER_RELEASE = '0.7.1-mmj-cms-worker-07-b'
+const PRE_R14_PRODUCER_RELEASE = '0.7.9-mmj-portfolio-empty-closure-r1'
+const UNKNOWN_FUTURE_PRODUCER_RELEASE = '0.7.22-mmj-portfolio-future'
 const sourceDigest = '1'.repeat(64)
 const snapshotDigest = '2'.repeat(64)
 const collectionVersionId = `pcol_${snapshotDigest.slice(0, 26)}`
@@ -98,7 +102,7 @@ const head = {
   previousSnapshotDigest: null,
   handoffReceiptId: receiptId,
   promotedAt: snapshot.publicationCutoff,
-  producerRelease: EXPECTED_PORTFOLIO_PRODUCER_RELEASE,
+  producerRelease: R14C_PRODUCER_RELEASE,
 }
 
 const receipt = {
@@ -122,7 +126,7 @@ const receipt = {
     versionSnapshotDigest: '5'.repeat(64),
     publicationDigest: '6'.repeat(64),
   }],
-  producerRelease: EXPECTED_PORTFOLIO_PRODUCER_RELEASE,
+  producerRelease: R14C_PRODUCER_RELEASE,
   createdAt: snapshot.publicationCutoff,
 }
 
@@ -167,20 +171,74 @@ reject('unicode project and post tag identity mismatch denied', 'E_MMJ_UI29_SNAP
 })
 // MMJ-PUBLIC-TAG-TOKEN-UNICODE-AUTHORITY-LEGACY-SLUG-RETIREMENT-R1: END
 pass('current portfolio producer release authority', () => {
-  if (PRODUCER_RELEASE !== EXPECTED_PORTFOLIO_PRODUCER_RELEASE) {
+  if (PRODUCER_RELEASE !== R14C_PRODUCER_RELEASE) {
     throw new Error(`portfolio producer release drifted: ${PRODUCER_RELEASE}`)
   }
 })
-pass('build input lock carries current producer identity', () => {
+pass('explicit producer allowlist is exact R14B plus R14C', () => {
+  const expected = [R14B_PRODUCER_RELEASE, R14C_PRODUCER_RELEASE]
+  if (JSON.stringify(ADMITTED_PRODUCER_RELEASES) !== JSON.stringify(expected)) {
+    throw new Error(`producer allowlist drifted: ${JSON.stringify(ADMITTED_PRODUCER_RELEASES)}`)
+  }
+})
+pass('R14C build input lock preserves exact receipt producer identity', () => {
   const lock = createBuildInputLock({
     upstreamOrigin: 'https://cms.mamajing.work',
     head,
     receipt,
     handoffReceiptDigest: '7'.repeat(64),
   })
-  if (lock.producerRelease !== EXPECTED_PORTFOLIO_PRODUCER_RELEASE) {
-    throw new Error('build input lock producer release drifted')
+  if (lock.producerRelease !== R14C_PRODUCER_RELEASE) {
+    throw new Error('R14C build input lock producer provenance drifted')
   }
+})
+pass('R14B historical head and receipt are admitted', () => {
+  const historicalHead = { ...clone(head), producerRelease: R14B_PRODUCER_RELEASE }
+  const historicalReceipt = { ...clone(receipt), producerRelease: R14B_PRODUCER_RELEASE }
+  validateHead(historicalHead)
+  validateReceipt(historicalReceipt, historicalHead)
+})
+pass('R14B historical receipt is admitted standalone', () => {
+  validateReceipt({ ...clone(receipt), producerRelease: R14B_PRODUCER_RELEASE })
+})
+pass('R14B historical build input lock preserves exact receipt producer identity', () => {
+  const historicalHead = { ...clone(head), producerRelease: R14B_PRODUCER_RELEASE }
+  const historicalReceipt = { ...clone(receipt), producerRelease: R14B_PRODUCER_RELEASE }
+  const lock = createBuildInputLock({
+    upstreamOrigin: 'https://cms.mamajing.work',
+    head: historicalHead,
+    receipt: historicalReceipt,
+    handoffReceiptDigest: '7'.repeat(64),
+    generation: {
+      deliveryKey: `pdispatch_v1_${'8'.repeat(64)}`,
+      generationContract: 'mmj-portfolio-dispatch-generation-identity-v1',
+      generationDigest: '9'.repeat(64),
+      sourceWorkbookRevision: 1077,
+      collectionHeadRevision: historicalReceipt.collectionHeadGeneration,
+    },
+  })
+  if (lock.schemaVersion !== 2 || lock.adoptionMode !== 'dispatch-generation') {
+    throw new Error('historical dispatch generation build input lock did not remain v2')
+  }
+  if (lock.producerRelease !== R14B_PRODUCER_RELEASE) {
+    throw new Error('historical dispatch generation producer provenance was overwritten')
+  }
+})
+reject('R14B head with R14C receipt is denied', 'E_MMJ_UI29_HEAD_RECEIPT_MISMATCH', () => {
+  const historicalHead = { ...clone(head), producerRelease: R14B_PRODUCER_RELEASE }
+  validateReceipt(clone(receipt), historicalHead)
+})
+reject('R14C head with R14B receipt is denied', 'E_MMJ_UI29_HEAD_RECEIPT_MISMATCH', () => {
+  const historicalReceipt = { ...clone(receipt), producerRelease: R14B_PRODUCER_RELEASE }
+  validateReceipt(historicalReceipt, head)
+})
+reject('build input lock rejects cross-producer provenance', 'E_MMJ_UI29_GENERATED_STAGE_INVALID', () => {
+  createBuildInputLock({
+    upstreamOrigin: 'https://cms.mamajing.work',
+    head,
+    receipt: { ...clone(receipt), producerRelease: R14B_PRODUCER_RELEASE },
+    handoffReceiptDigest: '7'.repeat(64),
+  })
 })
 pass('canonical empty collection admitted', () => {
   const emptySnapshot = {
@@ -225,10 +283,25 @@ reject('legacy 0.7.1 head producer release denied', 'E_MMJ_UI29_HEAD_INVALID', (
   validateHead({ ...clone(head), producerRelease: LEGACY_PORTFOLIO_PRODUCER_RELEASE })
 })
 reject('legacy 0.7.1 receipt producer release denied', 'E_MMJ_UI29_RECEIPT_INVALID', () => {
-  validateReceipt({ ...clone(receipt), producerRelease: LEGACY_PORTFOLIO_PRODUCER_RELEASE }, head)
+  validateReceipt({ ...clone(receipt), producerRelease: LEGACY_PORTFOLIO_PRODUCER_RELEASE })
 })
-reject('unknown future producer release denied', 'E_MMJ_UI29_HEAD_INVALID', () => {
-  validateHead({ ...clone(head), producerRelease: '0.7.22-mmj-portfolio-future' })
+reject('pre-R14 0.7.9 head producer release denied', 'E_MMJ_UI29_HEAD_INVALID', () => {
+  validateHead({ ...clone(head), producerRelease: PRE_R14_PRODUCER_RELEASE })
+})
+reject('pre-R14 0.7.9 receipt producer release denied', 'E_MMJ_UI29_RECEIPT_INVALID', () => {
+  validateReceipt({ ...clone(receipt), producerRelease: PRE_R14_PRODUCER_RELEASE })
+})
+reject('unknown future head producer release denied', 'E_MMJ_UI29_HEAD_INVALID', () => {
+  validateHead({ ...clone(head), producerRelease: UNKNOWN_FUTURE_PRODUCER_RELEASE })
+})
+reject('unknown future receipt producer release denied', 'E_MMJ_UI29_RECEIPT_INVALID', () => {
+  validateReceipt({ ...clone(receipt), producerRelease: UNKNOWN_FUTURE_PRODUCER_RELEASE })
+})
+reject('empty producer release denied', 'E_MMJ_UI29_RECEIPT_INVALID', () => {
+  validateReceipt({ ...clone(receipt), producerRelease: '' })
+})
+reject('arbitrary producer release denied', 'E_MMJ_UI29_HEAD_INVALID', () => {
+  validateHead({ ...clone(head), producerRelease: 'not-a-producer-release' })
 })
 pass('numeric route slug admitted while manifest route stays canonical', () => {
   const numericProject = { ...clone(project), slug: '231312' }

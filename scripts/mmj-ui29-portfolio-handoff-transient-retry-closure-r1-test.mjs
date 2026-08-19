@@ -139,6 +139,32 @@ await assert.rejects(
 )
 assert.equal(deterministicCalls, 1, 'deterministic contract failure must not retry')
 
+const producerDiagnosticLogs = []
+await assert.rejects(
+  runPortfolioHandoffTransactionWithRetry({
+    deadline: 100_000,
+    now: () => 1_000,
+    sleep: async () => undefined,
+    logger: receipt => producerDiagnosticLogs.push(receipt),
+    transaction: async () => {
+      throw contractError('E_MMJ_UI29_RECEIPT_INVALID', 'receipt', {
+        actualProducerRelease: '0.7.22-mmj-portfolio-future',
+        admittedProducerReleases: [
+          '0.7.20-mmj-portfolio-legacy-optional-year-r14b',
+          '0.7.21-mmj-immediate-publication-fast-lane-r14c',
+        ],
+      })
+    },
+  }),
+  error => error?.code === 'E_MMJ_UI29_RECEIPT_INVALID',
+)
+const producerFailure = producerDiagnosticLogs.find(entry => entry.event === 'MMJ_PORTFOLIO_HANDOFF_ATTEMPT_FAILED')
+assert.equal(producerFailure?.actualProducerRelease, '0.7.22-mmj-portfolio-future')
+assert.deepEqual(producerFailure?.admittedProducerReleases, [
+  '0.7.20-mmj-portfolio-legacy-optional-year-r14b',
+  '0.7.21-mmj-immediate-publication-fast-lane-r14c',
+])
+
 let deadlineCalls = 0
 const deadlineLogs = []
 await assert.rejects(
@@ -168,4 +194,5 @@ console.log(JSON.stringify({
   perRequestTimeoutCappedByGlobalDeadline: true,
   unknownNetworkFailureFailClosed: true,
   httpFailureNotBlindlyRetried: true,
+  producerMismatchDiagnosticPreserved: true,
 }))

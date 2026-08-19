@@ -4,7 +4,7 @@ import {
   portfolioDispatchGenerationDigest,
 } from './lib/mmj-ui29-portfolio-dispatch-generation.mjs'
 import { observePortfolioDeploymentAdmission } from './lib/mmj-ui29-portfolio-deployment-authority.mjs'
-import { createBuildInputLock } from './lib/mmj-ui29-public-contract.mjs'
+import { createBuildInputLock, PRODUCER_RELEASE } from './lib/mmj-ui29-public-contract.mjs'
 
 const input = {
   schemaVersion: 2,
@@ -83,8 +83,9 @@ const head = {
   projectCount: input.projectCount,
   assetCount: input.assetCount,
   routeCount: input.projectCount,
+  producerRelease: PRODUCER_RELEASE,
 }
-const receipt = { receiptId: input.handoffReceiptId, routesDigest: 'a'.repeat(64), createdAt: input.issuedAt }
+const receipt = { receiptId: input.handoffReceiptId, routesDigest: 'a'.repeat(64), createdAt: input.issuedAt, producerRelease: PRODUCER_RELEASE }
 const lock = createBuildInputLock({ upstreamOrigin: 'https://cms.example.test', head, receipt, handoffReceiptDigest: 'b'.repeat(64), generation: {
   deliveryKey: input.deliveryKey,
   generationContract: input.generationContract,
@@ -96,6 +97,7 @@ assert.equal(lock.schemaVersion, 2)
 assert.equal(lock.deliveryKey, input.deliveryKey)
 assert.equal(lock.generationDigest, input.generationDigest)
 assert.equal(lock.collectionHeadRevision, input.collectionHeadRevision)
+assert.equal(lock.producerRelease, PRODUCER_RELEASE)
 
 console.log('PASS_PREDEPLOY_CURRENT_AUTHORITY_FENCE')
 console.log('PASS_HISTORICAL_GENERATION_NO_PAGES_WRITE')

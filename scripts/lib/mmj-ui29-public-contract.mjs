@@ -11,6 +11,11 @@ import {
 
 export const UI29_RELEASE = 'MMJ-UI29-A'
 export const PRODUCER_RELEASE = '0.7.21-mmj-immediate-publication-fast-lane-r14c'
+export const ADMITTED_PRODUCER_RELEASES = Object.freeze([
+  '0.7.20-mmj-portfolio-legacy-optional-year-r14b',
+  PRODUCER_RELEASE,
+])
+const ADMITTED_PRODUCER_RELEASE_SET = new Set(ADMITTED_PRODUCER_RELEASES)
 export const SNAPSHOT_CONTRACT = 'mmj-public-portfolio-collection-v1'
 export const HANDOFF_CONTRACT = 'mmj-static-build-handoff-receipt-v1'
 export const BUILD_INPUT_LOCK_CONTRACT = 'mmj-ui29-build-input-lock-v1'
@@ -122,6 +127,17 @@ function nullableString(value, pointer, code, options = {}) {
   return string(value, pointer, code, options)
 }
 
+function admitProducerRelease(value, pointer, code, subject) {
+  string(value, pointer, code, { nonEmpty: true })
+  if (!ADMITTED_PRODUCER_RELEASE_SET.has(value)) {
+    fail(code, `${subject} producer release is not admitted.`, {
+      actualProducerRelease: value,
+      admittedProducerReleases: [...ADMITTED_PRODUCER_RELEASES],
+    })
+  }
+  return value
+}
+
 function boolean(value, pointer, code) {
   if (typeof value !== 'boolean') fail(code, `Expected boolean at ${pointer}.`)
   return value
@@ -202,7 +218,7 @@ export function validateHead(value) {
   if (value.previousSnapshotDigest !== null) string(value.previousSnapshotDigest, '$head.previousSnapshotDigest', code, { pattern: SHA256 })
   string(value.handoffReceiptId, '$head.handoffReceiptId', code, { pattern: RECEIPT_ID })
   iso(value.promotedAt, '$head.promotedAt', code)
-  if (value.producerRelease !== PRODUCER_RELEASE) fail(code, 'Head producer release is not admitted.', { actual: value.producerRelease })
+  admitProducerRelease(value.producerRelease, '$head.producerRelease', code, 'Head')
   if (value.sourceDigest !== value.sourceHeadSetDigest) fail(code, 'Head source digest parity failed.')
   if (value.routeCount !== value.projectCount) fail(code, 'Head route count must equal project count.')
   if (value.snapshotObjectKey !== `portfolio-collections/v1/snapshots/${value.collectionVersionId}.json`) fail(code, 'Head snapshot object identity drifted.')
@@ -246,7 +262,7 @@ export function validateReceipt(value, expectedHead = null) {
   })
   if (evidence.length !== value.projectCount) fail(code, 'Receipt publication evidence count mismatch.')
   assertUnique(evidence.map(entry => entry.projectId), '$receipt.activePublicationEvidence.projectId', code)
-  if (value.producerRelease !== PRODUCER_RELEASE) fail(code, 'Receipt producer release is not admitted.')
+  admitProducerRelease(value.producerRelease, '$receipt.producerRelease', code, 'Receipt')
   iso(value.createdAt, '$receipt.createdAt', code)
   if (value.sourceDigest !== value.sourceHeadSetDigest) fail(code, 'Receipt source digest parity failed.')
   if (value.routeCount !== value.projectCount) fail(code, 'Receipt route count must equal project count.')
@@ -558,6 +574,14 @@ export async function computeProducerRevision(root) {
 }
 
 export function createBuildInputLock(input) {
+  const code = 'E_MMJ_UI29_GENERATED_STAGE_INVALID'
+  admitProducerRelease(input.receipt.producerRelease, '$buildInputLock.input.receipt.producerRelease', code, 'Receipt')
+  if (input.head.producerRelease !== input.receipt.producerRelease) {
+    fail(code, 'Build input head and receipt producer releases differ.', {
+      headProducerRelease: input.head.producerRelease,
+      receiptProducerRelease: input.receipt.producerRelease,
+    })
+  }
   const base = {
     upstreamOrigin: input.upstreamOrigin,
     collectionVersionId: input.head.collectionVersionId,
@@ -572,7 +596,7 @@ export function createBuildInputLock(input) {
     assetCount: input.head.assetCount,
     routeCount: input.head.routeCount,
     routeArrayDigest: input.receipt.routesDigest,
-    producerRelease: PRODUCER_RELEASE,
+    producerRelease: input.receipt.producerRelease,
     adoptedAt: input.receipt.createdAt,
   }
   if (!input.generation) return Object.freeze({ schemaVersion: 1, contract: BUILD_INPUT_LOCK_CONTRACT, ...base })
