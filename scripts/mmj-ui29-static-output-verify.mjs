@@ -9,6 +9,9 @@ import {
 import {
   verifyCommissionGeneratedArtifactSet,
 } from './lib/mmj-ui29-commission-contract.mjs'
+import {
+  matchesStaticSeoDescription,
+} from './lib/mmj-ui29-static-seo-description-parity.mjs'
 
 const root = process.cwd()
 const outputRoot = resolve(root, '.output', 'public')
@@ -134,7 +137,18 @@ for (const project of generated.snapshot.projects) {
   const expectedOgImage = rendition ? `${mediaBase}/${rendition.objectKey}` : null
   const expectedRobots = project.seo.indexable ? 'index,follow' : 'noindex,nofollow'
   if (actualTitle !== project.seo.title) fail('E_MMJ_UI29_SEO_PARITY_MISMATCH', 'Prerender title differs from snapshot.', { slug: project.slug })
-  if (actualDescription !== project.seo.description) fail('E_MMJ_UI29_SEO_PARITY_MISMATCH', 'Prerender description differs from snapshot.', { slug: project.slug })
+  const expectedDescription = project.seo.description
+  if (!matchesStaticSeoDescription(actualDescription, expectedDescription)) {
+    fail(
+      'E_MMJ_UI29_SEO_PARITY_MISMATCH',
+      'Prerender description differs from snapshot.',
+      {
+        slug: project.slug,
+        actualDescription,
+        expectedDescription,
+      },
+    )
+  }
   if (actualRobots !== expectedRobots) fail('E_MMJ_UI29_SEO_PARITY_MISMATCH', 'Prerender robots policy differs from snapshot.', { slug: project.slug })
   if (actualOgImage !== expectedOgImage) fail('E_MMJ_UI29_SEO_PARITY_MISMATCH', 'Prerender Open Graph image differs from snapshot.', { slug: project.slug })
 
