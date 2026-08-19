@@ -201,8 +201,9 @@ pass('R14B historical head and receipt are admitted', () => {
 pass('R14B historical receipt is admitted standalone', () => {
   validateReceipt({ ...clone(receipt), producerRelease: R14B_PRODUCER_RELEASE })
 })
-pass('R14B historical build input lock preserves exact receipt producer identity', () => {
-  const historicalHead = { ...clone(head), producerRelease: R14B_PRODUCER_RELEASE }
+pass('R14B historical dispatch build input lock preserves exact receipt producer identity without synthetic head producer', () => {
+  const historicalHead = { ...clone(head) }
+  delete historicalHead.producerRelease
   const historicalReceipt = { ...clone(receipt), producerRelease: R14B_PRODUCER_RELEASE }
   const lock = createBuildInputLock({
     upstreamOrigin: 'https://cms.mamajing.work',

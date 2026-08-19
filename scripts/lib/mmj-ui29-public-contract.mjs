@@ -615,11 +615,14 @@ export async function computeProducerRevision(root) {
 export function createBuildInputLock(input) {
   const code = 'E_MMJ_UI29_GENERATED_STAGE_INVALID'
   admitProducerRelease(input.receipt.producerRelease, '$buildInputLock.input.receipt.producerRelease', code, 'Receipt')
-  if (input.head.producerRelease !== input.receipt.producerRelease) {
-    fail(code, 'Build input head and receipt producer releases differ.', {
-      headProducerRelease: input.head.producerRelease,
-      receiptProducerRelease: input.receipt.producerRelease,
-    })
+  if (!input.generation) {
+    admitProducerRelease(input.head.producerRelease, '$buildInputLock.input.head.producerRelease', code, 'Head')
+    if (input.head.producerRelease !== input.receipt.producerRelease) {
+      fail(code, 'Build input head and receipt producer releases differ.', {
+        headProducerRelease: input.head.producerRelease,
+        receiptProducerRelease: input.receipt.producerRelease,
+      })
+    }
   }
   const base = {
     upstreamOrigin: input.upstreamOrigin,

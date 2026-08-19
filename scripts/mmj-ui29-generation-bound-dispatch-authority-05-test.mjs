@@ -83,7 +83,6 @@ const head = {
   projectCount: input.projectCount,
   assetCount: input.assetCount,
   routeCount: input.projectCount,
-  producerRelease: PRODUCER_RELEASE,
 }
 const receipt = { receiptId: input.handoffReceiptId, routesDigest: 'a'.repeat(64), createdAt: input.issuedAt, producerRelease: PRODUCER_RELEASE }
 const lock = createBuildInputLock({ upstreamOrigin: 'https://cms.example.test', head, receipt, handoffReceiptDigest: 'b'.repeat(64), generation: {
