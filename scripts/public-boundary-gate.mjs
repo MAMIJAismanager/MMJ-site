@@ -88,6 +88,12 @@ const allowedWorkflowSecretNames = new Set([
 
 const allowedBuildScriptSecretReferences = new Map([
   [
+    'scripts/mmj-ui29-public-convergence-delivery-admission.mjs',
+    new Set([
+      'MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET',
+    ]),
+  ],
+  [
     'scripts/mmj-ui29-build-receipt.mjs',
     new Set([
       'MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET',
@@ -113,6 +119,15 @@ const allowedBuildScriptSecretReferences = new Map([
   ],
   [
     'scripts/mmj-ui29-supersession-receipt.mjs',
+    new Set([
+      'MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET',
+    ]),
+  ],
+])
+
+const allowedBuildScriptSecretFixtureReferences = new Map([
+  [
+    'scripts/mmj-ui29-public-convergence-idempotent-delivery-05-test.mjs',
     new Set([
       'MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET',
     ]),
@@ -226,6 +241,46 @@ function redactAllowedBuildScriptSecretReferences(rel, text) {
   return redacted
 }
 
+function redactAllowedBuildScriptSecretFixtureReferences(rel, text) {
+  const allowedNames =
+    allowedBuildScriptSecretFixtureReferences.get(rel)
+
+  if (!allowedNames) return text
+
+  let redacted = text
+
+  for (const secretName of allowedNames) {
+    const escapedName =
+      secretName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+    const approvedFixturePattern = new RegExp(
+      `\\b${escapedName}\\s*:`,
+      'g',
+    )
+
+    let matchCount = 0
+    redacted = redacted.replace(
+      approvedFixturePattern,
+      matched => {
+        matchCount += 1
+        return matched.replace(
+          secretName,
+          'REDACTED_BUILD_SECRET_FIXTURE',
+        )
+      },
+    )
+
+    if (matchCount === 0) {
+      fail(
+        `allowlisted build secret fixture reference is missing from ` +
+        `${rel}: ${secretName}`,
+      )
+    }
+  }
+
+  return redacted
+}
+
 async function walk(dir) {
   const files = []
   for (const entry of await readdir(dir, { withFileTypes: true })) {
@@ -291,10 +346,16 @@ for (const absolute of files) {
   const workflowRedactedText =
     redactAllowedWorkflowSecretReferences(rel, text)
 
-  const controlPlaneScanText =
+  const buildSecretRedactedText =
     redactAllowedBuildScriptSecretReferences(
       rel,
       workflowRedactedText,
+    )
+
+  const controlPlaneScanText =
+    redactAllowedBuildScriptSecretFixtureReferences(
+      rel,
+      buildSecretRedactedText,
     )
 
   for (const pattern of forbiddenText) {
