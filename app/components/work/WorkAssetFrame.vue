@@ -142,7 +142,12 @@ const audioTrack = computed(() => {
 
 const audioArtworkState = computed(() => {
   if (props.asset.kind !== 'audio') return undefined
-  return props.asset.artwork === null ? undefined : 'present'
+  return props.asset.artwork === null ? 'fallback' : 'present'
+})
+
+const frameStateLabel = computed(() => {
+  if (props.asset.kind === 'audio' && props.asset.artwork === null) return 'AUDIO'
+  return `${kindLabel.value} 영역`
 })
 </script>
 
@@ -167,7 +172,7 @@ const audioArtworkState = computed(() => {
       class="mm-work-asset-frame__surface mm-dark-surface"
       :image-plan="imagePlan"
       :frame-ratio="frameRatio"
-      :state-label="`${kindLabel} 영역`"
+      :state-label="frameStateLabel"
     />
 
     <AudioInlinePlayer

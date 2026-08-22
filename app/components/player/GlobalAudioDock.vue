@@ -500,12 +500,12 @@ onBeforeUnmount(() => {
       <div class="mm-global-audio-dock__inner mm-shell-frame">
         <div class="mm-global-audio-dock__identity">
           <div
-            v-if="artworkPlan !== null"
             class="mm-global-audio-dock__artwork"
-            data-mm-global-audio-artwork
+            :data-mm-global-audio-artwork="artworkPlan !== null ? 'present' : 'fallback'"
             aria-hidden="true"
           >
-            <ResponsiveImage :plan="artworkPlan" />
+            <ResponsiveImage v-if="artworkPlan !== null" :plan="artworkPlan" />
+            <span v-else class="mm-global-audio-dock__artwork-fallback">AUDIO</span>
           </div>
           <p class="mm-global-audio-dock__track">
             {{ currentTrack?.label }}
