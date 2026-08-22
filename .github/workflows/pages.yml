@@ -32,12 +32,15 @@ env:
   NUXT_PUBLIC_MMJ_CONTACT_FORM_ENDPOINT: https://formspree.io/f/mrpzbjbv
   MMJ_CANONICAL_PUBLIC_URL: https://mamajing.work
 
+  MMJ_CMS_PUBLIC_CONVERGENCE_DELIVERY_ADMISSION_ENDPOINT: https://cms.mamajing.work/api/v1/internal/public-convergence-delivery-admissions
   MMJ_CMS_PUBLIC_CONVERGENCE_BUILD_RECEIPT_ENDPOINT: https://cms.mamajing.work/api/v1/internal/public-convergence-build-receipts
   MMJ_CMS_PUBLIC_CONVERGENCE_SUPERSESSION_RECEIPT_ENDPOINT: https://cms.mamajing.work/api/v1/internal/public-convergence-supersession-receipts
 
   MMJ_PUBLIC_CONVERGENCE_KEY: ${{ github.event.client_payload.convergenceKey }}
   MMJ_PUBLIC_CONVERGENCE_REVISION: ${{ github.event.client_payload.convergenceRevision }}
   MMJ_PUBLIC_CONVERGENCE_DIGEST: ${{ github.event.client_payload.convergenceDigest }}
+  MMJ_PUBLIC_CONVERGENCE_SNAPSHOT_CONTRACT: ${{ github.event.client_payload.snapshotContract }}
+  MMJ_PUBLIC_CONVERGENCE_SNAPSHOT_DIGEST: ${{ github.event.client_payload.snapshotDigest }}
   MMJ_PUBLIC_CONVERGENCE_ISSUED_AT: ${{ github.event.client_payload.issuedAt }}
 
   MMJ_PUBLIC_SOURCE_REPOSITORY: ${{ github.event.client_payload.source.repository }}
@@ -70,7 +73,49 @@ env:
   MMJ_COMMISSION_ISSUED_AT: ${{ github.event.client_payload.commission.issuedAt }}
 
 jobs:
+  delivery-admission:
+    runs-on: ubuntu-24.04
+    outputs:
+      build_authorized: ${{ steps.delivery-admission.outputs.build_authorized }}
+      admission: ${{ steps.delivery-admission.outputs.admission }}
+      relation: ${{ steps.delivery-admission.outputs.relation }}
+      delivery_identity: ${{ steps.delivery-admission.outputs.delivery_identity }}
+      owner_run_id: ${{ steps.delivery-admission.outputs.owner_run_id }}
+      owner_run_attempt: ${{ steps.delivery-admission.outputs.owner_run_attempt }}
+    steps:
+      - name: Checkout exact convergence delivery admission tooling
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.client_payload.source.commitSha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Node for semantic delivery admission
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.18.0'
+
+      - name: Resolve semantic public convergence delivery owner
+        id: delivery-admission
+        shell: bash
+        env:
+          MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET: ${{ secrets.MMJ_PORTFOLIO_BUILD_RECEIPT_SECRET }}
+        run: |
+          if [ -f scripts/mmj-ui29-public-convergence-delivery-admission.mjs ]; then
+            node scripts/mmj-ui29-public-convergence-delivery-admission.mjs
+          else
+            echo "::notice::Legacy convergence source predates MMJ-PUBLIC-CONVERGENCE-IDEMPOTENT-DELIVERY-05; preserving legacy build path."
+            echo "build_authorized=true" >> "$GITHUB_OUTPUT"
+            echo "admission=legacy" >> "$GITHUB_OUTPUT"
+            echo "relation=legacy" >> "$GITHUB_OUTPUT"
+            echo "delivery_identity=" >> "$GITHUB_OUTPUT"
+            echo "owner_run_id=${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
+            echo "owner_run_attempt=${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
+    needs: delivery-admission
+    if: ${{ needs.delivery-admission.result == 'success' && needs.delivery-admission.outputs.build_authorized == 'true' }}
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout exact convergence source revision
@@ -115,7 +160,7 @@ jobs:
       - name: Adopt exact sealed CMS public convergence content
         run: npm run sync:public-content
 
-      - name: Seal public convergence provenance
+      - name: Seal exact adopted public convergence snapshot
         run: node scripts/mmj-ui29-public-convergence-provenance.mjs
 
       - name: Verify adopted public convergence generation

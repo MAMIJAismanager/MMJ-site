@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 export const PUBLIC_CONVERGENCE_TARGET_CONTRACT = 'mmj-public-site-convergence-target-v1'
 export const PUBLIC_CONVERGENCE_GENERATION_CONTRACT = 'mmj-public-site-convergence-generation-v1'
 export const PUBLIC_CONVERGENCE_AUTHORITY_CONTRACT = 'mmj-public-site-convergence-authority-v1'
+export const PUBLIC_CONVERGENCE_EXACT_SNAPSHOT_CONTRACT = 'mmj-public-convergence-exact-snapshot-v1'
 
 const SHA40 = /^[0-9a-f]{40}$/
 const SHA64 = /^[0-9a-f]{64}$/
@@ -73,10 +74,26 @@ export function derivePublicConvergenceDigest(target) {
   return canonicalDigest(convergenceIdentityMaterial(target))
 }
 
+export function derivePublicConvergenceDeliveryIdentity(input) {
+  const digest = canonicalDigest({
+    contract: 'mmj-public-convergence-delivery-identity-v1',
+    eventType: 'mmj_public_converge',
+    repository: input.repository,
+    convergenceKey: input.convergenceKey,
+    convergenceRevision: input.convergenceRevision,
+    convergenceDigest: input.convergenceDigest,
+  })
+  return `pcdi_v1_${digest}`
+}
+
 export function readPublicConvergenceEnvironment(env = process.env) {
   const convergenceKey = pattern(required(env, 'MMJ_PUBLIC_CONVERGENCE_KEY'), KEY, 'convergenceKey')
   const convergenceRevision = integer(env, 'MMJ_PUBLIC_CONVERGENCE_REVISION', 1)
   const convergenceDigest = pattern(required(env, 'MMJ_PUBLIC_CONVERGENCE_DIGEST'), SHA64, 'convergenceDigest')
+  const snapshotContract = required(env, 'MMJ_PUBLIC_CONVERGENCE_SNAPSHOT_CONTRACT')
+  const snapshotDigest = pattern(required(env, 'MMJ_PUBLIC_CONVERGENCE_SNAPSHOT_DIGEST'), SHA64, 'snapshotDigest')
+  if (snapshotContract !== PUBLIC_CONVERGENCE_EXACT_SNAPSHOT_CONTRACT) throw new Error('E_MMJ_PUBLIC_CONVERGENCE_SNAPSHOT_CONTRACT_INVALID')
+  if (snapshotDigest !== convergenceDigest) throw new Error('E_MMJ_PUBLIC_CONVERGENCE_SNAPSHOT_DIGEST_MISMATCH')
   const issuedAt = iso(required(env, 'MMJ_PUBLIC_CONVERGENCE_ISSUED_AT'), 'issuedAt')
 
   const source = Object.freeze({
@@ -116,7 +133,28 @@ export function readPublicConvergenceEnvironment(env = process.env) {
   const target = Object.freeze({ source, portfolio, commission })
   const actual = derivePublicConvergenceDigest(target)
   if (actual !== convergenceDigest) throw new Error('E_MMJ_PUBLIC_CONVERGENCE_DIGEST_MISMATCH')
-  return Object.freeze({ schemaVersion: 1, convergenceKey, convergenceRevision, convergenceDigest, target, issuedAt })
+  return Object.freeze({ schemaVersion: 1, convergenceKey, convergenceRevision, convergenceDigest, snapshotContract, snapshotDigest, target, issuedAt })
+}
+
+export function exactSnapshotFromConvergenceInput(input) {
+  if (input.snapshotContract !== PUBLIC_CONVERGENCE_EXACT_SNAPSHOT_CONTRACT) throw new Error('E_MMJ_PUBLIC_CONVERGENCE_SNAPSHOT_CONTRACT_INVALID')
+  if (input.snapshotDigest !== input.convergenceDigest) throw new Error('E_MMJ_PUBLIC_CONVERGENCE_SNAPSHOT_DIGEST_MISMATCH')
+  const actual = derivePublicConvergenceDigest(input.target)
+  if (actual !== input.snapshotDigest) throw new Error('E_MMJ_PUBLIC_CONVERGENCE_SNAPSHOT_TARGET_MISMATCH')
+  return Object.freeze({
+    schemaVersion: 1,
+    contract: PUBLIC_CONVERGENCE_EXACT_SNAPSHOT_CONTRACT,
+    convergenceKey: input.convergenceKey,
+    convergenceRevision: input.convergenceRevision,
+    snapshotDigest: input.snapshotDigest,
+    target: input.target,
+    issuedAt: input.issuedAt,
+  })
+}
+
+export function assertExactSourceCheckout(expectedCommitSha, actualCommitSha) {
+  if (String(actualCommitSha).trim().toLowerCase() !== String(expectedCommitSha).trim().toLowerCase()) throw new Error('E_MMJ_PUBLIC_CONVERGENCE_SOURCE_SNAPSHOT_MISMATCH')
+  return String(actualCommitSha).trim().toLowerCase()
 }
 
 export function assertPublicConvergenceGeneration(value, input) {
@@ -131,7 +169,18 @@ export function assertPublicConvergenceGeneration(value, input) {
   ]
   for (const [field, actual, expected] of checks) if (String(actual) !== String(expected)) throw new Error(`E_MMJ_PUBLIC_CONVERGENCE_GENERATION_MISMATCH:${field}`)
   if (canonicalJson(generation?.target) !== canonicalJson(input.target)) throw new Error('E_MMJ_PUBLIC_CONVERGENCE_GENERATION_MISMATCH:target')
-  return Object.freeze({ relation: value.relation, generation: Object.freeze({ ...generation }) })
+  const snapshot = value.snapshot
+  if (!snapshot || snapshot.schemaVersion !== 1 || snapshot.contract !== PUBLIC_CONVERGENCE_EXACT_SNAPSHOT_CONTRACT) throw new Error('E_MMJ_PUBLIC_CONVERGENCE_SNAPSHOT_CONTRACT_INVALID')
+  const snapshotChecks = [
+    ['convergenceKey', snapshot.convergenceKey, input.convergenceKey],
+    ['convergenceRevision', snapshot.convergenceRevision, input.convergenceRevision],
+    ['snapshotDigest', snapshot.snapshotDigest, input.snapshotDigest],
+    ['issuedAt', snapshot.issuedAt, input.issuedAt],
+  ]
+  for (const [field, actual, expected] of snapshotChecks) if (String(actual) !== String(expected)) throw new Error(`E_MMJ_PUBLIC_CONVERGENCE_SNAPSHOT_MISMATCH:${field}`)
+  if (canonicalJson(snapshot.target) !== canonicalJson(input.target)) throw new Error('E_MMJ_PUBLIC_CONVERGENCE_SNAPSHOT_MISMATCH:target')
+  if (derivePublicConvergenceDigest(snapshot.target) !== snapshot.snapshotDigest) throw new Error('E_MMJ_PUBLIC_CONVERGENCE_SNAPSHOT_TARGET_MISMATCH')
+  return Object.freeze({ relation: value.relation, generation: Object.freeze({ ...generation }), snapshot: Object.freeze({ ...snapshot }) })
 }
 
 export function assertPublicConvergenceAuthority(value) {

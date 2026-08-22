@@ -2,8 +2,13 @@ import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import {
   assertPublicConvergenceGeneration,
+  canonicalJson,
   readPublicConvergenceEnvironment,
 } from './lib/mmj-ui29-public-convergence.mjs'
+import {
+  reconstructAdoptedPublicConvergenceSnapshot,
+  verifyCheckedOutSourceSnapshot,
+} from './lib/mmj-ui29-public-convergence-exact-snapshot.mjs'
 
 const mode = process.argv[2] || 'preflight'
 const input = readPublicConvergenceEnvironment(process.env)
@@ -20,27 +25,18 @@ async function fetchGeneration() {
 
 if (mode === 'preflight') {
   const generation = await fetchGeneration()
-  console.log(JSON.stringify({ event: 'PASS_MMJ_PUBLIC_CONVERGENCE_PREFLIGHT', relation: generation.relation, convergenceKey: input.convergenceKey, convergenceDigest: input.convergenceDigest }))
+  verifyCheckedOutSourceSnapshot(input)
+  console.log(JSON.stringify({ event: 'PASS_MMJ_PUBLIC_CONVERGENCE_PREFLIGHT', relation: generation.relation, convergenceKey: input.convergenceKey, snapshotDigest: input.snapshotDigest }))
 } else if (mode === 'post-adopt') {
-  await fetchGeneration()
-  const [portfolioLock, commissionLock, convergenceManifest] = await Promise.all([
-    readFile(resolve('generated/portfolio.build-input-lock.json'), 'utf8').then(JSON.parse),
-    readFile(resolve('generated/commission-guide.build-input-lock.json'), 'utf8').then(JSON.parse),
-    readFile(resolve('generated/public-convergence.manifest.json'), 'utf8').then(JSON.parse),
-  ])
-  const checks = [
-    ['portfolio.deliveryKey', portfolioLock.deliveryKey, input.target.portfolio.deliveryKey],
-    ['portfolio.generationDigest', portfolioLock.generationDigest, input.target.portfolio.generationDigest],
-    ['commission.publicationVersionId', commissionLock.publicationVersionId, input.target.commission.publicationVersionId],
-    ['commission.snapshotDigest', commissionLock.snapshotDigest, input.target.commission.snapshotDigest],
-    ['commission.handoffReceiptId', commissionLock.handoffReceiptId, input.target.commission.handoffReceiptId],
-    ['convergence.key', convergenceManifest.convergenceKey, input.convergenceKey],
-    ['convergence.digest', convergenceManifest.convergenceDigest, input.convergenceDigest],
-    ['source.commitSha', convergenceManifest.source?.commitSha, input.target.source.commitSha],
-  ]
-  const mismatches = checks.filter(([, actual, expected]) => String(actual) !== String(expected))
-  if (mismatches.length) throw new Error(`E_MMJ_PUBLIC_CONVERGENCE_ADOPTION_MISMATCH:${JSON.stringify(mismatches)}`)
-  console.log(JSON.stringify({ event: 'PASS_MMJ_PUBLIC_CONVERGENCE_ADOPTION_VERIFIED', convergenceKey: input.convergenceKey, convergenceDigest: input.convergenceDigest }))
+  const generation = await fetchGeneration()
+  const reconstructed = await reconstructAdoptedPublicConvergenceSnapshot(input)
+  const manifest = JSON.parse(await readFile(resolve('generated/public-convergence.manifest.json'), 'utf8'))
+  if (manifest?.schemaVersion !== 2 || manifest?.contract !== 'mmj-ui29-public-convergence-manifest-v2') throw new Error('E_MMJ_PUBLIC_CONVERGENCE_MANIFEST_SNAPSHOT_MISMATCH:contract')
+  if (manifest.convergenceKey !== input.convergenceKey || Number(manifest.convergenceRevision) !== input.convergenceRevision || manifest.convergenceDigest !== input.convergenceDigest) throw new Error('E_MMJ_PUBLIC_CONVERGENCE_MANIFEST_SNAPSHOT_MISMATCH:identity')
+  if (canonicalJson(manifest.snapshot) !== canonicalJson(reconstructed.snapshot)) throw new Error('E_MMJ_PUBLIC_CONVERGENCE_MANIFEST_SNAPSHOT_MISMATCH:snapshot')
+  if (canonicalJson(manifest.evidence) !== canonicalJson(reconstructed.evidence)) throw new Error('E_MMJ_PUBLIC_CONVERGENCE_MANIFEST_SNAPSHOT_MISMATCH:evidence')
+  if (canonicalJson(generation.snapshot) !== canonicalJson(reconstructed.snapshot)) throw new Error('E_MMJ_PUBLIC_CONVERGENCE_ADOPTED_SNAPSHOT_MISMATCH:generation')
+  console.log(JSON.stringify({ event: 'PASS_MMJ_PUBLIC_CONVERGENCE_ADOPTION_VERIFIED', convergenceKey: input.convergenceKey, snapshotDigest: input.snapshotDigest }))
 } else {
   throw new Error('E_MMJ_PUBLIC_CONVERGENCE_VERIFY_MODE_INVALID')
 }
