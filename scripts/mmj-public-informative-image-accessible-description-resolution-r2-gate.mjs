@@ -70,8 +70,9 @@ for (const token of [
 }
 if (!gallery.includes('readonly project: WorkDetailView')) fail('WorkGallery does not own exact WorkDetail project context')
 if (!gallery.includes(':project="project"')) fail('WorkGallery does not forward project context')
-if (!page.includes('<WorkGallery\n      :project="project"')) fail('Work Detail page does not forward project to gallery')
-if (!page.includes('<WorkAssetFrame\n        :project="project"')) fail('Work Detail page does not forward project to primary frame')
+if (!page.includes('<WorkGallery')) fail('Work Detail page does not render WorkGallery')
+if (!page.includes(':project="project"')) fail('Work Detail page does not forward project to WorkGallery')
+if (!page.includes(':presentation="galleryPresentation"')) fail('Work Detail page does not forward canonical gallery presentation')
 
 if (!contract.includes('validateAccessibleDescriptionResolutionAdmission')) fail('public contract does not expose R2 resolution admission')
 if (!contract.includes("'shared/resolver/accessible-description-resolution.ts'")) fail('public contract does not load R2 shared authority')

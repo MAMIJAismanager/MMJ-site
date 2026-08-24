@@ -44,6 +44,8 @@ import type {
 
 export const MM_WORK_DETAIL_IMAGE_SIZES =
   '(min-width: 80rem) 80rem, 100vw'
+export const MM_WORK_DETAIL_THUMBNAIL_IMAGE_SIZES =
+  '(min-width: 80rem) 18rem, (min-width: 48rem) 24vw, 33vw'
 
 export type WorkDetailPresentationContext =
   | 'primary'
@@ -198,6 +200,16 @@ export function createWorkDetailImageOptions(
     loading: priority === 'primary' ? 'eager' as const : 'lazy' as const,
     fetchPriority: priority === 'primary' ? 'high' as const : 'auto' as const,
     fit: 'contain' as const,
+  })
+}
+
+export function createWorkDetailThumbnailImageOptions(): ResponsiveImageRenderOptions {
+  return Object.freeze({
+    sizes: MM_WORK_DETAIL_THUMBNAIL_IMAGE_SIZES,
+    accessibility: Object.freeze({ mode: 'decorative' as const }),
+    loading: 'lazy' as const,
+    fetchPriority: 'auto' as const,
+    fit: 'cover' as const,
   })
 }
 
@@ -416,12 +428,44 @@ export function admitPortfolioWorkDetailPresentations(
     record(receipts, asset, null, 'primary', 'audio-track')
   }
 
+  function resolveGalleryThumbnail(
+    project: WorkDetailView,
+    image: ResolvedImageAssetReference,
+    ownerAssetId: string | null,
+    receipts: WorkDetailPresentationPlanReceipt[],
+  ): void {
+    const inlinePlan = plan(
+      project,
+      image,
+      ownerAssetId,
+      'gallery',
+      'media-resolution',
+      () => mediaResolution.resolveInlinePlan(image, 'thumbnail'),
+    )
+    record(receipts, image, ownerAssetId, 'gallery', 'media-resolution')
+    plan(
+      project,
+      image,
+      ownerAssetId,
+      'gallery',
+      'responsive-image',
+      () => responsiveImage.resolve(
+        inlinePlan,
+        createWorkDetailThumbnailImageOptions(),
+      ),
+    )
+    record(receipts, image, ownerAssetId, 'gallery', 'responsive-image')
+  }
+
   function resolveGalleryAsset(
     project: WorkDetailView,
     asset: ResolvedAssetReference,
     receipts: WorkDetailPresentationPlanReceipt[],
   ): void {
     if (asset.kind === 'image') {
+      // The selected secondary can occupy the large presentation surface.
+      // Preserve its existing primary-rendition admission and separately admit
+      // the selector thumbnail path used by the R1 gallery UI.
       resolveInformativeImage(
         project,
         asset,
@@ -431,6 +475,7 @@ export function admitPortfolioWorkDetailPresentations(
         'gallery',
         receipts,
       )
+      resolveGalleryThumbnail(project, asset, null, receipts)
       return
     }
 
@@ -445,6 +490,7 @@ export function admitPortfolioWorkDetailPresentations(
           'gallery',
           receipts,
         )
+        resolveGalleryThumbnail(project, asset.poster, asset.id, receipts)
       }
       return
     }
@@ -459,6 +505,7 @@ export function admitPortfolioWorkDetailPresentations(
         'gallery',
         receipts,
       )
+      resolveGalleryThumbnail(project, asset.artwork, asset.id, receipts)
     }
   }
 

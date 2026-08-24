@@ -11,6 +11,7 @@ import {
 } from '~/data/portfolio-media-presentation'
 import {
   createWorkDetailImageOptions,
+  createWorkDetailThumbnailImageOptions,
 } from '~~/shared/resolver/work-detail-presentation-plan'
 import {
   classifyWorkDetailFrameImageAccessibilityContext,
@@ -28,32 +29,21 @@ interface Props {
   readonly project: WorkDetailView
   readonly asset: ResolvedAssetReference
   readonly contextLabel: string
-  readonly indexLabel?: string
   readonly projectId?: ProjectId
   readonly videoRuntime?: 'disabled' | 'primary-detail'
   readonly audioRuntime?: 'disabled' | 'primary-detail'
-  readonly captionMode?: 'full' | 'none'
+  readonly captionMode?: 'editorial' | 'none'
+  readonly imageIntent?: 'primary' | 'thumbnail'
   readonly mediaMaxInlinePx?: number
   readonly mediaMaxBlockPx?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  indexLabel: undefined,
   projectId: undefined,
   videoRuntime: 'disabled',
   audioRuntime: 'disabled',
-  captionMode: 'full',
-})
-
-const kindLabel = computed(() => {
-  switch (props.asset.kind) {
-    case 'image':
-      return '이미지'
-    case 'video':
-      return '영상'
-    case 'audio':
-      return '오디오'
-  }
+  captionMode: 'editorial',
+  imageIntent: 'primary',
 })
 
 const previewAsset = computed<ResolvedImageAssetReference | null>(() => {
@@ -87,6 +77,15 @@ const frameRatio = computed(() => {
 const imagePlan = computed(() => {
   const preview = previewAsset.value
   if (preview === null) return null
+
+  if (props.imageIntent === 'thumbnail') {
+    return resolvePortfolioImagePresentation(
+      preview,
+      'thumbnail',
+      createWorkDetailThumbnailImageOptions(),
+    )
+  }
+
   return resolvePortfolioImagePresentation(
     preview,
     'primary',
@@ -147,8 +146,17 @@ const audioArtworkState = computed(() => {
 
 const frameStateLabel = computed(() => {
   if (props.asset.kind === 'audio' && props.asset.artwork === null) return 'AUDIO'
-  return `${kindLabel.value} 영역`
+  switch (props.asset.kind) {
+    case 'image': return '이미지 영역'
+    case 'video': return '영상 영역'
+    case 'audio': return '오디오 영역'
+  }
 })
+
+const hasEditorialCaption = computed(() => (
+  props.captionMode === 'editorial'
+  && (props.asset.caption !== null || props.asset.credit !== null)
+))
 </script>
 
 <template>
@@ -158,6 +166,7 @@ const frameStateLabel = computed(() => {
     :data-mm-work-asset-context="contextLabel"
     :data-mm-work-asset-kind="asset.kind"
     :data-mm-work-asset-id="asset.id"
+    :data-mm-work-image-intent="imageIntent"
     :data-mm-work-audio-artwork="audioArtworkState"
     :data-mm-video-runtime="videoRuntime"
     :data-mm-audio-runtime="audioRuntime"
@@ -181,15 +190,9 @@ const frameStateLabel = computed(() => {
     />
 
     <figcaption
-      v-if="captionMode === 'full'"
+      v-if="hasEditorialCaption"
       class="mm-work-asset-frame__caption"
     >
-      <p class="mm-work-asset-frame__context">
-        <span v-if="indexLabel">{{ indexLabel }} · </span>{{ contextLabel }} · {{ kindLabel }}
-      </p>
-      <p class="mm-work-asset-frame__label">
-        {{ asset.label }}
-      </p>
       <p
         v-if="asset.caption !== null"
         class="mm-work-asset-frame__editorial"

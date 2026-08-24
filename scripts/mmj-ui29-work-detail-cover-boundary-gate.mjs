@@ -8,6 +8,8 @@ const fail = message => { throw new Error(`E_MMJ_UI29_WORK_DETAIL_COVER_BOUNDARY
 const slugPage = await read('app/pages/works/[slug].vue')
 const workDetailCss = await read('app/assets/css/work-detail.css')
 const resolver = await read('shared/resolver/portfolio-project-view-resolver.ts')
+const galleryResolver = await read('shared/resolver/work-detail-gallery-presentation.ts')
+const workGallery = await read('app/components/work/WorkGallery.vue')
 
 for (const forbidden of [
   'data-mm-work-cover',
@@ -22,13 +24,26 @@ for (const forbidden of [
 for (const required of [
   'v-if="project.assets.primary !== null"',
   'data-mm-work-primary',
-  ':asset="project.assets.primary"',
-  'video-runtime="primary-detail"',
-  'audio-runtime="primary-detail"',
+  'createWorkDetailGalleryPresentationR1(project)',
+  ':presentation="galleryPresentation"',
   'useSeoMeta',
   'project.seo.ogAsset',
 ]) {
   if (!slugPage.includes(required)) fail(`detail authority missing: ${required}`)
+}
+for (const required of [
+  'const canonicalHero = project.assets.primary',
+  'canonicalHero,',
+]) {
+  if (!galleryResolver.includes(required)) fail(`canonical primary gallery authority missing: ${required}`)
+}
+for (const required of [
+  'presentation.canonicalHero.id',
+  ':video-runtime="isCanonicalHeroActive',
+  ':audio-runtime="isCanonicalHeroActive',
+  "'primary-detail'",
+]) {
+  if (!workGallery.includes(required)) fail(`primary media runtime authority missing: ${required}`)
 }
 
 if (workDetailCss.includes('.mm-work-detail__cover')) {

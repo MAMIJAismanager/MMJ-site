@@ -198,7 +198,9 @@ if (buildReceipt.includes('MMJ_PROBED_AT || now')) fail('fake probe timestamp fa
 const slugPage = await read('app/pages/works/[slug].vue')
 for (const binding of ['useSeoMeta', 'project.seo.title', 'project.seo.description', 'project.seo.indexable', 'ogImage']) if (!slugPage.includes(binding)) fail(`work detail SEO binding missing: ${binding}`)
 for (const forbidden of ['data-mm-work-cover', 'context-label="대표 이미지"', ':asset="project.assets.cover"', 'aria-label="대표 이미지"', 'mm-work-detail__cover']) if (slugPage.includes(forbidden)) fail(`work detail cover body projection remains: ${forbidden}`)
-for (const required of ['v-if="project.assets.primary !== null"', 'data-mm-work-primary', ':asset="project.assets.primary"', 'video-runtime="primary-detail"', 'audio-runtime="primary-detail"', 'caption-mode="none"']) if (!slugPage.includes(required)) fail(`work detail primary authority missing: ${required}`)
+for (const required of ['v-if="project.assets.primary !== null"', 'data-mm-work-primary', '<WorkGallery', ':presentation="galleryPresentation"', 'createWorkDetailGalleryPresentationR1(project)']) if (!slugPage.includes(required)) fail(`work detail primary gallery authority missing: ${required}`)
+const workGallery = await read('app/components/work/WorkGallery.vue')
+for (const required of ['presentation.canonicalHero.id', ':video-runtime="isCanonicalHeroActive', ':audio-runtime="isCanonicalHeroActive', "'primary-detail'", 'image-intent="thumbnail"']) if (!workGallery.includes(required)) fail(`work detail gallery runtime authority missing: ${required}`)
 for (const required of ['definePageMeta', 'hideSiteFooter: true']) if (!slugPage.includes(required)) fail(`work detail global footer suppression missing: ${required}`)
 for (const required of ['mm-work-detail__footer', 'mm-work-detail__all-works', 'data-mm-work-return-link', 'returnTarget.href', 'returnTarget.label']) if (!slugPage.includes(required)) fail(`work detail return link authority missing: ${required}`)
 
@@ -249,7 +251,8 @@ if (workDetailCoreMediaQuery.test(workDetailCss)) fail('CSS media query must not
 // MMJ-UI29-WORK-DETAIL-STATIC-GATE-AUTHORITY-REBIND-R1: END
 
 const workAssetFrame = await read('app/components/work/WorkAssetFrame.vue')
-for (const required of ["captionMode?: 'full' | 'none'", "captionMode: 'full'", "v-if=\"captionMode === 'full'\"", 'asset.label', 'asset.caption', 'asset.credit']) if (!workAssetFrame.includes(required)) fail(`work asset caption contract missing: ${required}`)
+for (const required of ["captionMode?: 'editorial' | 'none'", "captionMode: 'editorial'", 'v-if="hasEditorialCaption"', 'asset.caption', 'asset.credit', "imageIntent?: 'primary' | 'thumbnail'"]) if (!workAssetFrame.includes(required)) fail(`work asset editorial caption contract missing: ${required}`)
+if (workAssetFrame.includes('asset.label')) fail('technical asset label must not render in public WorkAssetFrame')
 
 const commissionData = await read('app/data/commission-guide.ts')
 if (!commissionData.includes("../../generated/commission-guide.snapshot.json")) fail('generated commission snapshot projection missing')
@@ -328,6 +331,6 @@ console.log(JSON.stringify({
   threeRouteSeoMeta: 'closed',
   workDetailHeaderSummary: 'absent',
   workDetailHeaderTags: 'absent',
-  primaryMediaCaption: 'absent',
-  galleryCaptionAuthority: 'preserved',
+  technicalAssetLabelPresentation: 'absent',
+  editorialMediaCaptionAuthority: 'preserved',
 }))

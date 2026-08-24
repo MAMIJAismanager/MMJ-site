@@ -7,7 +7,6 @@ import {
   findWorkDetailViewBySlug,
 } from '~/data/portfolio-project-views'
 
-import WorkAssetFrame from '~/components/work/WorkAssetFrame.vue'
 import WorkCredits from '~/components/work/WorkCredits.vue'
 import WorkDescription from '~/components/work/WorkDescription.vue'
 import WorkDetailHeader from '~/components/work/WorkDetailHeader.vue'
@@ -21,6 +20,9 @@ import {
 import {
   useWorkReturnTarget,
 } from '~/composables/useWorkReturnTarget'
+import {
+  createWorkDetailGalleryPresentationR1,
+} from '~~/shared/resolver/work-detail-gallery-presentation'
 
 const route = useRoute()
 const requestedSlug = route.params.slug
@@ -43,6 +45,8 @@ if (project === null) {
     statusMessage: 'Work not found',
   })
 }
+
+const galleryPresentation = createWorkDetailGalleryPresentationR1(project)
 
 const primaryMediaGeometry = (() => {
   const primary = project.assets.primary
@@ -127,14 +131,10 @@ useSeoMeta({
         <h2 class="mm-work-section__title">
           주요 미디어
         </h2>
-        <WorkAssetFrame
+        <WorkGallery
+          v-if="galleryPresentation !== null"
           :project="project"
-          :asset="project.assets.primary"
-          :project-id="project.id"
-          context-label="주요 미디어"
-          video-runtime="primary-detail"
-          audio-runtime="primary-detail"
-          caption-mode="none"
+          :presentation="galleryPresentation"
           :media-max-inline-px="layoutProfile.mediaMaxInlinePx"
           :media-max-block-px="layoutProfile.mediaMaxBlockPx"
         />
@@ -145,10 +145,6 @@ useSeoMeta({
       class="mm-work-detail-extended"
       data-mm-work-detail-extended
     >
-      <WorkGallery
-        :project="project"
-        :assets="project.assets.gallery"
-      />
       <WorkCredits :groups="project.credits" />
       <WorkExternalLinks :links="project.externalLinks" />
       <WorkRelatedProjects :projects="project.relatedProjects" />

@@ -141,14 +141,13 @@ for (const signature of [
 }
 
 for (const signature of [
-  "captionMode?: 'full' | 'none'",
-  "captionMode: 'full'",
-  'v-if="captionMode === \'full\'"',
-  'asset.label',
+  "captionMode?: 'editorial' | 'none'",
+  "captionMode: 'editorial'",
+  'v-if="hasEditorialCaption"',
   'asset.caption',
   'asset.credit',
   'contextLabel',
-  'kindLabel',
+  "imageIntent?: 'primary' | 'thumbnail'",
 ]) {
   if (!workAssetFrame.includes(signature)) {
     fail(
@@ -160,20 +159,26 @@ for (const signature of [
 }
 
 for (const signature of [
-  'context-label="주요 미디어"',
-  'caption-mode="none"',
-  'video-runtime="primary-detail"',
-  'audio-runtime="primary-detail"',
-  'data-mm-work-description',
+  '<WorkGallery',
+  ':presentation="galleryPresentation"',
+  'createWorkDetailGalleryPresentationR1(project)',
+  '<WorkDescription',
   'project.description',
 ]) {
   if (!workDetailPage.includes(signature)) {
     fail(
-      'E_MMJ_WORK_PRIMARY_CAPTION_SUPPRESSION_MISSING',
-      'Primary media suppression or description preservation is incomplete.',
+      'E_MMJ_WORK_PRIMARY_GALLERY_PRESENTATION_MISSING',
+      'Primary media gallery presentation or description preservation is incomplete.',
       { signature },
     )
   }
+}
+
+if (workAssetFrame.includes('asset.label')) {
+  fail(
+    'E_MMJ_WORK_TECHNICAL_ASSET_LABEL_PUBLIC_RESIDUE',
+    'Technical asset label remains in the public WorkAssetFrame presentation.',
+  )
 }
 
 for (const signature of [
@@ -234,8 +239,8 @@ console.log(JSON.stringify({
   seoRobotsBindings: 'closed',
   workHeaderSummary: 'absent',
   workHeaderTags: 'absent',
-  primaryMediaCaption: 'absent',
-  galleryCaptionAuthority: 'preserved',
+  technicalAssetLabelPresentation: 'absent',
+  editorialMediaCaptionAuthority: 'preserved',
   projectDescription: 'preserved',
   cmsMetadataAuthority: 'preserved',
   cssResidue: 0,

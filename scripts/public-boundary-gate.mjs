@@ -35,6 +35,7 @@ const allowedShared = new Set([
   'shared/resolver/player-source-admission.ts',
   'shared/resolver/player-track.ts',
   'shared/resolver/work-detail-presentation-plan.ts',
+  'shared/resolver/work-detail-gallery-presentation.ts',
   'shared/resolver/portfolio-project-view-resolver.ts',
   'shared/resolver/responsive-image-plan.ts',
   'shared/resolver/video-player-plan.ts',

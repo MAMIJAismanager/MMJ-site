@@ -152,6 +152,14 @@ for (const project of generated.snapshot.projects) {
   if (actualRobots !== expectedRobots) fail('E_MMJ_UI29_SEO_PARITY_MISMATCH', 'Prerender robots policy differs from snapshot.', { slug: project.slug })
   if (actualOgImage !== expectedOgImage) fail('E_MMJ_UI29_SEO_PARITY_MISMATCH', 'Prerender Open Graph image differs from snapshot.', { slug: project.slug })
 
+  if (html.includes('mm-work-asset-frame__label')) {
+    fail(
+      'E_MMJ_WORK_TECHNICAL_ASSET_LABEL_PRERENDER_RESIDUE',
+      'Technical asset label presentation remains in prerender.',
+      { slug: project.slug },
+    )
+  }
+
   for (const signature of [
     'mm-work-detail-header__summary',
     'mm-work-detail-header__tags',
@@ -191,17 +199,13 @@ for (const project of generated.snapshot.projects) {
       )
     }
     for (const signature of [
-      '<figcaption',
-      'mm-work-asset-frame__caption',
       'mm-work-asset-frame__context',
       'mm-work-asset-frame__label',
-      'mm-work-asset-frame__editorial',
-      'mm-work-asset-frame__credit',
     ]) {
       if (figure.includes(signature)) {
         fail(
-          'E_MMJ_WORK_PRIMARY_CAPTION_PRERENDER_RESIDUE',
-          'Primary media caption remains in prerender.',
+          'E_MMJ_WORK_TECHNICAL_MEDIA_CAPTION_PRERENDER_RESIDUE',
+          'Technical media metadata remains in primary presentation.',
           { slug: project.slug, signature },
         )
       }
