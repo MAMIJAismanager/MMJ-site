@@ -83,7 +83,9 @@
     "gate:public-convergence-exact-snapshot-08": "node --experimental-strip-types scripts/mmj-ui29-public-convergence-exact-snapshot-08-test.mjs && node scripts/mmj-ui29-public-convergence-exact-snapshot-08-gate.mjs",
     "gate:audio-artwork-optional-companion-r16": "node scripts/mmj-audio-artwork-optional-companion-and-presentation-fallback-r16-gate.mjs && npm run gate:global-audio-artwork-r2-multi-rendition-playback-r1 && node --experimental-strip-types scripts/mmj-ui29-public-contract-test.mjs && node scripts/public-boundary-gate.mjs",
     "test:public-work-detail-canonical-four-slot-gallery-r1": "node --experimental-strip-types scripts/mmj-public-work-detail-canonical-four-slot-gallery-r1-test.mjs",
-    "gate:public-work-detail-canonical-four-slot-gallery-r1": "npm run test:public-work-detail-canonical-four-slot-gallery-r1 && node scripts/mmj-public-work-detail-canonical-four-slot-gallery-r1-gate.mjs"
+    "gate:public-work-detail-canonical-four-slot-gallery-r1": "npm run test:public-work-detail-canonical-four-slot-gallery-r1 && node scripts/mmj-public-work-detail-canonical-four-slot-gallery-r1-gate.mjs",
+    "test:public-source-observation-response-r2": "node scripts/mmj-ui29-public-source-observation-response-r2-test.mjs",
+    "gate:public-source-observation-response-r2": "npm run test:public-source-observation-response-r2 && node scripts/mmj-ui29-public-source-observation-response-r2-gate.mjs && node scripts/mmj-ui29-r07-source-observation-async-convergence-closure-r1-gate.mjs && node scripts/public-boundary-gate.mjs"
   },
   "dependencies": {
     "@pinia/nuxt": "0.11.2",
@@ -133,7 +135,8 @@
     "mmjPublicationR07SourceObservationAsyncConvergenceClosureR1PublicRelease": "MMJ-PUBLICATION-R07-SOURCE-OBSERVATION-ASYNC-CONVERGENCE-CLOSURE-R1",
     "mmjPublicConvergenceIdempotentDelivery05Release": "MMJ-PUBLIC-CONVERGENCE-IDEMPOTENT-DELIVERY-05",
     "publicConvergenceExactSnapshot08Release": "PUBLIC-CONVERGENCE-EXACT-SNAPSHOT-08",
-    "mmjAudioArtworkOptionalCompanionPresentationFallbackR16Release": "MMJ-AUDIO-ARTWORK-OPTIONAL-COMPANION-AND-PRESENTATION-FALLBACK-R16"
+    "mmjAudioArtworkOptionalCompanionPresentationFallbackR16Release": "MMJ-AUDIO-ARTWORK-OPTIONAL-COMPANION-AND-PRESENTATION-FALLBACK-R16",
+    "mmjPublicSourceObservationResponseTruthR2Release": "MMJ-PUBLIC-SOURCE-OBSERVATION-RESPONSE-DISPOSITION-TRUTH-R2"
   },
   "mmjPublicR12OptionalAudioArtworkNullableCoverParityR1Release": "MMJ-PUBLIC-R12-OPTIONAL-AUDIO-ARTWORK-AND-NULLABLE-COVER-PARITY-R1",
   "mmjPublicDispatchGenerationReceiptProvenanceAuthorityR1Release": "MMJ-PUBLIC-DISPATCH-GENERATION-RECEIPT-PROVENANCE-AUTHORITY-R1",

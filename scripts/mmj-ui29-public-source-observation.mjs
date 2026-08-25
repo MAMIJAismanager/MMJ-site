@@ -1,4 +1,5 @@
 import { createHash, createHmac, randomUUID } from 'node:crypto'
+import { classifyPublicSourceObservationResponseR2 } from './lib/mmj-ui29-public-source-observation-response-r2.mjs'
 
 const required = name => { const value = process.env[name]; if (!value) throw new Error(`${name} is required.`); return value }
 const integer = name => { const value = Number(required(name)); if (!Number.isSafeInteger(value) || value < 1) throw new Error(`${name} is invalid.`); return value }
@@ -30,7 +31,20 @@ for (let attempt = 1; attempt <= 3; attempt += 1) {
   try {
     const response = await fetch(endpoint, { method: 'POST', signal: AbortSignal.timeout(SOURCE_OBSERVATION_REQUEST_TIMEOUT_MS), headers: { 'content-type': 'application/json', 'x-mmj-public-source-timestamp': timestamp, 'x-mmj-public-source-nonce': nonce, 'x-mmj-public-source-signature': `v1=${signature}` }, body: rawBody })
     const text = await response.text()
-    if (response.ok) { console.log(JSON.stringify({ event: 'PASS_MMJ_PUBLIC_SOURCE_OBSERVATION', afterSha: body.afterSha, attempt })); process.exit(0) }
+    if (response.ok) {
+      let payload
+      try { payload = JSON.parse(text) } catch { throw new Error('E_MMJ_PUBLIC_SOURCE_OBSERVATION_RESPONSE_INVALID:json') }
+      const classified = classifyPublicSourceObservationResponseR2(payload, body.afterSha)
+      console.log(JSON.stringify({
+        event: classified.event,
+        disposition: classified.disposition,
+        afterSha: body.afterSha,
+        currentSourceAuthoritySha: classified.currentSourceAuthoritySha,
+        refreshState: classified.refreshState,
+        attempt,
+      }))
+      process.exit(0)
+    }
     failure = new Error(`HTTP ${response.status} ${text.slice(0, 400)}`)
   } catch (error) { failure = error }
   if (attempt < 3) await new Promise(resolve => setTimeout(resolve, attempt * 1000))
